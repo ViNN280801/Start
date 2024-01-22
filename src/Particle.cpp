@@ -111,19 +111,92 @@ bool ParticleGeneric::isOutOfBounds(aabb::AABB const &bounding_volume) const
           m_boundingBox.upperBound[2] >= bounding_volume.upperBound[2]);
 }
 
-void ParticleGeneric::colide(double xi, double phi, double p_mass, double t_mass)
+void ParticleGeneric::colide(double rand, double p_mass, double t_mass)
 {
-  double x{sin(xi) * cos(phi)},
-      y{sin(xi) * sin(phi)},
-      z{cos(xi)},
-      mass_cp{p_mass / (t_mass + p_mass)},
-      mass_ct{t_mass / (t_mass + p_mass)};
 
-  VelocityVector dir_vec(x, y, z),
-      cm_vel(m_velocity * mass_cp),
-      new_vel(dir_vec * (mass_ct * m_velocity.module()));
+  double mass_cp{p_mass / (t_mass + p_mass)};
+  double mass_ct{t_mass / (t_mass + p_mass)};
+
+  MathVector p_vector = mass_ct*m_velocity;
+  MathVector cm_vel= mass_cp*m_velocity;
+
+  double beta  = acos(p_vector.getZ() / p_vector.module());
+  double gamma = atan2(p_vector.getY(), p_vector.getX());
+
+  MathVector<double> rotation_y[3];
+  rotation_y[0] = MathVector<double>(cos(beta),0.,sin(beta));
+  rotation_y[1] = MathVector<double>(0.,1.,0.);
+  rotation_y[2] = MathVector<double>(-sin(beta),0.,cos(beta));
+
+  MathVector<double> rotation_z[3];
+  rotation_z[0] = MathVector<double>(cos(gamma),-sin(gamma), 0.);
+  rotation_z[1] = MathVector<double>(sin(gamma),cos(gamma), 0.);
+  rotation_z[2] = MathVector<double>(0.       ,0.       , 1.);
+
+  MathVector<double> T_rotation_y[3];
+  T_rotation_y[0] = MathVector<double>(cos(beta),0.,-sin(beta));
+  T_rotation_y[1] = MathVector<double>(0.,1.,0.);
+  T_rotation_y[2] = MathVector<double>(sin(beta),0.,cos(beta));
+
+
+  MathVector<double> T_rotation_z[3];
+  T_rotation_z[0] = MathVector<double>(cos(gamma),sin(gamma),  0.);
+  T_rotation_z[1] = MathVector<double>(-sin(gamma),cos(gamma), 0.);
+  T_rotation_z[2] = MathVector<double>(0.       ,0.       ,  1.);
+
+
+  double components[3]={0};
+  for(int i{0}; i<3 ; i++){
+    components[i]=T_rotation_z[i]*p_vector;
+  }
+  p_vector.setX(components[0]);
+  p_vector.setY(components[1]);
+  p_vector.setZ(components[2]);
+
+
+  //rotation_z
+  for(int i{0}; i<3 ; i++){
+    components[i]=T_rotation_y[i]*p_vector;
+  }
+
+  p_vector.setX(components[0]);
+  p_vector.setY(components[1]);
+  p_vector.setZ(components[2]);
+  //end of the first rotation
+  //beguining algorithm to scatter in new CS
+
+  double phi = rand*2*std::numbers::pi;
+  double cos_xi = 1-2*rand;
+  double sin_xi = sqrt(1-pow(cos_xi,2));
+  double x{sin_xi * cos(phi)};
+  double y{sin_xi * sin(phi)};
+  double z{cos_xi};
+
+  p_vector.setX(x*components[0]);
+  p_vector.setY(y*components[1]);
+  p_vector.setZ(z*components[2]);
+
+  //going back from rotation
+ //
+ for(int i{0}; i<3 ; i++){
+   components[i]=rotation_y[i]*p_vector;
+  }
+  p_vector.setX(components[0]);
+  p_vector.setY(components[1]);
+  p_vector.setZ(components[2]);
+  //std::cout<<"first inverse rotation on y \t"<<a_vector<<"\n"<<a_vector.module()<<"\n";
+
+  //rotation_z
+  for(int i{0}; i<1 ; i++){
+    components[i]=rotation_z[i]*p_vector;
+  }
+  p_vector.setX(components[0]);
+  p_vector.setY(components[1]);
+  p_vector.setZ(components[2]);
 
   // Updating velocity vector of the current particle after collision
   // Updated velocity = [directory vector ⋅ (mass_ct ⋅ |old velocity|)] + (old velocity ⋅ mass_cp)
-  m_velocity = new_vel + cm_vel;
+   m_velocity = p_vector + cm_vel;
+
 }
+

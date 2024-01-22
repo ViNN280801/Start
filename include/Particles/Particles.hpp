@@ -81,7 +81,7 @@ public:
      * @param p_mass The mass of the particle.
      * @param t_mass The mass of the target object.
      */
-    void colide(double xi, double phi, double p_mass, double t_mass);
+    void colide(double rand, double p_mass, double t_mass);
 
     /* === Virtual getters for specific particles like Argon, Beryllium, etc. === */
     /// @return Minimal value of `double` type as a default value.
