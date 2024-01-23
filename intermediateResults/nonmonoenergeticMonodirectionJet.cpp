@@ -25,12 +25,12 @@ std::vector<T> createParticles(size_t count)
     for (size_t i{}; i < count; ++i)
     {
         double scalar{rng.get_double(1, 5)};
-        std::cout << scalar << '\n';
+        //std::cout << scalar << '\n';
         VelocityVector v(Vx, Vy, Vz);
 
-        particles[i] = T(0, 0, 0,
-                         v.getX() * scalar,
-                         v.getY() * scalar,
+        particles[i] = T(0, 50, 50,
+                         0,
+                         0,
                          v.getZ() * scalar);
     }
     return particles;
@@ -50,7 +50,7 @@ int main()
     }
 
     RealNumberGenerator rng;
-    ParticleAluminiumVector p_Al(createParticles<ParticleAluminium>(1'000));
+    ParticleAluminiumVector p_Al(createParticles<ParticleAluminium>(1'000'000));
     ParticleArgon p_Ar;
 
     constexpr int frames{10};
@@ -62,14 +62,15 @@ int main()
     int time_interval(1'000), time_step(100), cur_time{}; // time in [ms]
     while (cur_time < time_interval)
     {
-        for (size_t i{}; i < p_Al.size(); ++i)
+        for (size_t i{}; i < p_Al.size(); ++i){
             p_Al[i].updatePosition(time_step / 50);
+            p_Al[i].colide(rng(), 10,10);}
 
         // Each 100-th iteration - snapshot
         if (cur_time % 100 == 0)
         {
             for (size_t i{}; i < p_Al.size(); ++i)
-                snapshots[snapshot_idx]->Fill(p_Al[i].getX(), p_Al[i].getY(), p_Al[i].getZ());
+                snapshots[snapshot_idx]->Fill(p_Al[i].getZ(), p_Al[i].getY(), p_Al[i].getX());
             ++snapshot_idx;
         }
 

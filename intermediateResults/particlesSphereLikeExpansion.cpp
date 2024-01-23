@@ -20,18 +20,13 @@ std::vector<T> createParticles(size_t count)
 
     for (size_t i{}; i < count; ++i)
     {
-        double x{rng.get_double(-1, 1)},
-            theta{acos(x)},
-            phi{rng.get_double(0, 2 * std::numbers::pi)};
 
-        particles[i] = T(50, 50, 50,
-                         sin(theta) * cos(phi),
-                         sin(theta) * sin(phi),
-                         cos(theta));
+        particles[i] = T(50, 50, 0,
+                         0,0,2674.8237375287363);
     }
     return particles;
 }
-
+using std::cout;
 int main()
 {
     std::string root_file{std::source_location::current().file_name()};
@@ -48,6 +43,9 @@ int main()
     RealNumberGenerator rng;
     ParticleAluminiumVector p_Al(createParticles<ParticleAluminium>(1'000'000));
     ParticleArgon p_Ar;
+    double sigma =4.5616710728287193E-20;
+    
+    double n_concentration = 3.7406783738272796e+20;
 
     constexpr int frames{10};
     std::array<TH3D *, frames> snapshots;
@@ -55,24 +53,28 @@ int main()
         snapshots[i] = new TH3D(Form("volume_snapshot_%d", i), Form("Snapshot %d", i), 50, 0, 100, 50, 0, 100, 50, 0, 100);
 
     int snapshot_idx{};
-    int time_interval(1'000), time_step(100), cur_time{}; // time in [ms]
+    int time_interval(10E-6), time_step(1E-6), cur_time{}; // time in [ms]
     while (cur_time < time_interval)
     {
         for (size_t i{}; i < p_Al.size(); ++i)
         {
-            p_Al[i].updatePosition(time_step / 50);
-            if (rng() < 0.5)
-                p_Al[i].colide(rng.get_double(0, std::numbers::pi), rng.get_double(0, 2 * std::numbers::pi),
-                               p_Al[0].getMass(), p_Ar.getMass());
+            std::cout<<p_Al[i].getX()<<"\t"<< p_Al[i].getY()<<"\t"<< p_Al[i].getZ()<<"\n";
+
+            p_Al[i].updatePosition(time_step);
+            double prob =  sigma*p_Al[i].getVelocityModule()*n_concentration*time_step ;
+            cout<<prob<<"\n";
+            if (rng() <prob )
+                p_Al[i].colide(rng(), p_Al[0].getMass(), p_Ar.getMass());
         }
 
         // Each 100-th iteration - snapshot
-        if (cur_time % 100 == 0)
-        {
-            for (size_t i{}; i < p_Al.size(); ++i)
-                snapshots[snapshot_idx]->Fill(p_Al[i].getX(), p_Al[i].getY(), p_Al[i].getZ());
+        //if (cur_time % 100 == 0)
+        //{
+            for (size_t i{}; i < p_Al.size(); ++i){
+              std::cout<<p_Al[i].getX()<<"\t"<< p_Al[i].getY()<<"\t"<< p_Al[i].getZ()<<"\n";
+                snapshots[snapshot_idx]->Fill(p_Al[i].getX(), p_Al[i].getY(), p_Al[i].getZ());}
             ++snapshot_idx;
-        }
+        //}
 
         cur_time += time_step;
     }
