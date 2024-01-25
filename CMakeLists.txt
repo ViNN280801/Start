@@ -7,6 +7,7 @@ project(Start
         LANGUAGES CXX)
 
 find_package(Boost REQUIRED)
+find_package(TBB REQUIRED)
 
 execute_process(
     COMMAND root-config --cflags --glibs
@@ -14,7 +15,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-set(CMAKE_CXX_FLAGS "-Wall -Wpedantic -Wextra -laabb -O2 ${ROOT_FLAGS}")
+set(CMAKE_CXX_FLAGS "-Wall -Wpedantic -Wextra -lpthread -O3 ${ROOT_FLAGS}")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -29,6 +30,8 @@ set(SOURCES
     src/Settings.cpp
     src/HDF5Handler.cpp
     src/VolumeCreator.cpp
+    src/RayTriangleIntersection.cpp
+    src/Timer.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include
@@ -39,4 +42,4 @@ include_directories(${CMAKE_SOURCE_DIR}/include
 add_executable(main ${SOURCES})
 
 set_target_properties(main PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")
-target_link_libraries(main PRIVATE aabb hdf5 gmsh gmp ${Boost_LIBRARIES} mpfr)
+target_link_libraries(main PRIVATE TBB::tbb aabb hdf5 gmsh gmp ${Boost_LIBRARIES} mpfr)

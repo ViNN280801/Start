@@ -1,11 +1,19 @@
 #ifndef SETTINGS_HPP
 #define SETTINGS_HPP
 
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/intersections.h>
+
 #include <concepts>
 #include <filesystem>
 #include <source_location>
 #include <sstream>
 #include <string_view>
+
+using Kernel = CGAL::Exact_predicates_exact_constructions_kernel;
+using Point3 = Kernel::Point_3;
+using Ray3 = Kernel::Ray_3;
+using Triangle3 = Kernel::Triangle_3;
 
 #define ERRMSG_ABS_PATH(desc) std::cerr << std::format("\033[1;31mERROR:\033[0m\033[1m {}: {}({} line): {}: \033[1;31m{}\033[0m\033[1m\n", \
                                                        settings::getCurTime(),                                                             \
@@ -71,15 +79,6 @@ namespace settings
         std::ostringstream oss;
         (oss << ... << args);
         return oss.str();
-    }
-
-    namespace physical_constants
-    {
-        static constinit const double R{8.314};              // [J/k*mol]
-        static constinit const double T{300};                // [k]
-        static constinit const double N_av{6.22e23};         // Avogadro number
-        static constinit const double eV_J{1.602176565e-19}; // Conversion factor of eV to J
-        static constinit const double J_eV{6.242e+18};       // Conversion factor of J to eV
     }
 }
 
