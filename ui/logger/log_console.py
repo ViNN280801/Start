@@ -106,11 +106,25 @@ class LogConsole(QWidget):
         cursor.movePosition(cursor.End)
         self.log_console.setTextCursor(cursor)
         default_format = QTextCharFormat()
-        cursor.mergeCharFormat(default_format)
+        self.log_console.setCurrentCharFormat(default_format)
         
         
     def appendLog(self, message):
         self.log_console.appendPlainText(str(message))
+        
+    
+    def printError(self, message):
+        self.log_console.insert_colored_text("Error: ", "red")
+        self.appendLog(message)
+    
+    
+    def printWarning(self, message):
+        self.log_console.insert_colored_text("Warning: ", "yellow")
+        self.appendLog(message)
+        
+        
+    def printInfo(self, message):
+        self.appendLog("Info: " + message)
         
         
     def handle_command(self):

@@ -1,9 +1,10 @@
 import gmsh, tempfile
+from math import pi
 from os import remove
 from vtk import (
     vtkRenderer, vtkPolyData, vtkPolyDataWriter, vtkAppendPolyData,
     vtkPolyDataReader, vtkPolyDataMapper, vtkActor, vtkPolyDataWriter,
-    vtkUnstructuredGrid, vtkGeometryFilter
+    vtkUnstructuredGrid, vtkGeometryFilter, vtkTransform
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -23,6 +24,7 @@ DEFAULT_TEMP_MESH_FILE = 'temp.msh'
 DEFAULT_TEMP_VTK_FILE = 'temp.vtk'
 DEFAULT_TEMP_HDF5_FILE = 'temp.hdf5'
 DEFAULT_TEMP_CONFIG_FILE = 'temp_config.json'
+DEFAULT_TEMP_FILE_FOR_PARTICLE_SOURCE_AND_THETA = 'sourceAndDirection.txt'
 
 DEFAULT_COUNT_OF_PROJECT_FILES = 3
 
@@ -647,7 +649,6 @@ class ShortcutsInfoDialog(QDialog):
         
         table.resizeColumnsToContents()
         layout.addWidget(table)
-        
 
 class AxisSelectionDialog(QDialog):
     def __init__(self, parent=None):
@@ -669,13 +670,48 @@ class AxisSelectionDialog(QDialog):
     def getSelectedAxis(self):
         return self.axisComboBox.currentText()
 
+class ExpansionAngleDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Set Expansion Angle")
+
+        layout = QVBoxLayout(self)
+
+        self.theta_input = QLineEdit(self)
+        self.theta_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
+        layout.addWidget(QLabel("Expansion angle θ (in degrees °)"))
+        layout.addWidget(self.theta_input)
+
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        
+        layout.addWidget(self.buttons)
+    
+    def getTheta(self):
+        theta_str = self.theta_input.text()
+        if not is_positive_real_number(theta_str):
+            QMessageBox.warning(self, "Invalid Input", f"{self.theta_input.text()} isn't a positive real number")
+            return None
+        
+        # Converting degrees str to float number.
+        theta = float(theta_str)
+        
+        # Removing cycles from the degrees.
+        if theta > 360:
+            cycles = theta / 360.
+            theta = theta - 360 * cycles
+        
+        # Converting to rad.
+        theta = theta * pi / 180.
+        return theta
 
 def align_view_by_axis(axis: str, renderer: vtkRenderer, vtkWidget: QVTKRenderWindowInteractor):
     axis = axis.strip().lower()
-        
+
     if axis not in ['x', 'y', 'z', 'center']:
         return
-      
+    
     camera = renderer.GetActiveCamera()
     if axis == 'x':
         camera.SetPosition(1, 0, 0)
@@ -878,3 +914,42 @@ def remove_temp_files():
     remove_temp_files_helper(DEFAULT_TEMP_VTK_FILE)
     remove_temp_files_helper(DEFAULT_TEMP_HDF5_FILE)
     
+def extract_transform_from_actor(actor: vtkActor):
+    matrix = actor.GetMatrix()
+    
+    transform = vtkTransform()
+    transform.SetMatrix(matrix)
+    
+    return transform
+
+def calculate_direction(base, tip):
+    from numpy import array, linalg
+    
+    base = array(base)
+    tip = array(tip)
+    
+    direction = tip - base
+    
+    norm = linalg.norm(direction)
+    if norm == 0:
+        raise ValueError("The direction vector cannot be zero.")
+    direction /= norm
+    
+    return direction
+
+def calculate_thetaPhi(base, tip):
+    from numpy import arctan2, arccos
+    
+    direction = calculate_direction(base, tip)
+    x, y, z = direction[0], direction[1], direction[2]
+    
+    theta = arccos(z)
+    phi = arctan2(y, x)
+    
+    return theta, phi
+
+def rad_to_degree(angle: float):
+    return angle * 180. / pi
+
+def degree_to_rad(angle: float):
+    return angle * pi / 180.

@@ -3,7 +3,7 @@ from numpy import cross
 from os import rename
 from os.path import isfile, exists, basename, split
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
+from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera, vtkInteractorStyleTrackballActor
 from vtkmodules.vtkFiltersGeneral import vtkBooleanOperationPolyDataFilter
 from PyQt5.QtGui import QStandardItem, QIcon
 from PyQt5.QtCore import QSize
@@ -12,7 +12,8 @@ from vtk import(
     vtkCellArray, vtkPolyDataMapper, vtkActor, vtkSphereSource, vtkUnstructuredGrid,
     vtkCylinderSource, vtkAxesActor, vtkOrientationMarkerWidget, vtkCellTypes,
     vtkGenericDataObjectReader, vtkDataSetMapper, vtkCellPicker, vtkDelaunay2D,
-    vtkCubeSource, vtkCleanPolyData, vtkPlane, vtkClipPolyData,
+    vtkCubeSource, vtkCleanPolyData, vtkPlane, vtkClipPolyData, vtkTransform, 
+    vtkTransformPolyDataFilter, vtkArrowSource,
     VTK_TRIANGLE, VTK_QUAD
 )
 from PyQt5.QtWidgets import(
@@ -25,16 +26,18 @@ from PyQt5.QtGui import QCursor, QStandardItemModel
 from .util import(
     PointDialog, LineDialog, SurfaceDialog, 
     SphereDialog, BoxDialog, CylinderDialog,
-    AngleDialog, MoveActorDialog, AxisSelectionDialog
+    AngleDialog, MoveActorDialog, AxisSelectionDialog,
+    ExpansionAngleDialog, pi
 )
 from util.util import(
     align_view_by_axis, save_scene, load_scene, convert_msh_to_vtk, 
     get_polydata_from_actor, write_vtk_polydata_to_file,
-    convert_vtkUnstructuredGrid_to_vtkPolyData,
-    DEFAULT_TEMP_MESH_FILE
+    convert_vtkUnstructuredGrid_to_vtkPolyData, extract_transform_from_actor,
+    calculate_thetaPhi, degree_to_rad, rad_to_degree,
+    DEFAULT_TEMP_MESH_FILE, DEFAULT_TEMP_FILE_FOR_PARTICLE_SOURCE_AND_THETA
 )
 from .mesh_dialog import MeshDialog
-from .styles import DEFAULT_ACTOR_COLOR, SELECTED_ACTOR_COLOR
+from .styles import DEFAULT_ACTOR_COLOR, SELECTED_ACTOR_COLOR, ARROW_ACTOR_COLOR
 from logger.log_console import LogConsole
 
 
@@ -84,6 +87,8 @@ class GraphicalEditor(QFrame):
         self.crossSectionLinePoints = []  # To store points for the cross-section line
         self.isDrawingLine = False        # To check if currently drawing the line
         self.tempLineActor = None         # Temporary actor for the line visualization
+        
+        self.particleSourceArrowActor = None
         
     
     def initialize_tree(self):
@@ -219,6 +224,7 @@ class GraphicalEditor(QFrame):
         self.unionObjectsButton = self.create_button('icons/union.png', 'Combine (union) objects')
         self.intersectObjectsButton = self.create_button('icons/intersection.png', 'Intersection of two objects')
         self.crossSectionButton = self.create_button('icons/cross-section.png', 'Cross section of the object')
+        self.directParticleButton = self.create_button('icons/particle-source-direction.png', 'Set particle source and direction of this source')
         
         self.spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.toolbarLayout.addSpacerItem(self.spacer)
@@ -240,6 +246,7 @@ class GraphicalEditor(QFrame):
         self.unionObjectsButton.clicked.connect(self.combine_button_clicked)
         self.intersectObjectsButton.clicked.connect(self.intersection_button_clicked)
         self.crossSectionButton.clicked.connect(self.cross_section_button_clicked)
+        self.directParticleButton.clicked.connect(self.activate_particle_direction_mode)
 
     def setup_ui(self):
         self.vtkWidget = QVTKRenderWindowInteractor(self)
@@ -285,7 +292,7 @@ class GraphicalEditor(QFrame):
             
             self.add_actor(actor)
             self.update_tree_model('Point', f'Point: ({x}, {y}, {z})', actor)
-            self.log_console.appendLog(f'Successfully created point: ({x}, {y}, {z})')
+            self.log_console.printInfo(f'Successfully created point: ({x}, {y}, {z})\n')
             
     def create_line(self):
         dialog = LineDialog(self)
@@ -325,7 +332,7 @@ class GraphicalEditor(QFrame):
             line_str = 'Line'
             tmp = '\n'.join(points_str_list)
             self.update_tree_model(line_str, tmp, actor)
-            self.log_console.appendLog(f'Successfully created line:\n{tmp}')
+            self.log_console.printInfo(f'Successfully created line:\n{tmp}\n')
 
     
     def create_surface(self):
@@ -378,7 +385,7 @@ class GraphicalEditor(QFrame):
                 surface_str = 'Surface'
                 tmp = '\n'.join(points_str_list)
                 self.update_tree_model(surface_str, tmp, actor)
-                self.log_console.appendLog(f'Successfully created surface:\n{tmp}')
+                self.log_console.printInfo(f'Successfully created surface:\n{tmp}\n')
             
 
     def create_surface_with_gmsh(self, points, mesh_size):
@@ -496,7 +503,7 @@ class GraphicalEditor(QFrame):
             center_str = 'Sphere'
             tmp = '\n'.join(sphere_data_str)
             self.update_tree_model(center_str, tmp, actor)
-            self.log_console.appendLog(f'Successfully created sphere:\n{tmp}')
+            self.log_console.printInfo(f'Successfully created sphere:\n{tmp}\n')
 
 
     def create_box(self):
@@ -548,7 +555,7 @@ class GraphicalEditor(QFrame):
             box_str = 'Box'
             tmp = '\n'.join(box_data_str)
             self.update_tree_model(box_str, tmp, actor)
-            self.log_console.appendLog(f'Successfully created box:\n{tmp}')
+            self.log_console.printInfo(f'Successfully created box:\n{tmp}\n')
 
 
     def create_cylinder(self):
@@ -600,7 +607,7 @@ class GraphicalEditor(QFrame):
             cylinder_str = 'Cylinder'
             tmp = '\n'.join(cylinder_data_str)
             self.update_tree_model(cylinder_str, tmp, actor)
-            self.log_console.appendLog(f'Successfully created cylinder:\n{tmp}')
+            self.log_console.printInfo(f'Successfully created cylinder:\n{tmp}\n')
             
     
     def upload_custom(self):
@@ -636,7 +643,7 @@ class GraphicalEditor(QFrame):
                 QMessageBox.critical(self, "Error", "Dialog was closed by user. Invalid mesh size or mesh dimensions.")
         elif file_name.endswith('.msh') or file_name.endswith('.vtk'):
             self.add_custom(file_name)
-            self.log_console.appendLog(f'Successfully uploaded custom object from {file_name}')
+            self.log_console.printInfo(f'Successfully uploaded custom object from {file_name}\n')
             
             
     
@@ -1032,14 +1039,23 @@ class GraphicalEditor(QFrame):
 
     def on_key_press(self, obj, event):
         key = self.interactor.GetKeySym()
-        if key == 'Escape' and self.selected_actor:
-            self.deselect()            
-        elif key == 'Enter' and self.selected_actor:
-            self.interactorStyle.OnRotate()
+        if key == 'Escape':
+            self.interactorStyle = vtkInteractorStyleTrackballCamera()
+            self.interactor.SetInteractorStyle(self.interactorStyle)
+            self.setup_interaction()
+            self.deselect()
         elif key == 'Delete' or key == 'BackSpace':
             if self.selected_actor:
                 self.remove_object_with_restore(self.selected_actor)
                 self.selected_actor = None
+        
+        # C - controlling the object.
+        if key == 'c' or key == 'C':
+            if self.selected_actor:
+                self.interactorStyle = vtkInteractorStyleTrackballActor()
+                self.interactor.SetInteractorStyle(self.interactorStyle)
+                self.deselect()
+        
         self.interactorStyle.OnKeyPress()
     
     def align_view_by_axis(self, axis: str):
@@ -1191,8 +1207,7 @@ class GraphicalEditor(QFrame):
 
             return actor
         except Exception as e:
-            self.log_console.insert_colored_text("Error: ", "red")
-            self.log_console.appendLog(str(e))
+            self.log_console.printError(str(e) + '\n')
             return None        
     
     def subtract_objects(self, obj_from: vtkActor, obj_to: vtkActor):
@@ -1279,4 +1294,132 @@ class GraphicalEditor(QFrame):
         self.add_actor_and_row(actor1)
         self.add_actor_and_row(actor2)
         
-        self.log_console.appendLog("Created a cross-section.")
+        self.log_console.printInfo("Successfully created a cross-section\n")
+    
+    
+    def writeParticleSouceAndDirectionToFile(self):
+        try:
+            base_coords = self.getParticleSourceBaseCoords()
+            if base_coords is None:
+                self.log_console.printError("Base coordinates are not defined")
+                raise ValueError("Base coordinates are not defined")
+
+            if not self.theta_angle:
+                self.log_console.printError("Expansion angle θ is undefined")
+                raise ValueError("Expansion angle θ is undefined")
+
+            if self.getParticleSourceDirection() is None:
+                return
+            thetaDirectionVector, phi = self.getParticleSourceDirection()
+            
+            if phi is None:
+                self.log_console.printError("Can't define φ angle")
+                raise ValueError("Can't define φ angle")
+
+            with open(DEFAULT_TEMP_FILE_FOR_PARTICLE_SOURCE_AND_THETA, "w") as f:
+                f.write(f"{base_coords[0]} {base_coords[1]} {base_coords[2]} {self.theta_angle} {phi} {thetaDirectionVector}")
+            
+            self.statusBar.showMessage("Successfully set particle source and calculated direction angles")
+            self.log_console.printInfo(f"Successfully written coordinates of the particle source:\nBase: {base_coords}\nUser's θ: {self.theta_angle} ({rad_to_degree(self.theta_angle)} °)\nθ: {thetaDirectionVector} ({rad_to_degree(thetaDirectionVector)} °)\nφ: {phi}{rad_to_degree(phi)} °)\n")
+            
+            self.resetParticleSourceArrow()
+
+        except Exception as e:
+            error_message = f"Error defining particle source. {e}"
+            self.log_console.printError(error_message)
+            QMessageBox.warning(self, "Particle Source", error_message)
+
+        
+    def resetParticleSourceArrow(self):
+        self.remove_actor(self.particleSourceArrowActor)
+        self.particleSourceArrowActor = None
+        
+        
+    def getParticleSourceBaseCoords(self):
+        if not self.particleSourceArrowActor:
+            return None
+        return self.particleSourceArrowActor.GetPosition()
+    
+    
+    def getParticleSourceArrowTipCoords(self):
+        if not self.particleSourceArrowActor:
+            return
+        
+        transform = extract_transform_from_actor(self.particleSourceArrowActor)
+        init_tip_coords = [0, 0, 1]
+        global_tip_coords = transform.TransformPoint(init_tip_coords)
+        
+        return global_tip_coords
+    
+    def getParticleSourceDirection(self):
+        if not self.particleSourceArrowActor:
+            return
+    
+        base_coords = self.getParticleSourceBaseCoords()
+        tip_coords = self.getParticleSourceArrowTipCoords()
+        
+        try:
+            theta, phi = calculate_thetaPhi(base_coords, tip_coords)
+        except Exception as e:
+            self.log_console.printError(f"An error occured when calculating θ and φ: {e}")
+            QMessageBox.warning(self, "Invalid Angles", f"An error occured when calculating θ and φ: {e}")
+            return None
+        
+        return theta, phi
+    
+    def activate_particle_direction_mode(self):
+        if not self.particleSourceArrowActor:
+            self.particleSourceArrowActor = self.create_direction_arrow()
+        
+        dialog = ExpansionAngleDialog(self)
+        if dialog.exec_() == QDialog.Accepted and dialog.getTheta() is not None:
+            try:
+                thetaMax = dialog.getTheta()
+                
+                if self.getParticleSourceDirection() is None:
+                    return
+                _, phi = self.getParticleSourceDirection()
+                
+                if thetaMax > pi / 2.:
+                    self.log_console.printWarning(f"The θ angle exceeds 90°, so some particles can fly in the opposite direction\nθ = {thetaMax} ({thetaMax * 180. / pi}°)")    
+                self.log_console.printInfo(f"Successfully assigned values to the expansion angle and calculated φ angle\nθ = {thetaMax} ({thetaMax * 180. / pi}°)\nφ = {phi} ({phi * 180. / pi}°)\n")
+            
+            except Exception as e:
+                QMessageBox.critical(self, "Scattering angles", f"Exception while assigning expansion angle θ: {e}")
+                self.log_console.printError(f"Exception while assigning expansion angle θ: {e}\n")
+                return
+
+            self.theta_angle = thetaMax
+        else:
+            self.resetParticleSourceArrow()
+            
+ 
+    def create_direction_arrow(self):
+        arrowSource = vtkArrowSource()
+        arrowSource.SetTipLength(0.25)
+        arrowSource.SetTipRadius(0.1)
+        arrowSource.SetShaftRadius(0.01)
+        arrowSource.Update()
+        arrowSource.SetTipResolution(100)
+
+        arrowTransform = vtkTransform()
+        arrowTransform.RotateX(90)
+        arrowTransform.RotateWXYZ(90, 0, 0, 1) # Initial direction by Z-axis.
+        arrowTransform.Scale(50, 50, 50)
+        arrowTransformFilter = vtkTransformPolyDataFilter()
+        arrowTransformFilter.SetTransform(arrowTransform)
+        arrowTransformFilter.SetInputConnection(arrowSource.GetOutputPort())
+        arrowTransformFilter.Update()
+
+        mapper = vtkPolyDataMapper()
+        mapper.SetInputConnection(arrowTransformFilter.GetOutputPort())
+        
+        arrowActor = vtkActor()
+        arrowActor.SetMapper(mapper)
+        arrowActor.GetProperty().SetColor(ARROW_ACTOR_COLOR)
+        
+        self.renderer.AddActor(arrowActor)
+        self.renderer.ResetCamera()
+        self.vtkWidget.GetRenderWindow().Render()
+
+        return arrowActor
