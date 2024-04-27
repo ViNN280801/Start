@@ -1,140 +1,178 @@
+#include <array>
 #include <chrono>
 #include <sstream>
 #include <sys/stat.h>
+#include <system_error>
+#include <utility>
+#include <vector>
 
 #include "../include/Generators/RealNumberGenerator.hpp"
 #include "../include/Utilities/ConfigParser.hpp"
 #include "../include/Utilities/Utilities.hpp"
 
-std::string util::getCurTime(std::string_view format)
-{
-    std::chrono::system_clock::time_point tp{std::chrono::system_clock::now()};
-    time_t tt{std::chrono::system_clock::to_time_t(tp)};
-    tm *t{localtime(&tt)};
-    std::stringstream ss;
-    ss << std::put_time(t, std::string(format).c_str());
-    return ss.str();
+std::string util::getCurTime(std::string_view format) {
+  std::chrono::system_clock::time_point tp{std::chrono::system_clock::now()};
+  time_t tt{std::chrono::system_clock::to_time_t(tp)};
+  tm *t{localtime(&tt)};
+  std::stringstream ss;
+  ss << std::put_time(t, std::string(format).c_str());
+  return ss.str();
 }
 
-std::string util::getStatusName(int status)
-{
-    switch (status)
-    {
-    case -15:
-        return "BAD_MSHFILE";
-    case -14:
-        return "JSON_BAD_PARSE";
-    case -13:
-        return "JSON_BAD_PARAM";
-    case -12:
-        return "BAD_PARTICLE_COUNT";
-    case -11:
-        return "BAD_THREAD_COUNT";
-    case -10:
-        return "BAD_TIME_STEP";
-    case -9:
-        return "BAD_SIMTIME";
-    case -8:
-        return "BAD_VOLUME";
-    case -7:
-        return "BAD_PRESSURE";
-    case -6:
-        return "BAD_TEMPERATURE";
-    case -5:
-        return "BAD_ENERGY";
-    case -4:
-        return "BAD_MODEL";
-    case -3:
-        return "UNKNOWN_PARTICLES";
-    case -2:
-        return "BAD_PARTICLES_FORMAT";
-    case -1:
-        return "BAD_FILE";
-    case 0:
-        return "EMPTY_STR";
-    case 1:
-        return "STATUS_OK";
-    default:
-        return "UNKNOWN_ERROR";
-    }
+std::string util::getStatusName(int status) {
+  switch (status) {
+  case -15:
+    return "BAD_MSHFILE";
+  case -14:
+    return "JSON_BAD_PARSE";
+  case -13:
+    return "JSON_BAD_PARAM";
+  case -12:
+    return "BAD_PARTICLE_COUNT";
+  case -11:
+    return "BAD_THREAD_COUNT";
+  case -10:
+    return "BAD_TIME_STEP";
+  case -9:
+    return "BAD_SIMTIME";
+  case -8:
+    return "BAD_VOLUME";
+  case -7:
+    return "BAD_PRESSURE";
+  case -6:
+    return "BAD_TEMPERATURE";
+  case -5:
+    return "BAD_ENERGY";
+  case -4:
+    return "BAD_MODEL";
+  case -3:
+    return "UNKNOWN_PARTICLES";
+  case -2:
+    return "BAD_PARTICLES_FORMAT";
+  case -1:
+    return "BAD_FILE";
+  case 0:
+    return "EMPTY_STR";
+  case 1:
+    return "STATUS_OK";
+  default:
+    return "UNKNOWN_ERROR";
+  }
 }
 
-ParticleType util::getParticleTypeFromStrRepresentation(std::string_view particle)
-{
-    if (particle == "Ar")
-        return Ar;
-    else if (particle == "Ne")
-        return Ne;
-    else if (particle == "He")
-        return He;
-    else if (particle == "Ti")
-        return Ti;
-    else if (particle == "Al")
-        return Al;
-    else if (particle == "Sn")
-        return Sn;
-    else if (particle == "W")
-        return W;
-    else if (particle == "Au")
-        return Au;
-    else if (particle == "Cu")
-        return Cu;
-    else if (particle == "Ni")
-        return Ni;
-    else if (particle == "Ag")
-        return Ag;
-    else
-        return Unknown;
+ParticleType
+util::getParticleTypeFromStrRepresentation(std::string_view particle) {
+  if (particle == "Ar")
+    return Ar;
+  else if (particle == "Ne")
+    return Ne;
+  else if (particle == "He")
+    return He;
+  else if (particle == "Ti")
+    return Ti;
+  else if (particle == "Al")
+    return Al;
+  else if (particle == "Sn")
+    return Sn;
+  else if (particle == "W")
+    return W;
+  else if (particle == "Au")
+    return Au;
+  else if (particle == "Cu")
+    return Cu;
+  else if (particle == "Ni")
+    return Ni;
+  else if (particle == "Ag")
+    return Ag;
+  else
+    return Unknown;
 }
 
-std::string util::getParticleType(ParticleType ptype)
-{
-    switch (ptype)
-    {
-    case Ar:
-        return "Ar";
-    case Ne:
-        return "Ne";
-    case He:
-        return "He";
-    case Ti:
-        return "Ti";
-    case Al:
-        return "Al";
-    case Sn:
-        return "Sn";
-    case W:
-        return "W";
-    case Au:
-        return "Au";
-    case Ni:
-        return "Ni";
-    case Ag:
-        return "Ag";
-    default:
-        return "Unknown";
-    }
+std::string util::getParticleType(ParticleType ptype) {
+  switch (ptype) {
+  case Ar:
+    return "Ar";
+  case Ne:
+    return "Ne";
+  case He:
+    return "He";
+  case Ti:
+    return "Ti";
+  case Al:
+    return "Al";
+  case Sn:
+    return "Sn";
+  case W:
+    return "W";
+  case Au:
+    return "Au";
+  case Ni:
+    return "Ni";
+  case Ag:
+    return "Ag";
+  default:
+    return "Unknown";
+  }
 }
 
-double util::calculateConcentration(std::string_view config)
-{
-    ConfigParser parser(config);
-    if (parser.isInvalid())
-        return -1.0;
+double util::calculateConcentration(std::string_view config) {
+  ConfigParser parser(config);
+  if (parser.isInvalid())
+    return -1.0;
 
-    // n = PV/RT * N_Avogadro
-    return parser.getPressure() * parser.getVolume() * constants::physical_constants::N_av /
-           (parser.getTemperature() * constants::physical_constants::R);
+  // n = PV/RT * N_Avogadro
+  return parser.getPressure() * parser.getVolume() *
+         constants::physical_constants::N_av /
+         (parser.getTemperature() * constants::physical_constants::R);
 }
 
-bool util::exists(std::string_view filename)
-{
+bool util::exists(std::string_view filename) {
 #ifdef __unix__
-    struct stat buf;
-    return (stat(filename.data(), std::addressof(buf)) == 0);
+  struct stat buf;
+  return (stat(filename.data(), std::addressof(buf)) == 0);
 #endif
 #ifdef _WIN32
-    struct _stat buf;
-    return (_stat(filename.data(), std::addressof(buf)) == 0);
+  struct _stat buf;
+  return (_stat(filename.data(), std::addressof(buf)) == 0);
 #endif
+}
+std::array<double, 3> E_field(std::array<std::array<double, 4>, 4> coords) {
+  // array of 4 points with x,y,z,Field Val
+  std::pair<int, int> x_coords_diff;
+  std::pair<int, int> y_coords_diff;
+  std::pair<int, int> z_coords_diff;
+
+  for (int i{}; i < 4; i++) {
+    for (int j{}; j < 4; j++) {
+      double x_max_diff{0}, y_max_diff{0}, z_max_diff{0};
+
+      double x_diff = coords[i][1] - coords[j][1];
+      double y_diff = coords[i][2] - coords[j][2];
+      double z_diff = coords[i][3] - coords[j][3];
+      if (x_diff > x_max_diff) {
+        x_max_diff = x_diff;
+        x_coords_diff = std::make_pair(i, j);
+      }
+      if (y_diff > y_max_diff) {
+        y_max_diff = y_diff;
+        y_coords_diff = std::make_pair(i, j);
+      }
+      if (z_diff > z_max_diff) {
+        z_max_diff = z_diff;
+        z_coords_diff = std::make_pair(i, j);
+      }
+    }
+  }
+  std::array<double, 3> E;
+  E[0] = -1 *
+         (coords[x_coords_diff.first][0] - coords[x_coords_diff.second][0]) /
+         (coords[x_coords_diff.first][3] - coords[x_coords_diff.second][3]);
+  E[1] = -1 *
+         (coords[y_coords_diff.first][1] - coords[y_coords_diff.second][1]) /
+         (coords[y_coords_diff.first][3] - coords[y_coords_diff.second][3]);
+  E[2] = -1 *
+         (coords[z_coords_diff.first][2] - coords[z_coords_diff.second][2]) /
+         (coords[z_coords_diff.first][3] - coords[z_coords_diff.second][3]);
+
+  return E;
 }
