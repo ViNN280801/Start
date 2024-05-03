@@ -233,7 +233,7 @@ DynRankView GSMatrixAssemblier::_computeTetrahedronBasisFunctionGradients()
                   << __PRETTY_FUNCTION__ << '\n';
         for (short i{}; i < _countBasisFunctions; ++i)
         {
-            std::cout << std::format("φ_{}\n", i);
+            std::cout << std::format("∇φ_{}\n", i);
             for (short j{}; j < _countCubPoints; ++j)
             {
                 for (short k{}; k < _spaceDim; k++)
@@ -362,7 +362,7 @@ DynRankView GSMatrixAssemblier::_computeTetrahedronBasisFunctionGradientsTransfo
             std::cout << std::format("Tetrahedron[{}]\n", i);
             for (short j{}; j < _countBasisFunctions; ++j)
             {
-                std::cout << std::format("φ_{}: ", j);
+                std::cout << std::format("∇φ_{}: ", j);
                 for (short k{}; k < _countCubPoints; ++k)
                     std::cout << transformedBasisGradients(i, j, k) << ' ';
                 std::endl(std::cout);
@@ -692,12 +692,11 @@ void GSMatrixAssemblier::setBoundaryConditions(std::map<LocalOrdinal, Scalar> co
         m_gsmatrix->resumeFill();
 
         // 2. Setting boundary conditions to global stiffness matrix:
-        int DOF_per_node{m_polynomOrder};
         for (auto const &[nodeInGmsh, value] : boundaryConditions)
         {
-            for (int j{}; j < DOF_per_node; ++j)
+            for (int j{}; j < m_polynomOrder; ++j)
             {
-                LocalOrdinal nodeID{(nodeInGmsh - 1) * DOF_per_node + j};
+                LocalOrdinal nodeID{(nodeInGmsh - 1) * m_polynomOrder + j};
 
                 if (nodeID >= static_cast<LocalOrdinal>(rows()))
                     throw std::runtime_error(util::stringify("Boundary condition refers to node index ",
