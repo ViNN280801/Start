@@ -124,6 +124,14 @@ public:
     getIntersectionPoint(Ray &&ray, MeshTriangleParam &&triangle) { return getIntersectionPointImpl(std::move(ray), std::move(triangle)); }
 
     /**
+     * @brief Checker for point inside the tetrahedron.
+     * @param point `Point_3` from CGAL.
+     * @param tetrahedron `Tetrahedron_3` from CGAL.
+     * @return `true` if point within the tetrahedron, otherwise `false`.
+     */
+    static bool isPointInsideTetrahedron(Point const &point, MeshTetrahedronParam const &meshParam);
+
+    /**
      * @brief Calculates volume value from the specified mesh file.
      * @param msh_filename The filename of the Gmsh .msh file to parse.
      * @return Volume value.
@@ -136,6 +144,13 @@ public:
      * @return Map with key = tetrahedron's ID, value = list of nodes inside.
      */
     static std::map<size_t, std::vector<size_t>> getTetrahedronNodesMap(std::string_view msh_filename);
+
+    /**
+     * @brief Map for global mesh nodes with all neighbour tetrahedrons.
+     * @param msh_filename Mesh file.
+     * @return Map with key = node ID, value = list of neighbour tetrahedrons to this node.
+     */
+    static std::map<size_t, std::vector<size_t>> getNodeTetrahedronsMap(std::string_view msh_filename);
 
     /**
      * @brief Retrieves node coordinates from a mesh file. Useful for visualization and FEM calculations.

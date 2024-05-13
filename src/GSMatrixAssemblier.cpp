@@ -688,7 +688,7 @@ bool GSMatrixAssemblier::empty() const { return m_gsmatrix->getGlobalNumEntries(
 
 Scalar GSMatrixAssemblier::getValueFromGSM(GlobalOrdinal row, GlobalOrdinal col) const { return getValueFromMatrix(m_gsmatrix, row, col); }
 
-void GSMatrixAssemblier::setBoundaryConditions(std::map<LocalOrdinal, Scalar> const &boundaryConditions)
+void GSMatrixAssemblier::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions)
 {
     if (boundaryConditions.empty())
     {
@@ -712,9 +712,9 @@ void GSMatrixAssemblier::setBoundaryConditions(std::map<LocalOrdinal, Scalar> co
         {
             for (int j{}; j < m_polynomOrder; ++j)
             {
-                LocalOrdinal nodeID{(nodeInGmsh - 1) * m_polynomOrder + j};
+                GlobalOrdinal nodeID{(nodeInGmsh - 1) * m_polynomOrder + j};
 
-                if (nodeID >= static_cast<LocalOrdinal>(rows()))
+                if (nodeID >= static_cast<GlobalOrdinal>(rows()))
                     throw std::runtime_error(util::stringify("Boundary condition refers to node index ",
                                                              nodeID,
                                                              ", which exceeds the maximum row index of ",

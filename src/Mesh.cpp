@@ -216,6 +216,18 @@ MeshTetrahedronParamVector Mesh::getTetrahedronMeshParams(std::string_view msh_f
     return result;
 }
 
+bool Mesh::isPointInsideTetrahedron(Point const &point, MeshTetrahedronParam const &meshParam)
+{
+    CGAL::Oriented_side oriented_side{std::get<1>(meshParam).oriented_side(point)};
+    if (oriented_side == CGAL::ON_POSITIVE_SIDE)
+        return true;
+    else if (oriented_side == CGAL::ON_NEGATIVE_SIDE)
+        return false;
+    else
+        // TODO: Correctly handle case when particle is on boundary of tetrahedron.
+        return true;
+}
+
 double Mesh::getVolumeFromTetrahedronMesh(std::string_view msh_filename)
 {
     double totalVolume{};
@@ -237,7 +249,7 @@ std::map<size_t, std::vector<size_t>> Mesh::getTetrahedronNodesMap(std::string_v
 
         for (size_t i{}; i < elTags.size(); ++i)
         {
-            size_t tetrahedronID = elTags[i];
+            size_t tetrahedronID{elTags[i]};
             std::vector<size_t> nodes = {
                 nodeTagsByEl[i * 4 + 0],
                 nodeTagsByEl[i * 4 + 1],
@@ -246,7 +258,7 @@ std::map<size_t, std::vector<size_t>> Mesh::getTetrahedronNodesMap(std::string_v
             tetrahedronNodesMap[tetrahedronID] = nodes;
         }
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
         ERRMSG(e.what());
     }
@@ -255,6 +267,38 @@ std::map<size_t, std::vector<size_t>> Mesh::getTetrahedronNodesMap(std::string_v
         ERRMSG("An unknown error occurred.");
     }
     return tetrahedronNodesMap;
+}
+
+std::map<size_t, std::vector<size_t>> Mesh::getNodeTetrahedronsMap(std::string_view msh_filename)
+{
+    std::map<size_t, std::vector<size_t>> nodeTetrahedronMap;
+    try
+    {
+        gmsh::open(msh_filename.data());
+
+        std::vector<size_t> elTags, nodeTagsByEl;
+        gmsh::model::mesh::getElementsByType(4, elTags, nodeTagsByEl, -1);
+
+        constexpr size_t const nodesPerTetrahedron{4ul};
+        for (size_t i{}; i < elTags.size(); ++i)
+        {
+            size_t tetrahedronID{elTags[i]};
+            for (size_t j{}; j < nodesPerTetrahedron; ++j)
+            {
+                size_t nodeID{nodeTagsByEl[i * nodesPerTetrahedron + j]};
+                nodeTetrahedronMap[nodeID].emplace_back(tetrahedronID);
+            }
+        }
+    }
+    catch (std::exception const &e)
+    {
+        ERRMSG(e.what());
+    }
+    catch (...)
+    {
+        ERRMSG("An unknown error occurred.");
+    }
+    return nodeTetrahedronMap;
 }
 
 std::map<size_t, std::array<double, 3>> Mesh::getTetrahedronNodeCoordinates(std::string_view msh_filename)
