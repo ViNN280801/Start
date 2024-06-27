@@ -35,6 +35,14 @@ def is_mesh_dims(value: str):
         return num > 0 and num < 4
     except ValueError:
         return False
+    
+
+def is_path_ok(path: str):
+    from os.path import exists, isfile
+    
+    if exists(path) and isfile(path):
+        return True
+    return False
 
 
 def ansi_to_segments(text: str):
