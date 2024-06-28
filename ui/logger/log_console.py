@@ -1,4 +1,3 @@
-import tempfile
 from PyQt5.QtWidgets import (
     QVBoxLayout, QPlainTextEdit, QTextEdit,
     QWidget, QDockWidget, QHBoxLayout,
@@ -9,7 +8,6 @@ from PyQt5.QtGui import QTextCharFormat, QTextCursor, QColor, QTextDocument
 from util import is_file_valid
 from .cli_history import CommandLineHistory
 from vtk import vtkLogger
-from os import remove
 
 
 class LogConsole(QWidget):
@@ -23,6 +21,7 @@ class LogConsole(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.setup_ui()
+        self.setup_gmsh_logger()
         self.setup_vtk_logger()
 
         # Flag to check initial adding of extra new line
@@ -80,6 +79,49 @@ class LogConsole(QWidget):
         self.log_dock_widget.setWidget(container)
         self.log_dock_widget.setAllowedAreas(Qt.BottomDockWidgetArea)
         self.log_dock_widget.setVisible(True)
+    
+    def gmsh_log_monitor(log_file_path, pipe_write_end):
+        from time import sleep
+        
+        while True:
+            with open(log_file_path, 'r') as file:
+                lines = file.readlines()
+            if lines:
+                for line in lines:
+                    pipe_write_end.send(line.strip())
+                with open(log_file_path, 'w') as file:
+                    pass
+            sleep(1)
+    
+    def setup_gmsh_logger(self):
+        from gmsh import option
+        from tempfile import mktemp
+        from os import dup, dup2
+        
+        self.gmsh_log_file_path = mktemp()
+        self.gmsh_log_file = open(self.gmsh_log_file_path, 'w')
+
+        # Saving original stdout/stderr
+        self.original_stdout_fd = dup(1)
+        self.original_stderr_fd = dup(2)
+        
+        # Redirect stdout/stderr to the log file
+        dup2(self.gmsh_log_file.fileno(), 1)
+        dup2(self.gmsh_log_file.fileno(), 2)
+
+        print(f"Created gmsh logger file: {self.gmsh_log_file_path}")
+
+        option.setNumber("General.Terminal", 1)
+        option.setNumber("General.Verbosity", 5)
+        
+        self.start_monitoring_gmsh_log_file()
+
+    def setup_vtk_logger(self):
+        from tempfile import mktemp
+        
+        self.vtk_log_file_path = mktemp()
+        vtkLogger.LogToFile(self.vtk_log_file_path, vtkLogger.APPEND, vtkLogger.VERBOSITY_INFO)
+        self.start_monitoring_vtk_log_file()
 
     def toggle_search(self):
         if self.search_container.isVisible():
@@ -87,22 +129,27 @@ class LogConsole(QWidget):
         else:
             self.search_container.setVisible(True)
             self.search_input.setFocus()
+            
+    def start_monitoring_gmsh_log_file(self):
+        self.gmsh_timer = QTimer(self)
+        self.gmsh_timer.timeout.connect(self.read_gmsh_log_file)
+        self.gmsh_timer.start(1000)
 
-    def setup_vtk_logger(self):
-        self.log_file_path = tempfile.mktemp()  # Create a temporary file
-        vtkLogger.LogToFile(self.log_file_path,
-                            vtkLogger.APPEND, vtkLogger.VERBOSITY_INFO)
-        self.start_monitoring_log_file()
+    def read_gmsh_log_file(self):
+        with open(self.gmsh_log_file_path, 'r') as file:
+            for line in file:
+                self.appendLog(line.strip())
+        open(self.gmsh_log_file_path, 'w').close()
 
-    def start_monitoring_log_file(self):
+    def start_monitoring_vtk_log_file(self):
         # Use QTimer for periodic checks in a GUI-friendly way
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.read_log_file)
-        self.timer.start(1000)  # Check every second
+        self.vtk_timer = QTimer(self)
+        self.vtk_timer.timeout.connect(self.read_vtk_log_file)
+        self.vtk_timer.start(1000)  # Check every second
 
-    def read_log_file(self):
+    def read_vtk_log_file(self):
         # Read the log file line by line and append its contents to the log console with appropriate color
-        with open(self.log_file_path, 'r') as file:
+        with open(self.vtk_log_file_path, 'r') as file:
             for line in file:
                 if 'WARN|' in line:
                     self.printWarning(line)
@@ -110,7 +157,7 @@ class LogConsole(QWidget):
                     self.printError(line)
                 else:
                     self.appendLog(line.strip())
-        open(self.log_file_path, 'w').close()
+        open(self.vtk_log_file_path, 'w').close()
 
         # Adding '\n' to the end of the first output
         if not self.isAddedExtraNewLine:
@@ -120,8 +167,20 @@ class LogConsole(QWidget):
             self.isAddedExtraNewLine = True
 
     def cleanup(self):
-        self.timer.stop()
-        remove(self.log_file_path)
+        from os import remove, dup2
+    
+        self.vtk_timer.stop()
+        self.gmsh_timer.stop()
+
+        # Reset stdout and stderr to original
+        dup2(self.original_stdout_fd, 1)
+        dup2(self.original_stderr_fd, 2)
+
+        self.gmsh_log_file.close()
+        remove(self.vtk_log_file_path)
+        remove(self.gmsh_log_file_path)
+        
+        print("cleanup called. files removed")
 
     def setDefaultTextColor(self, color):
         textFormat = QTextCharFormat()
