@@ -21,8 +21,8 @@ class LogConsole(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.setup_ui()
-        self.setup_gmsh_logger()
         self.setup_vtk_logger()
+        self.setup_gmsh_logger()
 
         # Flag to check initial adding of extra new line
         self.isAddedExtraNewLine = False
@@ -52,8 +52,7 @@ class LogConsole(QWidget):
         search_layout = QHBoxLayout()
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText('Search...')
-        self.search_input.textChanged.connect(
-            self.search_text_in_log)  # Connect to real-time search
+        self.search_input.textChanged.connect(self.search_text_in_log)  # Connect to real-time search
 
         self.search_prev_button = QPushButton('Previous')
         self.search_prev_button.clicked.connect(self.search_prev)
@@ -96,10 +95,11 @@ class LogConsole(QWidget):
     def setup_gmsh_logger(self):
         from gmsh import option
         from tempfile import mktemp
-        from os import dup, dup2
+        from os import dup, dup2, fdopen
         
         self.gmsh_log_file_path = mktemp()
         self.gmsh_log_file = open(self.gmsh_log_file_path, 'w')
+        self.appendLog(f"Created log file for the gmsh: {self.gmsh_log_file_path}")
 
         # Saving original stdout/stderr
         self.original_stdout_fd = dup(1)
@@ -109,10 +109,10 @@ class LogConsole(QWidget):
         dup2(self.gmsh_log_file.fileno(), 1)
         dup2(self.gmsh_log_file.fileno(), 2)
 
-        print(f"Created gmsh logger file: {self.gmsh_log_file_path}")
-
         option.setNumber("General.Terminal", 1)
-        option.setNumber("General.Verbosity", 5)
+        option.setNumber("General.Verbosity", 10)
+        
+        self.gmsh_log_file = fdopen(self.gmsh_log_file.fileno(), 'w', buffering=1)
         
         self.start_monitoring_gmsh_log_file()
 
@@ -120,6 +120,7 @@ class LogConsole(QWidget):
         from tempfile import mktemp
         
         self.vtk_log_file_path = mktemp()
+        self.appendLog(f"Created log file for the vtk: {self.vtk_log_file_path}")
         vtkLogger.LogToFile(self.vtk_log_file_path, vtkLogger.APPEND, vtkLogger.VERBOSITY_INFO)
         self.start_monitoring_vtk_log_file()
 
