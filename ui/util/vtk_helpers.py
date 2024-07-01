@@ -1,36 +1,27 @@
-from gmsh import initialize, finalize, isInitialized, write
-from tempfile import NamedTemporaryFile
 from vtk import (
-    vtkUnstructuredGrid, vtkPolyData, vtkPolyDataWriter, vtkActor,
-    vtkGeometryFilter, vtkPoints, vtkCellArray, vtkTriangle, vtkTransform,
-    vtkAppendPolyData, vtkPolyDataMapper, vtkFeatureEdges, vtkPolyDataConnectivityFilter,
+    vtkUnstructuredGrid, vtkPolyData, vtkPolyDataWriter, vtkActor, vtkBooleanOperationPolyDataFilter, 
+    vtkGeometryFilter, vtkPoints, vtkCellArray, vtkTriangle, vtkTransform, vtkCleanPolyData, vtkPlane,
+    vtkAppendPolyData, vtkPolyDataMapper, vtkFeatureEdges, vtkPolyDataConnectivityFilter, vtkClipPolyData,
     VTK_TRIANGLE
 )
 from styles import DEFAULT_ACTOR_COLOR
+from logger import InternalLogger
 
 
 def convert_msh_to_vtk(msh_filename: str):
-    from gmsh import open
+    from gmsh import open, write
     
     if not msh_filename.endswith('.msh'):
         return None
 
-    try:
-        if not isInitialized():
-            initialize()
-        initialize()
-        
+    try:        
         vtk_filename = msh_filename.replace('.msh', '.vtk')
         open(msh_filename)
         write(vtk_filename)
-        
         return vtk_filename
     except Exception as e:
         print(f"Error converting VTK to Msh: {e}")
         return None
-    finally:
-        if isInitialized():
-            finalize()
 
     
 def get_polydata_from_actor(actor: vtkActor):
@@ -42,6 +33,8 @@ def get_polydata_from_actor(actor: vtkActor):
 
 
 def write_vtk_polydata_to_file(polyData):
+    from tempfile import NamedTemporaryFile
+    
     writer = vtkPolyDataWriter()
     writer.SetInputData(polyData)
 
@@ -278,3 +271,178 @@ def merge_actors(actors):
     merged_actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
 
     return merged_actor
+
+
+def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, operation: vtkBooleanOperationPolyDataFilter):
+    try:
+        obj_from_subtract_polydata = convert_unstructured_grid_to_polydata(obj_from)
+        obj_to_subtract_polydata = convert_unstructured_grid_to_polydata(obj_to)
+
+        cleaner1 = vtkCleanPolyData()
+        cleaner1.SetInputData(obj_from_subtract_polydata)
+        cleaner1.Update()
+        cleaner2 = vtkCleanPolyData()
+        cleaner2.SetInputData(obj_to_subtract_polydata)
+        cleaner2.Update()
+
+        # Set the input objects for the operation
+        operation.SetInputData(0, cleaner1.GetOutput())
+        operation.SetInputData(1, cleaner2.GetOutput())
+
+        # Update the filter to perform the subtraction
+        operation.Update()
+
+        # Retrieve the result of the subtraction
+        resultPolyData = operation.GetOutput()
+
+        # Check if subtraction was successful
+        if resultPolyData is None or resultPolyData.GetNumberOfPoints() == 0:
+            raise ValueError("Operation Failed: No result from the operation operation.")
+
+        mapper = vtkPolyDataMapper()
+        mapper.SetInputData(resultPolyData)
+
+        actor = vtkActor()
+        actor.SetMapper(mapper)
+            
+        return actor
+        
+    except Exception as e:
+        print(InternalLogger.get_warning_none_result_with_exception_msg(e))
+        return None
+    
+
+def remove_gradient(actor):
+    """
+    Removes gradient (scalar visibility) of the given vtkActor.
+
+    Parameters:
+    actor (vtkActor): The actor whose color needs to be set.
+    """
+    if actor and isinstance(actor, vtkActor):
+        actor.GetMapper().ScalarVisibilityOff()
+
+
+def remove_shadows(actor):
+    """
+    Removes shadows of the given vtkActor.
+
+    Parameters:
+    actor (vtkActor): The actor whose color needs to be set.
+    """
+    if actor and isinstance(actor, vtkActor):
+        actor.GetProperty().SetInterpolationToFlat()
+
+
+def create_cutting_plane(axis: str, level: float):
+    """
+    Creates a cutting plane along a specified axis at a given level in VTK.
+
+    Parameters:
+    axis (str): The axis along which to create the cutting plane ('x', 'y', or 'z').
+    level (float): The position along the specified axis where the cutting plane will be created.
+
+    Returns:
+    vtkPlane: The created cutting plane.
+
+    Raises:
+    ValueError: If the specified axis is not 'x', 'y', or 'z'.
+
+    Examples:
+    --------
+    # Create a cutting plane along the z-axis at z=2.5
+    cutting_plane = create_cutting_plane('z', 2.5)
+
+    # Create a cutting plane along the x-axis at x=1.0
+    cutting_plane = create_cutting_plane('x', 1.0)
+    """
+    plane = vtkPlane()
+    plane.SetOrigin(level, 0, 0) if axis == 'x' else plane.SetOrigin(0, level, 0) if axis == 'y' else plane.SetOrigin(0, 0, level)
+    
+    if axis == 'x':
+        plane.SetNormal(1, 0, 0)
+    elif axis == 'y':
+        plane.SetNormal(0, 1, 0)
+    elif axis == 'z':
+        plane.SetNormal(0, 0, 1)
+    else:
+        raise ValueError("Invalid axis")
+    
+    return plane
+
+
+def cut_actor(actor: vtkActor, plane: vtkPlane):
+    polydata = convert_unstructured_grid_to_polydata(actor)
+    if not polydata:
+        return None
+
+    try:
+        clipper1 = vtkClipPolyData()
+        clipper1.SetInputData(polydata)
+        clipper1.SetClipFunction(plane)
+        clipper1.InsideOutOn()
+        clipper1.Update()
+
+        clipper2 = vtkClipPolyData()
+        clipper2.SetInputData(polydata)
+        clipper2.SetClipFunction(plane)
+        clipper2.InsideOutOff()
+        clipper2.Update()
+
+        mapper1 = vtkPolyDataMapper()
+        mapper1.SetInputData(clipper1.GetOutput())
+        actor1 = vtkActor()
+        actor1.SetMapper(mapper1)
+
+        mapper2 = vtkPolyDataMapper()
+        mapper2.SetInputData(clipper2.GetOutput())
+        actor2 = vtkActor()
+        actor2.SetMapper(mapper2)
+
+        return actor1, actor2
+
+    except Exception as e:
+        print(f"Error while do section on geometry: {e}")
+        return None
+
+
+def colorize_actor(actor: vtkActor, color=DEFAULT_ACTOR_COLOR):
+        """
+        Sets the color of the actor. If color is not provided, DEFAULT_ACTOR_COLOR is used.
+
+        Parameters
+        ----------
+        actor : vtkActor
+            The actor to colorize.
+        color : tuple or list, optional
+            The RGB color values to set. If None, DEFAULT_ACTOR_COLOR is used.
+        """
+        try:
+            if color is None:
+                color = DEFAULT_ACTOR_COLOR
+            actor.GetProperty().SetColor(color)
+        except Exception as e:
+            print(InternalLogger.get_warning_none_result_with_exception_msg(e))
+            return None
+
+
+def colorize_actor_with_rgb(actor: vtkActor, r: float, g: float, b: float):
+        """
+        Sets the color of the actor using RGB values.
+
+        Parameters
+        ----------
+        actor : vtkActor
+            The actor to colorize.
+        r : float
+            Red component (0-1).
+        g : float
+            Green component (0-1).
+        b : float
+            Blue component (0-1).
+        """
+        try:
+            actor.GetProperty().SetColor(r, g, b)
+        except Exception as e:
+            print(InternalLogger.get_warning_none_result_with_exception_msg(e))
+            return None
