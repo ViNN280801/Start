@@ -33,8 +33,7 @@ class MoveActorDialog(QDialog):
 
         layout.addLayout(formLayout)
 
-        self.buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -47,6 +46,5 @@ class MoveActorDialog(QDialog):
             z_offset = float(self.zOffsetInput.text())
             return x_offset, y_offset, z_offset
         except ValueError:
-            QMessageBox.warning(self, "Invalid Input",
-                                "Offsets must be valid numbers.")
+            QMessageBox.warning(self, "Invalid Input", "Offsets must be valid numbers")
             return None

@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from field_validators import CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constraints import *
+from tabs.graphical_editor.geometry.geometry_limits import *
+from tabs.graphical_editor.geometry.point import Point
 
 
 class PointDialog(QDialog):
@@ -25,17 +26,17 @@ class PointDialog(QDialog):
         self.zInput = QLineEdit("0.0")
 
         self.xInput.setValidator(
-            CustomSignedDoubleValidator(SIMPLE_GEOMETRY_POINT_XMIN,
-                                        SIMPLE_GEOMETRY_POINT_XMAX,
-                                        SIMPLE_GEOMETRY_POINT_FIELD_PRECISION))
+            CustomSignedDoubleValidator(GEOMETRY_POINT_XMIN,
+                                        GEOMETRY_POINT_XMAX,
+                                        GEOMETRY_POINT_FIELD_PRECISION))
         self.yInput.setValidator(
-            CustomSignedDoubleValidator(SIMPLE_GEOMETRY_POINT_YMIN,
-                                        SIMPLE_GEOMETRY_POINT_YMAX,
-                                        SIMPLE_GEOMETRY_POINT_FIELD_PRECISION))
+            CustomSignedDoubleValidator(GEOMETRY_POINT_YMIN,
+                                        GEOMETRY_POINT_YMAX,
+                                        GEOMETRY_POINT_FIELD_PRECISION))
         self.zInput.setValidator(
-            CustomSignedDoubleValidator(SIMPLE_GEOMETRY_POINT_ZMIN,
-                                        SIMPLE_GEOMETRY_POINT_ZMAX,
-                                        SIMPLE_GEOMETRY_POINT_FIELD_PRECISION))
+            CustomSignedDoubleValidator(GEOMETRY_POINT_ZMIN,
+                                        GEOMETRY_POINT_ZMAX,
+                                        GEOMETRY_POINT_FIELD_PRECISION))
 
         self.xInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -74,6 +75,9 @@ class PointDialog(QDialog):
                                 "Please correct the highlighted fields.")
 
     def getValues(self):
-        values = (float(self.xInput.text()), float(self.yInput.text()),
-                  float(self.zInput.text()))
+        values = (float(self.xInput.text()), float(self.yInput.text()), float(self.zInput.text()))
         return values
+
+    def getPoint(self):
+        x, y, z = self.getValues()
+        return Point(x, y, z)

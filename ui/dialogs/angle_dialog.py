@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox, QMessageBox
 )
 from styles import *
-from util import is_real_number
+from field_validators import CustomSignedDoubleValidator
 
 
 class AngleDialog(QDialog):
@@ -11,15 +11,17 @@ class AngleDialog(QDialog):
         super().__init__(parent)
 
         self.setWindowTitle("Change Actor Angle")
-
         layout = QVBoxLayout(self)
-
         formLayout = QFormLayout()
 
         # Input fields for the angles
         self.xAngleInput = QLineEdit("0.0")
         self.yAngleInput = QLineEdit("0.0")
         self.zAngleInput = QLineEdit("0.0")
+        
+        self.xAngleInput.setValidator(CustomSignedDoubleValidator(-1e-9, 1e9, 9))
+        self.yAngleInput.setValidator(CustomSignedDoubleValidator(-1e-9, 1e9, 9))
+        self.zAngleInput.setValidator(CustomSignedDoubleValidator(-1e-9, 1e9, 9))
 
         self.xAngleInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yAngleInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -33,28 +35,19 @@ class AngleDialog(QDialog):
         layout.addLayout(formLayout)
 
         # Dialog buttons
-        self.buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
         layout.addWidget(self.buttons)
 
     def getValues(self):
-        # Validate inputs and return angles
-        x = self.validate_angle(self.xAngleInput.text())
-        y = self.validate_angle(self.yAngleInput.text())
-        z = self.validate_angle(self.zAngleInput.text())
-
-        if x is not None and y is not None and z is not None:
+        from math import radians
+        try:
+            x = radians(float(self.xAngleInput.text()))
+            y = radians(float(self.yAngleInput.text()))
+            z = radians(float(self.zAngleInput.text()))
             return x, y, z
-        return None
-
-    @staticmethod
-    def validate_angle(value: str):
-        if is_real_number(value):
-            return float(value)
-        else:
-            QMessageBox.warning(None, "Invalid Input",
-                                f"Angle value must be floating point number")
+        except Exception as e:
+            QMessageBox.warning(self, "Invalid Input", f"Angles must be valid numbers: {e}")
             return None

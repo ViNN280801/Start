@@ -5,7 +5,8 @@ from PyQt5.QtCore import QSize
 from field_validators import CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constraints import *
+from tabs.graphical_editor.geometry.geometry_limits import *
+from tabs.graphical_editor.geometry.line import Line
 
 
 class LineDialog(QDialog):
@@ -60,17 +61,17 @@ class LineDialog(QDialog):
         z_input = QLineEdit("0.0")
 
         x_input.setValidator(
-            CustomSignedDoubleValidator(SIMPLE_GEOMETRY_LINE_XMIN,
-                                        SIMPLE_GEOMETRY_LINE_XMAX,
-                                        SIMPLE_GEOMETRY_LINE_FIELD_PRECISION))
+            CustomSignedDoubleValidator(GEOMETRY_LINE_XMIN,
+                                        GEOMETRY_LINE_XMAX,
+                                        GEOMETRY_LINE_FIELD_PRECISION))
         y_input.setValidator(
-            CustomSignedDoubleValidator(SIMPLE_GEOMETRY_LINE_YMIN,
-                                        SIMPLE_GEOMETRY_LINE_YMAX,
-                                        SIMPLE_GEOMETRY_LINE_FIELD_PRECISION))
+            CustomSignedDoubleValidator(GEOMETRY_LINE_YMIN,
+                                        GEOMETRY_LINE_YMAX,
+                                        GEOMETRY_LINE_FIELD_PRECISION))
         z_input.setValidator(
-            CustomSignedDoubleValidator(SIMPLE_GEOMETRY_LINE_ZMIN,
-                                        SIMPLE_GEOMETRY_LINE_ZMAX,
-                                        SIMPLE_GEOMETRY_LINE_FIELD_PRECISION))
+            CustomSignedDoubleValidator(GEOMETRY_LINE_ZMIN,
+                                        GEOMETRY_LINE_ZMAX,
+                                        GEOMETRY_LINE_FIELD_PRECISION))
 
         x_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         y_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -111,3 +112,9 @@ class LineDialog(QDialog):
     def getValues(self):
         values = [float(field.text()) for field in self.inputs]
         return values
+
+    def getLine(self):
+        values = self.getValues()
+        if values is not None and len(values) >= 6:
+            points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
+        return Line(points)

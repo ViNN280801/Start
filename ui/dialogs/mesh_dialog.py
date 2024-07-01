@@ -29,5 +29,5 @@ class MeshDialog(QDialog):
         self.layout.addWidget(self.submit_button)
         self.submit_button.clicked.connect(self.accept)
 
-    def get_values(self):
+    def getValues(self):
         return float(self.mesh_size_input.text()), int(self.mesh_dim_input.text())

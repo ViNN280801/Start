@@ -3,8 +3,9 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from field_validators import CustomIntValidator, CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constraints import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constants import *
+from tabs.graphical_editor.geometry.geometry_limits import *
+from tabs.graphical_editor.geometry.geometry_constants import *
+from tabs.graphical_editor.geometry.sphere import Sphere
 
 
 class SphereDialog(QDialog):
@@ -26,34 +27,34 @@ class SphereDialog(QDialog):
         self.radiusInput = QLineEdit("5.0")
         self.phiResolutionInput = QLineEdit(str(DEFAULT_SPHERE_PHI_RESOLUTION))
         self.thetaResolutionInput = QLineEdit(str(DEFAULT_SPHERE_THETA_RESOLUTION))
-        self.meshResolutionInput = QLineEdit(f"{SIMPLE_GEOMETRY_MESH_RESOLUTION_SPHERE_VALUE}")
+        self.meshResolutionInput = QLineEdit(f"{GEOMETRY_MESH_RESOLUTION_SPHERE_VALUE}")
 
         self.xInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SPHERE_XMIN, SIMPLE_GEOMETRY_SPHERE_XMAX,
-                SIMPLE_GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_XMIN, GEOMETRY_SPHERE_XMAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION))
         self.yInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SPHERE_YMIN, SIMPLE_GEOMETRY_SPHERE_YMAX,
-                SIMPLE_GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_YMIN, GEOMETRY_SPHERE_YMAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION))
         self.zInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SPHERE_ZMIN, SIMPLE_GEOMETRY_SPHERE_ZMAX,
-                SIMPLE_GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_ZMIN, GEOMETRY_SPHERE_ZMAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION))
         self.radiusInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SPHERE_RADIUS_MIN,
-                SIMPLE_GEOMETRY_SPHERE_RADIUS_MAX,
-                SIMPLE_GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_RADIUS_MIN,
+                GEOMETRY_SPHERE_RADIUS_MAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION))
         self.phiResolutionInput.setValidator(
-            CustomIntValidator(SIMPLE_GEOMETRY_SPHERE_MIN_PHI_RESOLUTION,
-                               SIMPLE_GEOMETRY_SPHERE_MAX_PHI_RESOLUTION))
+            CustomIntValidator(GEOMETRY_SPHERE_MIN_PHI_RESOLUTION,
+                               GEOMETRY_SPHERE_MAX_PHI_RESOLUTION))
         self.thetaResolutionInput.setValidator(
-            CustomIntValidator(SIMPLE_GEOMETRY_SPHERE_MIN_THETA_RESOLUTION,
-                               SIMPLE_GEOMETRY_SPHERE_MAX_THETA_RESOLUTION))
+            CustomIntValidator(GEOMETRY_SPHERE_MIN_THETA_RESOLUTION,
+                               GEOMETRY_SPHERE_MAX_THETA_RESOLUTION))
         self.meshResolutionInput.setValidator(
-            CustomIntValidator(SIMPLE_GEOMETRY_BOX_MESH_RESOLUTION_MIN,
-                               SIMPLE_GEOMETRY_BOX_MESH_RESOLUTION_MAX))
+            CustomIntValidator(GEOMETRY_BOX_MESH_RESOLUTION_MIN,
+                               GEOMETRY_BOX_MESH_RESOLUTION_MAX))
 
         self.xInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -63,9 +64,9 @@ class SphereDialog(QDialog):
         self.thetaResolutionInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.meshResolutionInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
 
-        self.phiResolutionInput.setToolTip(SIMPLE_GEOMETRY_SPHERE_PHI_RESOLUTION_HINT)
-        self.thetaResolutionInput.setToolTip(SIMPLE_GEOMETRY_SPHERE_THETA_RESOLUTION_HINT)
-        self.meshResolutionInput.setToolTip(SIMPLE_GEOMETRY_MESH_RESOLUTION_HINT)
+        self.phiResolutionInput.setToolTip(GEOMETRY_SPHERE_PHI_RESOLUTION_HINT)
+        self.thetaResolutionInput.setToolTip(GEOMETRY_SPHERE_THETA_RESOLUTION_HINT)
+        self.meshResolutionInput.setToolTip(GEOMETRY_MESH_RESOLUTION_HINT)
 
         formLayout.addRow("Center X:", self.xInput)
         formLayout.addRow("Center Y:", self.yInput)
@@ -113,10 +114,13 @@ class SphereDialog(QDialog):
                                 "Please correct the highlighted fields.")
 
     def getValues(self):
-        values = (float(self.xInput.text()), float(self.yInput.text()),
-                  float(self.zInput.text()), float(self.radiusInput.text()),
+        values = (float(self.xInput.text()), float(self.yInput.text()), float(self.zInput.text()), 
+                  float(self.radiusInput.text()),
                   int(self.meshResolutionInput.text()),
                   int(self.phiResolutionInput.text()),
                   int(self.thetaResolutionInput.text()))
-
         return values
+
+    def getSphere(self):
+        x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution = self.getValues()
+        return Sphere(x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution)

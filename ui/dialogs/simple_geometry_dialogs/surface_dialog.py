@@ -5,7 +5,8 @@ from PyQt5.QtCore import QSize
 from field_validators import CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constraints import *
+from tabs.graphical_editor.geometry.geometry_limits import *
+from tabs.graphical_editor.geometry.surface import Surface
 
 
 class SurfaceDialog(QDialog):
@@ -61,16 +62,16 @@ class SurfaceDialog(QDialog):
 
         x_input.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SURFACE_XMIN, SIMPLE_GEOMETRY_SURFACE_XMAX,
-                SIMPLE_GEOMETRY_SURFACE_FIELD_PRECISION))
+                GEOMETRY_SURFACE_XMIN, GEOMETRY_SURFACE_XMAX,
+                GEOMETRY_SURFACE_FIELD_PRECISION))
         y_input.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SURFACE_YMIN, SIMPLE_GEOMETRY_SURFACE_YMAX,
-                SIMPLE_GEOMETRY_SURFACE_FIELD_PRECISION))
+                GEOMETRY_SURFACE_YMIN, GEOMETRY_SURFACE_YMAX,
+                GEOMETRY_SURFACE_FIELD_PRECISION))
         z_input.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_SURFACE_ZMIN, SIMPLE_GEOMETRY_SURFACE_ZMAX,
-                SIMPLE_GEOMETRY_SURFACE_FIELD_PRECISION))
+                GEOMETRY_SURFACE_ZMIN, GEOMETRY_SURFACE_ZMAX,
+                GEOMETRY_SURFACE_FIELD_PRECISION))
 
         x_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         y_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -111,3 +112,9 @@ class SurfaceDialog(QDialog):
     def getValues(self):
         values = [float(field.text()) for field in self.inputs]
         return values
+
+    def getSurface(self):
+        values = self.getValues()
+        if values is not None and len(values) >= 9:
+            points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
+        return Surface(points)

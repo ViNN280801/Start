@@ -3,9 +3,9 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from field_validators import CustomIntValidator, CustomSignedDoubleValidator
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from styles import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constraints import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constants import *
-from tabs.graphical_editor.simple_geometry.simple_geometry_constants import SIMPLE_GEOMETRY_MESH_RESOLUTION_HINT, SIMPLE_GEOMETRY_MESH_RESOLUTION_VALUE
+from tabs.graphical_editor.geometry.geometry_limits import *
+from tabs.graphical_editor.geometry.geometry_constants import *
+from tabs.graphical_editor.geometry.cylinder import Cylinder
 
 
 class CylinderDialog(QDialog):
@@ -25,46 +25,46 @@ class CylinderDialog(QDialog):
         self.dyInput = QLineEdit("5.0")
         self.dzInput = QLineEdit("5.0")
         self.resolutionInput = QLineEdit(str(DEFAULT_CYLINDER_RESOLUTION))
-        self.meshResolutionInput = QLineEdit(f"{SIMPLE_GEOMETRY_MESH_RESOLUTION_VALUE}")
+        self.meshResolutionInput = QLineEdit(f"{GEOMETRY_MESH_RESOLUTION_VALUE}")
 
         self.xInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_XMIN, SIMPLE_GEOMETRY_CYLINDER_XMAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_XMIN, GEOMETRY_CYLINDER_XMAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.yInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_YMIN, SIMPLE_GEOMETRY_CYLINDER_YMAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_YMIN, GEOMETRY_CYLINDER_YMAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.zInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_ZMIN, SIMPLE_GEOMETRY_CYLINDER_ZMAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_ZMIN, GEOMETRY_CYLINDER_ZMAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.radiusInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_RADIUS_MIN,
-                SIMPLE_GEOMETRY_CYLINDER_RADIUS_MAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_RADIUS_MIN,
+                GEOMETRY_CYLINDER_RADIUS_MAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.dxInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_DX_MIN,
-                SIMPLE_GEOMETRY_CYLINDER_DX_MAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_DX_MIN,
+                GEOMETRY_CYLINDER_DX_MAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.dyInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_DY_MIN,
-                SIMPLE_GEOMETRY_CYLINDER_DY_MAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_DY_MIN,
+                GEOMETRY_CYLINDER_DY_MAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.dzInput.setValidator(
             CustomSignedDoubleValidator(
-                SIMPLE_GEOMETRY_CYLINDER_DZ_MIN,
-                SIMPLE_GEOMETRY_CYLINDER_DZ_MAX,
-                SIMPLE_GEOMETRY_CYLINDER_FIELD_PRECISION))
+                GEOMETRY_CYLINDER_DZ_MIN,
+                GEOMETRY_CYLINDER_DZ_MAX,
+                GEOMETRY_CYLINDER_FIELD_PRECISION))
         self.resolutionInput.setValidator(
-            CustomIntValidator(SIMPLE_GEOMETRY_CYLINDER_MIN_RESOLUTION,
-                               SIMPLE_GEOMETRY_CYLINDER_MAX_RESOLUTION))
+            CustomIntValidator(GEOMETRY_CYLINDER_MIN_RESOLUTION,
+                               GEOMETRY_CYLINDER_MAX_RESOLUTION))
         self.meshResolutionInput.setValidator(
-            CustomIntValidator(SIMPLE_GEOMETRY_BOX_MESH_RESOLUTION_MIN,
-                               SIMPLE_GEOMETRY_BOX_MESH_RESOLUTION_MAX))
+            CustomIntValidator(GEOMETRY_BOX_MESH_RESOLUTION_MIN,
+                               GEOMETRY_BOX_MESH_RESOLUTION_MAX))
 
         self.xInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -74,9 +74,9 @@ class CylinderDialog(QDialog):
         self.dyInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.dzInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.resolutionInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
-        self.resolutionInput.setToolTip(SIMPLE_GEOMETRY_CYLINDER_RESOLUTION_HINT)
+        self.resolutionInput.setToolTip(GEOMETRY_CYLINDER_RESOLUTION_HINT)
         self.meshResolutionInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
-        self.meshResolutionInput.setToolTip(SIMPLE_GEOMETRY_MESH_RESOLUTION_HINT)
+        self.meshResolutionInput.setToolTip(GEOMETRY_MESH_RESOLUTION_HINT)
 
         formLayout.addRow("Base center X:", self.xInput)
         formLayout.addRow("Base center Y:", self.yInput)
@@ -123,10 +123,12 @@ class CylinderDialog(QDialog):
                                 "Please correct the highlighted fields.")
 
     def getValues(self):
-        values = (float(self.xInput.text()), float(self.yInput.text()),
-                  float(self.zInput.text()), float(self.radiusInput.text()),
-                  float(self.dxInput.text()), float(self.dyInput.text()),
-                  float(self.dzInput.text()), int(self.resolutionInput.text()),
-                  int(self.meshResolutionInput.text()))
-
+        values = (float(self.xInput.text()), float(self.yInput.text()), float(self.zInput.text()), 
+                  float(self.radiusInput.text()), 
+                  float(self.dxInput.text()), float(self.dyInput.text()), float(self.dzInput.text()), 
+                  int(self.meshResolutionInput.text()), int(self.resolutionInput.text()))
         return values
+    
+    def getCylinder(self):
+        x, y, z, radius, dx, dy, dz, mesh_resolution, resolution = self.getValues()
+        return Cylinder(x, y, z, radius, dx, dy, dz, mesh_resolution, resolution)

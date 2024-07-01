@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QComboBox, QPushButton
 class AxisSelectionDialog(QDialog):
     def __init__(self, parent=None):
         super(AxisSelectionDialog, self).__init__(parent)
-        self.setWindowTitle("Select Axis for Cross-Section")
+        self.setWindowTitle("Select Axis")
         self.setFixedSize(250, 150)
         layout = QVBoxLayout(self)
 
