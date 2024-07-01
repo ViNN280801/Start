@@ -1,4 +1,3 @@
-import gmsh
 from vtk import (
     vtkPoints, vtkCellArray, vtkUnstructuredGrid, vtkUnstructuredGridWriter,
     vtkTriangle, vtkPolyData, vtkPolyDataMapper, vtkActor, vtkVertexGlyphFilter,
@@ -29,14 +28,16 @@ class MeshTreeManager:
         ValueError: If the obj_type is invalid.
         RuntimeError: If there is an error opening the mesh file or processing the Gmsh data.
         """
+        from gmsh import model, open
+        
         try:
             if mesh_filename:
-                gmsh.open(mesh_filename)
+                open(mesh_filename)
 
-            gmsh.model.occ.synchronize()
+            model.occ.synchronize()
 
             # Getting all the nodes and their coordinates
-            all_node_tags, all_node_coords, _ = gmsh.model.mesh.getNodes()
+            all_node_tags, all_node_coords, _ = model.mesh.getNodes()
             node_coords_map = {
                 tag: (all_node_coords[i * 3], all_node_coords[i * 3 + 1],
                     all_node_coords[i * 3 + 2])
@@ -51,12 +52,11 @@ class MeshTreeManager:
                 return point_map
 
             if obj_type == 'line':
-                lines = gmsh.model.getEntities(dim=1)
+                lines = model.getEntities(dim=1)
                 line_map = {}
 
                 for line_dim, line_tag in lines:
-                    element_types, element_tags, node_tags = gmsh.model.mesh.getElements(
-                        line_dim, line_tag)
+                    element_types, element_tags, node_tags = model.mesh.getElements(line_dim, line_tag)
 
                     for elem_type, elem_tags, elem_node_tags in zip(
                             element_types, element_tags, node_tags):
@@ -71,12 +71,11 @@ class MeshTreeManager:
                 return line_map
 
             if obj_type == 'surface':
-                surfaces = gmsh.model.getEntities(dim=2)
+                surfaces = model.getEntities(dim=2)
                 surface_map = {}
 
                 for surf_dim, surf_tag in surfaces:
-                    element_types, element_tags, node_tags = gmsh.model.mesh.getElements(
-                        surf_dim, surf_tag)
+                    element_types, element_tags, node_tags = model.mesh.getElements(surf_dim, surf_tag)
 
                     triangles = []
                     for elem_type, elem_tags, elem_node_tags in zip(
@@ -95,18 +94,17 @@ class MeshTreeManager:
                 return surface_map
 
             if obj_type == 'volume':
-                volumes = gmsh.model.getEntities(dim=3)
+                volumes = model.getEntities(dim=3)
                 treedict = {}
 
-                entities = volumes if volumes else gmsh.model.getEntities(dim=2)
+                entities = volumes if volumes else model.getEntities(dim=2)
 
                 for dim, tag in entities:
-                    surfaces = gmsh.model.getBoundary([(dim, tag)], oriented=False, recursive=False) if volumes else [(dim, tag)]
+                    surfaces = model.getBoundary([(dim, tag)], oriented=False, recursive=False) if volumes else [(dim, tag)]
 
                     surface_map = {}
                     for surf_dim, surf_tag in surfaces:
-                        element_types, element_tags, node_tags = gmsh.model.mesh.getElements(
-                            surf_dim, surf_tag)
+                        element_types, element_tags, node_tags = model.mesh.getElements(surf_dim, surf_tag)
 
                         triangles = []
                         for elem_type, elem_tags, elem_node_tags in zip(

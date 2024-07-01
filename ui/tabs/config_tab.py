@@ -776,13 +776,9 @@ class ConfigTab(QWidget):
             self.upload_mesh_file()
 
     def convert_stp_to_msh(self, file_path, mesh_size, mesh_dim):
-        from gmsh import initialize, finalize, isInitialized, write, model, option
+        from gmsh import model, option, write
         
         try:
-            if not isInitialized():
-                initialize()
-            
-            model.add("model")
             model.occ.importShapes(file_path)
             model.occ.synchronize()
             option.setNumber("Mesh.MeshSizeMin", mesh_size)
@@ -797,16 +793,11 @@ class ConfigTab(QWidget):
             write(output_file)
         
         except Exception as e:
-            QMessageBox.critical(
-                self, "Error",
-                f"An error occurred during conversion: {str(e)}")
+            QMessageBox.critical(self, "Error", f"An error occurred during conversion: {str(e)}")
             return None
-        finally:
-            if isInitialized():
-                finalize()
-            
-            self.mesh_file = output_file
-            self.log_console.logSignal.emit(f'Successfully converted {file_path} to {output_file}. Mesh size is {mesh_size}. Mesh dimension: {mesh_dim}\n')
+        
+        self.mesh_file = output_file
+        self.log_console.logSignal.emit(f'Successfully converted {file_path} to {output_file}. Mesh size is {mesh_size}. Mesh dimension: {mesh_dim}\n')
 
     def load_magnetic_induction(self):
         # TODO: Implement the functionality to load and parse the generated magnetic induction file from Ansys

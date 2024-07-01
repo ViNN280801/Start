@@ -1,4 +1,5 @@
 from .action_history import ActionHistory
+from .gmsh_helpers import *
 from .inst_deps import check_and_install_packages
 from .number_checkers import *
 from .path_file_chekers import *

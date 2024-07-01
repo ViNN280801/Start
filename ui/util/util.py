@@ -3,7 +3,6 @@ from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import *
 from constants import *
 
-
 def get_cur_datetime() -> str:
     from datetime import datetime
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -35,7 +34,7 @@ def is_mesh_dims(value: str):
         return num > 0 and num < 4
     except ValueError:
         return False
-    
+
 
 def is_path_ok(path: str):
     from os.path import exists, isfile
@@ -43,6 +42,14 @@ def is_path_ok(path: str):
     if exists(path) and isfile(path):
         return True
     return False
+
+
+def check_path_access(filename: str):
+    from os import access, W_OK
+    from os.path import dirname
+    
+    if not access(dirname(filename) or '.', W_OK):
+        raise OSError(f"The path '{dirname(filename)}' is not accessible or writable.")
 
 
 def ansi_to_segments(text: str):

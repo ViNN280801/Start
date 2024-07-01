@@ -1,4 +1,4 @@
-from gmsh import initialize, finalize, isInitialized, write, model, option
+from gmsh import write, model, option
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtCore import QSize, Qt, pyqtSlot, QItemSelectionModel
 from PyQt5.QtGui import QCursor, QStandardItemModel, QBrush, QIcon
@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QTreeView,
     QPushButton, QDialog, QSpacerItem, QColorDialog,
     QSizePolicy, QMessageBox, QFileDialog,
-    QMenu, QAction, QInputDialog, QStatusBar, QAbstractItemView,
+    QMenu, QAction, QStatusBar, QAbstractItemView,
 )
 from vtk import (
     vtkRenderer, vtkPoints, vtkPolyData, vtkPolyLine, vtkCellArray, vtkPolyDataMapper,
@@ -18,11 +18,12 @@ from util import (
     convert_unstructured_grid_to_polydata, compare_matrices, merge_actors, align_view_by_axis,
     ActionHistory, ProjectManager
 )
+from util.vtk_helpers import remove_gradient, remove_shadows
 from logger import LogConsole
-from .simple_geometry import SimpleGeometryManager, SimpleGeometryTransformer
+from .geometry import GeometryManager
 from .particle_source_manager import ParticleSourceManager
 from .mesh_tree_manager import MeshTreeManager
-from .simple_geometry.simple_geometry_constants import *
+from .geometry.geometry_constants import *
 from styles import *
 from constants import *
 from dialogs import *
@@ -40,7 +41,6 @@ class GraphicalEditor(QFrame):
         self.setup_dicts()
         self.setup_tree_view()
         self.setup_selected_actors()
-        self.setup_difficult_geometry_actors()
         self.setup_picker(log_console)
         self.setup_toolbar()
         self.setup_ui()
@@ -81,9 +81,6 @@ class GraphicalEditor(QFrame):
     
     def setup_selected_actors(self):
         self.selected_actors = set()
-        
-    def setup_difficult_geometry_actors(self):
-        self.difficult_geometries = set()
 
     def setup_picker(self, log_console):
         self.picker = vtkCellPicker()
@@ -114,9 +111,7 @@ class GraphicalEditor(QFrame):
         self.crossSectionButton = self.create_button('icons/cross-section.png', 'Cross section of the object')
         self.setBoundaryConditionsSurfaceButton = self.create_button('icons/boundary-conditions-surface.png', 'Turning on mode to select boundary nodes on surface')
         self.setParticleSourceButton = self.create_button('icons/particle-source.png', 'Set particle source as surface')
-        self.meshSimpleObjectsButton = self.create_button('icons/mesh-simple.png', 'Mesh created objects. WARNING: After this action list of the created objects will be zeroed up')
-        self.meshDifficultObjectsButton = self.create_button('icons/mesh-difficult.png', 'Mesh difficult objects which were recieved using the operations like subtract, union, intersection and section. WARNING: After this action list of the difficult objects will be zeroed up')
-        self.testButton = self.create_button('', '')
+        self.meshObjectsButton = self.create_button('icons/mesh-objects.png', 'Mesh created objects. WARNING: After this action list of the created objects will be zeroed up')
         
         self.spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.toolbarLayout.addSpacerItem(self.spacer)
@@ -141,9 +136,11 @@ class GraphicalEditor(QFrame):
         self.crossSectionButton.clicked.connect(self.cross_section_button_clicked)
         self.setBoundaryConditionsSurfaceButton.clicked.connect(self.activate_selection_boundary_conditions_mode_for_surface)
         self.setParticleSourceButton.clicked.connect(self.set_particle_source)
-        self.meshSimpleObjectsButton.clicked.connect(self.save_and_mesh_simple_objects)
-        self.meshDifficultObjectsButton.clicked.connect(self.save_and_mesh_difficult_objects)
-        self.testButton.clicked.connect(self.test) # TODO: Remove test button
+        self.meshObjectsButton.clicked.connect(self.mesh_objects)
+        
+        # TODO: Remove test button
+        self.testButton = self.create_button('', '')
+        self.testButton.clicked.connect(self.test)
         
     def setup_ui(self):
         self.vtkWidget = QVTKRenderWindowInteractor(self)
@@ -312,13 +309,7 @@ class GraphicalEditor(QFrame):
             self.clear_scene_and_tree_view()
             self.mesh_file = file_path
             self.initialize_tree()
-            
-            if not isInitialized():
-                initialize()
             treedict = MeshTreeManager.get_tree_dict(self.mesh_file)
-            if isInitialized():
-                finalize()
-            
             self.add_actors_and_populate_tree_view(treedict, file_path)
         else:
             QMessageBox.warning(self, "Warning", f"Unable to open file {file_path}")
@@ -472,10 +463,9 @@ class GraphicalEditor(QFrame):
     def create_point(self):
         dialog = PointDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            x, y, z = dialog.getValues()
-
+            point = dialog.getPoint()
             try:
-                point_actor = SimpleGeometryManager.create_point(self.log_console, x, y, z)
+                point_actor = GeometryManager.create_point(point)
                 if point_actor:
                     self.add_actor(point_actor)
             except ValueError as e:
@@ -484,39 +474,33 @@ class GraphicalEditor(QFrame):
     def create_line(self):
         dialog = LineDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            values = dialog.getValues()
-            if values is not None and len(values) >= 6:
-                points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
+            line = dialog.getLine()
 
-                try:
-                    line_actor = SimpleGeometryManager.create_line(self.log_console, points)
-                    if line_actor:
-                        self.add_actor(line_actor)
-                except ValueError as e:
-                    QMessageBox.warning(self, "Create Line", str(e))
+            try:
+                line_actor = GeometryManager.create_line(line)
+                if line_actor:
+                    self.add_actor(line_actor)
+            except ValueError as e:
+                QMessageBox.warning(self, "Create Line", str(e))
 
     def create_surface(self):
         dialog = SurfaceDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            values = dialog.getValues()
-
-            if values is not None and len(values) >= 9:
-                points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
-
-                try:
-                    surface_actor = SimpleGeometryManager.create_surface(self.log_console, points)
-                    if surface_actor:
-                        self.add_actor(surface_actor)
-                except ValueError as e:
-                    QMessageBox.warning(self, "Create Surface", str(e))
+            surface = dialog.getSurface()
+            try:
+                surface_actor = GeometryManager.create_surface(surface)
+                if surface_actor:
+                    self.add_actor(surface_actor)
+            except ValueError as e:
+                QMessageBox.warning(self, "Create Surface", str(e))
 
     def create_sphere(self):
         dialog = SphereDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution = dialog.getValues()
+            sphere = dialog.getSphere()
 
             try:
-                sphere_actor = SimpleGeometryManager.create_sphere(self.log_console, x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution)
+                sphere_actor = GeometryManager.create_sphere(sphere)
                 if sphere_actor:
                     self.add_actor(sphere_actor)
             except ValueError as e:
@@ -525,23 +509,23 @@ class GraphicalEditor(QFrame):
     def create_box(self):
         dialog = BoxDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            x, y, z, length, width, height, mesh_resolution = dialog.getValues()
-
+            box = dialog.getBox()
+            
             try:
-                box_actor = SimpleGeometryManager.create_box(self.log_console, x, y, z, length, width, height, mesh_resolution)
+                box_actor = GeometryManager.create_box(box)
                 if box_actor:
                     self.add_actor(box_actor)
-                    
+            
             except ValueError as e:
                 QMessageBox.warning(self, "Create Box", str(e))
 
     def create_cone(self):        
         dialog = ConeDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            x, y, z, dx, dy, dz, height, r, resolution, mesh_resolution = dialog.getValues()
+            cone = dialog.getCone()
 
             try:
-                cone_actor = SimpleGeometryManager.create_cone(self.log_console, x, y, z, dx, dy, dz, height, r, resolution, mesh_resolution)
+                cone_actor = GeometryManager.create_cone(cone)
                 if cone_actor:
                     self.add_actor(cone_actor)
             
@@ -551,12 +535,13 @@ class GraphicalEditor(QFrame):
     def create_cylinder(self):
         dialog = CylinderDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            x, y, z, radius, dx, dy, dz, resolution, mesh_resolution = dialog.getValues()
+            cylinder = dialog.getCylinder()
 
             try:
-                cylinder_actor = SimpleGeometryManager.create_cylinder(self.log_console, x, y, z, radius, dx, dy, dz, mesh_resolution, resolution)
+                cylinder_actor = GeometryManager.create_cylinder(cylinder)
                 if cylinder_actor:
                     self.add_actor(cylinder_actor)
+            
             except ValueError as e:
                 QMessageBox.warning(self, "Create Cylinder", str(e))
 
@@ -600,10 +585,6 @@ class GraphicalEditor(QFrame):
 
     def convert_stp_to_msh(self, filename, mesh_size, mesh_dim):
         try:
-            if not isInitialized():
-                initialize()
-            
-            model.add("model")
             model.occ.importShapes(filename)
             model.occ.synchronize()
             option.setNumber("Mesh.MeshSizeMin", mesh_size)
@@ -624,8 +605,6 @@ class GraphicalEditor(QFrame):
             QMessageBox.critical(self, "Error", f"An error occurred during conversion: {str(e)}")
             return None
         finally:
-            if isInitialized():
-                finalize()
             return output_file
 
     def add_actor(self, actor: vtkActor):
@@ -657,8 +636,7 @@ class GraphicalEditor(QFrame):
     def permanently_remove_actors(self):
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setText(
-            "Are you sure you want to delete the object? It will be permanently deleted.")
+        msgBox.setText("Are you sure you want to delete the object? It will be permanently deleted.")
         msgBox.setWindowTitle("Permanently Object Deletion")
         msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
 
@@ -697,13 +675,13 @@ class GraphicalEditor(QFrame):
     def remove_gradient(self):
         for actor in self.selected_actors:
             if actor and isinstance(actor, vtkActor):
-                SimpleGeometryTransformer.remove_gradient(actor)
+                remove_gradient(actor)
         self.deselect()
         
     def remove_shadows(self):
         for actor in self.selected_actors:
             if actor and isinstance(actor, vtkActor):
-                SimpleGeometryTransformer.remove_shadows(actor)
+                remove_shadows(actor)
         self.deselect()
 
     def remove_all_actors(self):
@@ -715,15 +693,9 @@ class GraphicalEditor(QFrame):
 
         self.render_editor_window()
 
-    def add_custom(self, meshfilename: str):
-        if not isInitialized():
-            initialize()
-        
+    def add_custom(self, meshfilename: str):        
         customTreeDict = MeshTreeManager.get_tree_dict(meshfilename)
         self.add_actors_and_populate_tree_view(customTreeDict, meshfilename, 'volume')
-        
-        if isInitialized():
-            finalize()
 
     def global_undo(self):
         if not self.global_undo_stack:
@@ -1268,25 +1240,28 @@ class GraphicalEditor(QFrame):
     def move_actors(self):
         dialog = MoveActorDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            offsets = dialog.getValues()
-            if offsets:
-                x_offset, y_offset, z_offset = offsets
-                SimpleGeometryTransformer.transform_actors(SIMPLE_GEOMETRY_TRANSFORMATION_MOVE, self.selected_actors, x_offset, y_offset, z_offset)
+            x_offset, y_offset, z_offset = dialog.getValues()
+                
+            for actor in self.selected_actors:
+                GeometryManager.move(actor, x_offset, y_offset, z_offset)
             self.deselect()
             
     def rotate_actors(self):
         dialog = AngleDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            angles = dialog.getValues()
-            if angles:
-                angle_x, angle_y, angle_z = angles
-                SimpleGeometryTransformer.transform_actors(SIMPLE_GEOMETRY_TRANSFORMATION_ROTATE, self.selected_actors, angle_x, angle_y, angle_z)    
+            angle_x, angle_y, angle_z = dialog.getValues()
+                
+            for actor in self.selected_actors:
+                GeometryManager.rotate(actor, angle_x, angle_y, angle_z)   
             self.deselect()
     
     def scale_actors(self):
-        scale_factor, ok = QInputDialog.getDouble(self, "Scale", "Scale:", 1.0, 0.01, 100.0, 9)
-        if ok:
-            SimpleGeometryTransformer.transform_actors(SIMPLE_GEOMETRY_TRANSFORMATION_SCALE, self.selected_actors, scale_factor)
+        dialog = ScaleDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            x_scale, y_scale, z_scale = dialog.getValues()
+            
+            for actor in self.selected_actors:
+                GeometryManager.scale(actor, x_scale, y_scale, z_scale)
             self.deselect()
             
     def change_interactor(self, style: str):
@@ -1429,11 +1404,7 @@ class GraphicalEditor(QFrame):
         choice = msgBox.exec()
         if (choice == QMessageBox.Yes):
             self.erase_all_from_tree_view()
-            self.remove_all_actors()
-            
-            SimpleGeometryManager.clear_geometry_objects()
-            self.difficult_geometries.clear()
-            
+            self.remove_all_actors()            
         self.action_history.clearIndex()
 
     def subtract_button_clicked(self):
@@ -1463,28 +1434,21 @@ class GraphicalEditor(QFrame):
         self.statusBar.showMessage("Click two points to define the cross-section plane.")
 
     def subtract_objects(self, obj_from: vtkActor, obj_to: vtkActor):
-        result_actor = SimpleGeometryTransformer.subtract(obj_from, obj_to)
-        if not result_actor:
-            return
-        self.object_operation_helper(obj_from, obj_to, result_actor)
+        result_actor = GeometryManager.subtract(obj_from, obj_to)
+        self.replace_actors_with_result(obj_from, obj_to, result_actor)
 
     def combine_objects(self, obj_from: vtkActor, obj_to: vtkActor):
-        result_actor = SimpleGeometryTransformer.combine(obj_from, obj_to)
-        if not result_actor:
-            return
-        self.object_operation_helper(obj_from, obj_to, result_actor)
+        result_actor = GeometryManager.combine(obj_from, obj_to)
+        self.replace_actors_with_result(obj_from, obj_to, result_actor)
 
     def intersect_objects(self, obj_from: vtkActor, obj_to: vtkActor):
-        result_actor = SimpleGeometryTransformer.intersect(obj_from, obj_to)
-        if not result_actor:
-            return
-        self.object_operation_helper(obj_from, obj_to, result_actor)
+        result_actor = GeometryManager.intersect(obj_from, obj_to)
+        self.replace_actors_with_result(obj_from, obj_to, result_actor)
         
-    def object_operation_helper(self, first: vtkActor, second: vtkActor, result: vtkActor):
+    def replace_actors_with_result(self, first: vtkActor, second: vtkActor, result: vtkActor):
         self.remove_actor(first)
         self.remove_actor(second)
         self.add_actor(result)
-        self.difficult_geometries.add(result)
 
     def create_cross_section(self):
         from numpy import cross
@@ -1607,8 +1571,8 @@ class GraphicalEditor(QFrame):
                 self.log_console.printInfo(f"Object: {hex(id(actor))}, Nodes: {nodes}, Value: {value}")
         self.deselect()
 
-    def save_and_mesh_simple_objects(self):
-        if not SimpleGeometryManager.get_created_objects():
+    def mesh_objects(self):
+        if GeometryManager.empty():
             QMessageBox.information(self, "Mesh Simple Objects", "There is no objects to mesh")
             self.log_console.printInfo("There is no objects to mesh")
             return
@@ -1617,52 +1581,55 @@ class GraphicalEditor(QFrame):
         if mesh_filename:
             dialog = mesh_dialog.MeshDialog(self)
             if dialog.exec_() == QDialog.Accepted:
-                mesh_size, mesh_dim = dialog.get_values()
-                success = SimpleGeometryManager.save_and_mesh_objects(self.log_console, mesh_filename, mesh_size, mesh_dim)
+                mesh_size, mesh_dim = dialog.getValues()
+                success = GeometryManager.mesh(mesh_filename, mesh_dim, mesh_size)
                 
                 if not success:
                     self.log_console.printWarning("Something went wrong while saving and meshing created objects")
                     return
                 else:
                     self.log_console.printInfo("Deleting objects from the list of the created objects...")
-                    SimpleGeometryManager.clear_geometry_objects()
-
-    def save_and_mesh_difficult_objects(self):
-        if not self.difficult_geometries:
-            QMessageBox.information(self, "Mesh Complex Objects", "There is no objects to mesh")
-            self.log_console.printInfo("There is no objects to mesh")
-            return
-
-        from gmsh import isInitialized, initialize, finalize, write, open, model, option
-
-        # TODO: implement
-
-        self.difficult_geometries.clear()
 
     def add_material(self):
         dialog = AddMaterialDialog(self)
         if dialog.exec_() == QDialog.Accepted:
             selected_material = dialog.materials_combobox.currentText()
             if not selected_material:
-                QMessageBox.warning(
-                    self, "Add Material", "Can't add material, you need to assign name to the material first")
+                QMessageBox.warning(self, "Add Material", "Can't add material, you need to assign name to the material first")
                 return
             # TODO: Handle the selected material here (e.g., add it to the application)
             pass
-    
+
     def test(self):
-        if not isInitialized():
-            initialize()
-        model.occ.addBox(0, 0, 0, 5, 5, 5)
-        model.occ.addBox(2.5, 2.5, 2.5, 5, 5, 5)
-        # model.occ.fuse([(3, 1)], [(3, 2)]) # Union
-        model.occ.intersect([(3, 1)], [(3, 2)]) # Intersection
-        # model.occ.cut([(3, 1)], [(3, 2)]) # Subtract
-        model.occ.synchronize()
-        model.mesh.generate(3)
-        option.setNumber("Mesh.MeshSizeMin", 0.1)
-        option.setNumber("Mesh.MeshSizeMax", 0.1)
-        write("test.msh")
-        if isInitialized():
-            finalize()
-    
+        print(f"Internal: {GeometryManager.geometries}")
+        print(f"GetEntities: {model.getEntities(dim=3)}")
+        
+        # from util import create_cutting_plane
+        
+        # tag = model.occ.addCone(0, 0, 0, 5, 5, 5, 2, 0)
+
+        # # Create two cutting planes
+        # cutting_plane_tag = create_cutting_plane('z', 2.5, 100)
+        # model.occ.synchronize()
+        # cut_result_dimtags, _ = model.occ.cut(objectDimTags=[(3, tag)], toolDimTags=[(3, cutting_plane_tag)], removeObject=True, removeTool=True)
+        # if len(cut_result_dimtags) == 1:
+        #     raise ValueError("Can't cut with specified plane. Possible reason: The cutting plane does not intersect the shape")
+
+        # # Print the result tags for debugging
+        # print(f"Cut result dim tags:\n{cut_result_dimtags}")
+
+        # # Translate the first part along Z axis for visualization
+        # model.occ.translate([(3, 1)], 0, 10, 0)
+        # model.occ.translate([(3, 2)], 0, 15, 0)
+        # model.occ.synchronize()
+        
+        # model.mesh.generate(3)
+        # option.setNumber("Mesh.MeshSizeMin", 1)
+        # option.setNumber("Mesh.MeshSizeMax", 1)
+        
+
+# GMSH boolean ops
+# model.occ.fuse([(3, 1)], [(3, 2)]) # Union
+# model.occ.intersect([(3, 1)], [(3, 2)]) # Intersection
+# model.occ.cut([(3, 1)], [(3, 2)]) # Subtract
+# cut_result_dimtags, _ = model.occ.cut([(3, tag)], [(3, cutting_plane_tag)]) # Section

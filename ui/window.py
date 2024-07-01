@@ -43,8 +43,7 @@ class WindowApp(QMainWindow):
         self.config_tab = ConfigTab(self.log_console)
         self.config_tab.requestToMoveToTheNextTab.connect(self.switch_tab)
         self.config_tab.requestToStartSimulation.connect(self.start_simulation)
-        self.config_tab.selectBoundaryConditionsSignal.connect(
-            self.handle_select_boundary_conditions)
+        self.config_tab.selectBoundaryConditionsSignal.connect(self.handle_select_boundary_conditions)
         self.mesh_tab = GraphicalEditorTab(self.config_tab, self.log_console)
         self.geditor = self.mesh_tab.geditor
         self.results_tab = ResultsTab(self.log_console)
@@ -53,14 +52,10 @@ class WindowApp(QMainWindow):
         self.config_tab.meshFileSelected.connect(self.geditor.upload_mesh_file)
 
         # Connecting signal to tun the simulation from the CLI
-        self.log_console.runSimulationSignal.connect(
-            self.start_simulation_from_CLI)
-        self.log_console.uploadMeshSignal.connect(
-            self.config_tab.upload_mesh_file)
-        self.log_console.uploadConfigSignal.connect(
-            self.config_tab.upload_config)
-        self.log_console.saveConfigSignal.connect(
-            self.config_tab.save_config_to_file)
+        self.log_console.runSimulationSignal.connect(self.start_simulation_from_CLI)
+        self.log_console.uploadMeshSignal.connect(self.config_tab.upload_mesh_file)
+        self.log_console.uploadConfigSignal.connect(self.config_tab.upload_config)
+        self.log_console.saveConfigSignal.connect(self.config_tab.save_config_to_file)
 
         # Setup Tabs
         self.setup_tabs()
@@ -216,20 +211,13 @@ class WindowApp(QMainWindow):
         style_menu.addAction('Custom', lambda: self.change_style('custom'))
 
         bg_color_menu = edit_menu.addMenu('Background Color')
-        bg_color_menu.addAction(
-            'Default', lambda: self.change_background_color('default'))
-        bg_color_menu.addAction(
-            'White', lambda: self.change_background_color('white'))
-        bg_color_menu.addAction(
-            'Light Gray', lambda: self.change_background_color('light gray'))
-        bg_color_menu.addAction(
-            'Gray', lambda: self.change_background_color('gray'))
-        bg_color_menu.addAction(
-            self.setupFontColor, lambda: self.change_background_color(self.setupFontColor))
-        bg_color_menu.addAction(
-            'Black', lambda: self.change_background_color('black'))
-        bg_color_menu.addAction(
-            'Custom', lambda: self.change_background_color('custom'))
+        bg_color_menu.addAction('Default', lambda: self.change_background_color('default'))
+        bg_color_menu.addAction('White', lambda: self.change_background_color('white'))
+        bg_color_menu.addAction('Light Gray', lambda: self.change_background_color('light gray'))
+        bg_color_menu.addAction('Gray', lambda: self.change_background_color('gray'))
+        bg_color_menu.addAction(self.setupFontColor, lambda: self.change_background_color(self.setupFontColor))
+        bg_color_menu.addAction('Black', lambda: self.change_background_color('black'))
+        bg_color_menu.addAction('Custom', lambda: self.change_background_color('custom'))
 
         edit_menu.addAction('Show Shortcuts', self.show_shortcuts)
         edit_menu.addAction('Change FPS (for animation)', self.results_tab.edit_fps)
@@ -600,3 +588,12 @@ class WindowApp(QMainWindow):
 
     def exit(self):
         exit(0)
+        
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Closing the app', "Are you sure you want to quit?", 
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
