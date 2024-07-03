@@ -1,4 +1,4 @@
-from gmsh import initialize, finalize, isInitialized, model
+from gmsh import initialize, finalize, isInitialized, clear, model, option
 
 
 def gmsh_init():
@@ -11,6 +11,34 @@ def gmsh_finalize():
     """Finalize Gmsh if it is initialized."""
     if isInitialized():
         finalize()
+    
+        
+def gmsh_clear():
+    """
+    Clear all loaded models and post-processing data
+    """
+    clear()
+
+
+def convert_stp_to_msh(filename: str, mesh_size: float, mesh_dim: int):
+    from gmsh import write
+    
+    try:
+        check_msh_filename(filename)
+        check_mesh_size(mesh_size)
+        check_mesh_dim(mesh_dim)
+        
+        model.occ.importShapes(filename)
+        model.occ.synchronize()
+        option.setNumber("Mesh.MeshSizeMin", mesh_size)
+        option.setNumber("Mesh.MeshSizeMax", mesh_size)
+
+        output_file = filename.replace(".stp", ".msh")
+        write(output_file)
+    except Exception as e:
+        raise RuntimeError(f"An error occurred during conversion: {e}")
+    finally:
+        return output_file
 
 
 def check_msh_filename(filename: str):
