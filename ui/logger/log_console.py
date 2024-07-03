@@ -118,7 +118,9 @@ class LogConsole(QWidget):
 
     def setup_vtk_logger(self):
         from tempfile import mktemp
+        from vtk import vtkObject
         
+        vtkObject.GlobalWarningDisplayOn()
         self.vtk_log_file_path = mktemp()
         self.appendLog(f"Created log file for the vtk: {self.vtk_log_file_path}")
         vtkLogger.LogToFile(self.vtk_log_file_path, vtkLogger.APPEND, vtkLogger.VERBOSITY_INFO)
