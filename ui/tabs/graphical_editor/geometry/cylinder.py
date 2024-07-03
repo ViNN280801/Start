@@ -63,6 +63,7 @@ class Cylinder:
         self.y = y
         self.z = z
         self.radius = radius
+        self.height = (dx**2 + dy**2 + dz**2)**0.5
         self.dx = dx
         self.dy = dy
         self.dz = dz
@@ -81,7 +82,6 @@ class Cylinder:
         cylinder_data_str = []
         cylinder_data_str.append(f'Primary Point: ({self.x}, {self.y}, {self.z})')
         cylinder_data_str.append(f'Radius: {self.radius}')
-        cylinder_data_str.append(f'Length: {self.dx}')
-        cylinder_data_str.append(f'Width: {self.dy}')
-        cylinder_data_str.append(f'Height: {self.dz}')
+        cylinder_data_str.append(f'Direction vector: [{self.dx} {self.dy} {self.dz}]')
+        cylinder_data_str.append(f'Height: {self.height}')
         return '\n'.join(cylinder_data_str)
