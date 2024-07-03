@@ -5,12 +5,13 @@ check_and_install_packages(["numpy", "h5py", "gmsh", "matplotlib", "PyQt5", "vtk
 from PyQt5.QtWidgets import QApplication
 from window import WindowApp
 from sys import argv, stderr
-from util import gmsh_init, gmsh_finalize
+from util.gmsh_helpers import gmsh_init, gmsh_finalize
+from util.util import setup_signal_handlers
 
 
-def main():    
-    # Initializing gmsh session only once for all runtime of the appliction
-    gmsh_init()
+def main():
+    setup_signal_handlers()  # Connecting signal handler
+    gmsh_init()              # Initializing gmsh session only once for all runtime of the appliction
     
     app = QApplication(argv)
     main_window = WindowApp()
