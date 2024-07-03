@@ -77,14 +77,18 @@ class CylinderDialog(QDialog):
         self.resolutionInput.setToolTip(GEOMETRY_CYLINDER_RESOLUTION_HINT)
         self.meshResolutionInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.meshResolutionInput.setToolTip(GEOMETRY_MESH_RESOLUTION_HINT)
+        
+        self.dxInput.setToolTip("Direction vector component along the X-axis")
+        self.dyInput.setToolTip("Direction vector component along the Y-axis")
+        self.dzInput.setToolTip("Direction vector component along the Z-axis")
 
         formLayout.addRow("Base center X:", self.xInput)
         formLayout.addRow("Base center Y:", self.yInput)
         formLayout.addRow("Base center Z:", self.zInput)
         formLayout.addRow("Radius:", self.radiusInput)
-        formLayout.addRow("Top center X:", self.dxInput)
-        formLayout.addRow("Top center Y:", self.dyInput)
-        formLayout.addRow("Top center Z:", self.dzInput)
+        formLayout.addRow("Direction X:", self.dxInput)
+        formLayout.addRow("Direction Y:", self.dyInput)
+        formLayout.addRow("Direction Z:", self.dzInput)
         formLayout.addRow("Resolution: ", self.resolutionInput)
         formLayout.addRow("Mesh resolution: ", self.meshResolutionInput)
 
