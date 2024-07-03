@@ -187,9 +187,13 @@ def signal_handler(signum, frame):
 
 
 def setup_signal_handlers():
-    from signal import Signals, signal, SIGKILL, SIGSTOP
+    from signal import Signals, signal, SIGKILL, SIGSTOP, SIGTERM
             
-    for sig in Signals:        
+    for sig in Signals:
+        # No need to block users SIGTERM signal that initialized by Ctrl+T keybind
+        if sig == SIGTERM:
+            return
+
         if sig not in (SIGKILL, SIGSTOP):
             try:
                 signal(sig, signal_handler)
