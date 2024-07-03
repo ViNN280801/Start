@@ -6,7 +6,7 @@ from vtk import (
     vtkCubeSource,
     vtkConeSource,
     vtkCylinderSource,
-    vtkActor, vtkPolyData, vtkPolyDataMapper, vtkTriangleFilter, vtkLinearSubdivisionFilter
+    vtkActor, vtkPolyData, vtkPolyDataMapper, vtkTriangleFilter, vtkLinearSubdivisionFilter, vtkTransform, vtkMatrix4x4
 )
 from sys import stderr
 from tabs.graphical_editor.geometry.point import Point
@@ -261,12 +261,12 @@ class VTKGeometryCreator:
         """
         try:
             cylinder_source = vtkCylinderSource()
+            cylinder_source.SetCenter(cylinder.x, cylinder.y, cylinder.z)
             cylinder_source.SetRadius(cylinder.radius)
-            cylinder_source.SetHeight(cylinder.dz)
-            cylinder_source.SetCenter(cylinder.x, cylinder.y, cylinder.z + cylinder.dz / 2)
+            cylinder_source.SetHeight(cylinder.height)
             cylinder_source.SetResolution(cylinder.resolution)
             cylinder_source.Update()
-
+            
             triangle_filter = vtkTriangleFilter()
             triangle_filter.SetInputConnection(cylinder_source.GetOutputPort())
             triangle_filter.Update()
@@ -281,8 +281,65 @@ class VTKGeometryCreator:
 
             actor = vtkActor()
             actor.SetMapper(mapper)
+            
+            sync_vtkcylinder_to_gmshcylinder_helper(cylinder, actor)
 
             return actor
         
         except Exception as e:
             print(f"An error occurred while creating the cylinder with VTK: {e}", file=stderr)
+    
+
+def sync_vtkcylinder_to_gmshcylinder_helper(cylinder: Cylinder, actor: vtkActor):
+    """
+    Adjusts a VTK cylinder actor to match the orientation and position of a Gmsh-defined cylinder.
+
+    Parameters:
+    -----------
+    cylinder : Cylinder
+        An object containing the cylinder parameters (x, y, z, radius, height, resolution, dx, dy, dz).
+    actor : vtkActor
+        The VTK actor representing the cylinder to be adjusted.
+    
+    Notes:
+    ------
+    This function applies both translation and rotation transformations to align the VTK cylinder with
+    the Gmsh-defined cylinder's direction vector and position. It also updates the geometry of the actor
+    to reflect these transformations.
+
+    The transformation steps include:
+    1. Translating the cylinder to its base position.
+    2. Calculating the necessary rotation to align the default Y-axis with the direction vector.
+    3. Applying the rotation and additional translation to position the cylinder correctly.
+    4. Updating the actor's transformation matrix and geometry.
+    """    
+    from .vtk_geometry_manipulator import VTKGeometryManipulator
+    from numpy import array, cross, dot, arccos, pi
+    from numpy.linalg import norm
+    
+    # Calculate the direction and height
+    direction = array([cylinder.dx, cylinder.dy, cylinder.dz])
+    direction_normalized = direction / cylinder.height
+    
+    # Translate to the cylinder base
+    transform = vtkTransform()
+    transform.Translate(cylinder.x, cylinder.y, cylinder.z)
+            
+    # Calculate the rotation axis and angle
+    # Relevant links:
+    #        1) https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
+    #        2) https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+    #        3) https://en.wikipedia.org/wiki/Euler%27s_rotation_theorem
+    default_direction = array([0, 1, 0]) # Default Y-axis in VTK
+    rotation_axis = cross(default_direction, direction_normalized)
+    rotation_angle = arccos(dot(default_direction, direction_normalized)) * 180 / pi
+    
+    # Apply rotation if the rotation axis is non-zero
+    if norm(rotation_axis) > 1e-6:
+        transform.RotateWXYZ(rotation_angle, rotation_axis[0], rotation_axis[1], rotation_axis[2])
+    
+    # Translate along the direction vector to position the cylinder correctly
+    transform.Translate(0, cylinder.height / 2, 0)
+    
+    # Applying transformation not only for te actor, but for its geometry too
+    VTKGeometryManipulator.apply_transformation(actor, transform)

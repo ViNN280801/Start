@@ -1,4 +1,3 @@
-from gmsh import write, model, option
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtCore import QSize, Qt, pyqtSlot, QItemSelectionModel
 from PyQt5.QtGui import QCursor, QStandardItemModel, QBrush, QIcon
@@ -15,10 +14,18 @@ from vtk import (
     vtkInteractorStyleTrackballCamera, vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick, 
 )
 from util import (
-    convert_unstructured_grid_to_polydata, compare_matrices, merge_actors, align_view_by_axis,
+    align_view_by_axis,
     ActionHistory, ProjectManager
 )
-from util.vtk_helpers import remove_gradient, remove_shadows
+from util.vtk_helpers import (
+    remove_gradient, remove_shadows, render_editor_window_without_resetting_camera,
+    render_editor_window, remove_all_actors, compare_matrices, merge_actors,
+    convert_unstructured_grid_to_polydata, add_actor, add_actors, remove_actor,
+    remove_actors, colorize_actor_with_rgb
+)
+from util.gmsh_helpers import (
+    convert_stp_to_msh
+)
 from logger import LogConsole
 from .geometry import GeometryManager
 from .particle_source_manager import ParticleSourceManager
@@ -138,7 +145,7 @@ class GraphicalEditor(QFrame):
         self.setParticleSourceButton.clicked.connect(self.set_particle_source)
         self.meshObjectsButton.clicked.connect(self.mesh_objects)
         
-        # TODO: Remove test button
+        # TODO: Remove test button when it's not needed
         self.testButton = self.create_button('', '')
         self.testButton.clicked.connect(self.test)
         
@@ -336,7 +343,7 @@ class GraphicalEditor(QFrame):
 
         actor = vtkActor()
         actor.SetMapper(mapper)
-        self.add_actor(actor)
+        add_actor(self.vtkWidget, self.renderer, actor)
 
         return actor
 
@@ -410,7 +417,7 @@ class GraphicalEditor(QFrame):
         else:
             action.setText('Hide')
 
-        self.render_editor_window_without_resetting_camera()
+        render_editor_window_without_resetting_camera(self.vtkWidget)
 
     def update_tree_item_visibility(self, actor, visible):
         rows = self.get_rows_by_actor(actor)
@@ -467,8 +474,9 @@ class GraphicalEditor(QFrame):
             try:
                 point_actor = GeometryManager.create_point(point)
                 if point_actor:
-                    self.add_actor(point_actor)
-            except ValueError as e:
+                    add_actor(self.vtkWidget, self.renderer, point_actor)
+                
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Point", str(e))
 
     def create_line(self):
@@ -479,8 +487,9 @@ class GraphicalEditor(QFrame):
             try:
                 line_actor = GeometryManager.create_line(line)
                 if line_actor:
-                    self.add_actor(line_actor)
-            except ValueError as e:
+                    add_actor(self.vtkWidget, self.renderer, line_actor)
+                
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Line", str(e))
 
     def create_surface(self):
@@ -490,8 +499,9 @@ class GraphicalEditor(QFrame):
             try:
                 surface_actor = GeometryManager.create_surface(surface)
                 if surface_actor:
-                    self.add_actor(surface_actor)
-            except ValueError as e:
+                    add_actor(self.vtkWidget, self.renderer, surface_actor)
+                
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Surface", str(e))
 
     def create_sphere(self):
@@ -502,8 +512,9 @@ class GraphicalEditor(QFrame):
             try:
                 sphere_actor = GeometryManager.create_sphere(sphere)
                 if sphere_actor:
-                    self.add_actor(sphere_actor)
-            except ValueError as e:
+                    add_actor(self.vtkWidget, self.renderer, sphere_actor)
+                
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Sphere", str(e))
 
     def create_box(self):
@@ -514,9 +525,9 @@ class GraphicalEditor(QFrame):
             try:
                 box_actor = GeometryManager.create_box(box)
                 if box_actor:
-                    self.add_actor(box_actor)
+                    add_actor(self.vtkWidget, self.renderer, box_actor)
             
-            except ValueError as e:
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Box", str(e))
 
     def create_cone(self):        
@@ -527,9 +538,9 @@ class GraphicalEditor(QFrame):
             try:
                 cone_actor = GeometryManager.create_cone(cone)
                 if cone_actor:
-                    self.add_actor(cone_actor)
+                    add_actor(self.vtkWidget, self.renderer, cone_actor)
             
-            except ValueError as e:
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Cone", str(e))
     
     def create_cylinder(self):
@@ -540,9 +551,9 @@ class GraphicalEditor(QFrame):
             try:
                 cylinder_actor = GeometryManager.create_cylinder(cylinder)
                 if cylinder_actor:
-                    self.add_actor(cylinder_actor)
+                    add_actor(self.vtkWidget, self.renderer, cylinder_actor)
             
-            except ValueError as e:
+            except RuntimeError as e:
                 QMessageBox.warning(self, "Create Cylinder", str(e))
 
     def upload_custom(self):
@@ -563,71 +574,18 @@ class GraphicalEditor(QFrame):
         if file_name.endswith('.stp'):
             dialog = MeshDialog(self)
             if dialog.exec() == QDialog.Accepted:
-                mesh_size, mesh_dim = dialog.get_values()
+                mesh_size, mesh_dim = dialog.getValues()
                 try:
-                    mesh_size = float(mesh_size)
-                    mesh_dim = int(mesh_dim)
-                    if mesh_dim not in [2, 3]:
-                        raise ValueError("Mesh dimensions must be 2 or 3.")
-                    converted_file_name = self.convert_stp_to_msh(
-                        file_name, mesh_size, mesh_dim)
+                    converted_file_name = convert_stp_to_msh(file_name, mesh_size, mesh_dim)
                     if converted_file_name:
                         self.add_custom(converted_file_name)
                 except ValueError as e:
                     QMessageBox.warning(self, "Invalid Input", str(e))
             else:
-                QMessageBox.critical(
-                    self, "Error", "Dialog was closed by user. Invalid mesh size or mesh dimensions.")
+                QMessageBox.critical(self, "Error", "Dialog was closed by user. Invalid mesh size or mesh dimensions.")
         elif file_name.endswith('.msh') or file_name.endswith('.vtk'):
             self.add_custom(file_name)
-            self.log_console.printInfo(
-                f'Successfully uploaded custom object from {file_name}')
-
-    def convert_stp_to_msh(self, filename, mesh_size, mesh_dim):
-        try:
-            model.occ.importShapes(filename)
-            model.occ.synchronize()
-            option.setNumber("Mesh.MeshSizeMin", mesh_size)
-            option.setNumber("Mesh.MeshSizeMax", mesh_size)
-
-            if mesh_dim == 2:
-                model.mesh.generate(2)
-            elif mesh_dim == 3:
-                model.mesh.generate(3)
-            else:
-                QMessageBox.warning(self, "Convert STP to MSH", f"Failed to generate mesh with mesh dim = {mesh_dim}")
-                self.log_console.printWarning(f"Failed to generate mesh with mesh dim = {mesh_dim}")
-                return None
-
-            output_file = filename.replace(".stp", ".msh")
-            write(output_file)
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred during conversion: {str(e)}")
-            return None
-        finally:
-            return output_file
-
-    def add_actor(self, actor: vtkActor):
-        self.renderer.AddActor(actor)
-        actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
-        self.render_editor_window()
-
-    def add_actors(self, actors: list):
-        for actor in actors:
-            self.renderer.AddActor(actor)
-            actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
-        self.render_editor_window()
-
-    def remove_actor(self, actor):
-        if actor and isinstance(actor, vtkActor) and actor in self.renderer.GetActors():
-            self.renderer.RemoveActor(actor)
-            self.render_editor_window()
-
-    def remove_actors(self, actors: list):
-        for actor in actors:
-            if actor in self.renderer.GetActors():
-                self.renderer.RemoveActor(actor)
-        self.render_editor_window()
+            self.log_console.printInfo(f'Successfully uploaded custom object from {file_name}')
 
     def remove_objects_with_restore(self, actors: list):
         # TODO: implement
@@ -648,7 +606,7 @@ class GraphicalEditor(QFrame):
                 if actor and isinstance(actor, vtkActor):
                     row = self.get_volume_row(actor)
                     if row is None:
-                        self.remove_actor(actor)
+                        remove_actor(self.vtkWidget, self.renderer, actor)
                         return
 
                     actors = self.get_actor_from_volume_row(row)
@@ -657,7 +615,7 @@ class GraphicalEditor(QFrame):
                         return
 
                     self.remove_row_from_tree(row)
-                    self.remove_actors(actors)
+                    remove_actors(self.vtkWidget, self.renderer, actors)
                     self.action_history.remove_by_id(self.action_history.get_id())
                     self.action_history.decrementIndex()
 
@@ -668,8 +626,7 @@ class GraphicalEditor(QFrame):
 
             for actor in self.selected_actors:
                 if actor and isinstance(actor, vtkActor):
-                    actor.GetProperty().SetColor(r, g, b)
-                    self.actor_color[actor] = (r, g, b)
+                    colorize_actor_with_rgb(actor, r, g, b)
             self.deselect()
             
     def remove_gradient(self):
@@ -683,15 +640,6 @@ class GraphicalEditor(QFrame):
             if actor and isinstance(actor, vtkActor):
                 remove_shadows(actor)
         self.deselect()
-
-    def remove_all_actors(self):
-        actors = self.renderer.GetActors()
-        actors.InitTraversal()
-        for i in range(actors.GetNumberOfItems()):
-            actor = actors.GetNextActor()
-            self.renderer.RemoveActor(actor)
-
-        self.render_editor_window()
 
     def add_custom(self, meshfilename: str):        
         customTreeDict = MeshTreeManager.get_tree_dict(meshfilename)
@@ -737,7 +685,7 @@ class GraphicalEditor(QFrame):
             return
         row, actors, treedict, objType = res
 
-        self.remove_actors(actors)
+        remove_actors(self.vtkWidget, self.renderer, actors)
 
         if objType != 'line':
             self.remove_row_from_tree(row)
@@ -750,7 +698,7 @@ class GraphicalEditor(QFrame):
             return
         row, actors, treedict, objType = res
 
-        self.add_actors(actors)
+        add_actors(self.vtkWidget, self.renderer, actors)
         self.populate_tree(treedict, objType)
         
     def undo_object_creating(self):
@@ -934,7 +882,7 @@ class GraphicalEditor(QFrame):
     def add_actors_and_populate_tree_view(self, treedict: dict, filename: str, objType: str = 'volume'):
         self.action_history.incrementIndex()
         row, actors = self.populate_tree(treedict, objType, filename)
-        self.add_actors(actors)
+        add_actors(self.vtkWidget, self.renderer, actors)
 
         self.externRow_treedict[row] = treedict
         if row not in self.externRow_actors:
@@ -948,14 +896,14 @@ class GraphicalEditor(QFrame):
         try:
             for actor, color in self.actor_color.items():
                 actor.GetProperty().SetColor(color)
-            self.render_editor_window_without_resetting_camera()
+            render_editor_window_without_resetting_camera(self.vtkWidget)
         except Exception as e:
             self.log_console.printError(f"Error in restore_actor_colors: {e}")
 
     def highlight_actors(self, actors):
         for actor in actors:
             actor.GetProperty().SetColor(DEFAULT_SELECTED_ACTOR_COLOR)
-        self.render_editor_window_without_resetting_camera()
+        render_editor_window_without_resetting_camera(self.vtkWidget)
 
     def unhighlight_actors(self):
         self.restore_actor_colors()
@@ -1050,7 +998,7 @@ class GraphicalEditor(QFrame):
         self.tempLineActor.GetProperty().SetColor(1, 0, 0)  # red color
 
         self.renderer.AddActor(self.tempLineActor)
-        self.render_editor_window()
+        render_editor_window(self.vtkWidget, self.renderer)
 
     def start_line_drawing(self):
         self.crossSectionLinePoints.clear()
@@ -1061,7 +1009,7 @@ class GraphicalEditor(QFrame):
         if self.tempLineActor:
             self.renderer.RemoveActor(self.tempLineActor)
             self.tempLineActor = None
-        self.render_editor_window()
+        render_editor_window(self.vtkWidget, self.renderer)
 
     def pick_actor(self, obj, event):
         click_pos = self.interactor.GetEventPosition()
@@ -1092,7 +1040,7 @@ class GraphicalEditor(QFrame):
             
             actor.GetProperty().SetColor(DEFAULT_SELECTED_ACTOR_COLOR)
             self.selected_actors.add(actor)
-            self.render_editor_window_without_resetting_camera()
+            render_editor_window_without_resetting_camera(self.vtkWidget)
 
         # Call the original OnLeftButtonDown event handler to maintain default interaction behavior
         self.interactorStyle.OnLeftButtonDown()
@@ -1107,6 +1055,15 @@ class GraphicalEditor(QFrame):
                 secondObjectToPerformOperation = list(self.selected_actors)[0]
                 if self.firstObjectToPerformOperation and secondObjectToPerformOperation:
                     operationType = self.isPerformOperation[1]
+                    
+                    if self.firstObjectToPerformOperation == secondObjectToPerformOperation:
+                        QMessageBox.warning(self, f"{operationType}", f"Can't perform operation {operationType} on itself")
+                        self.firstObjectToPerformOperation = None
+                        secondObjectToPerformOperation = None
+                        self.isPerformOperation = (False, None)
+                        self.statusBar.clearMessage()
+                        self.deselect()
+                        return
 
                     if operationType == 'subtract':
                         self.subtract_objects(self.firstObjectToPerformOperation, secondObjectToPerformOperation)
@@ -1201,13 +1158,6 @@ class GraphicalEditor(QFrame):
 
     def reset_selection_treeview(self):
         self.treeView.clearSelection()
-        
-    def render_editor_window_without_resetting_camera(self):
-        self.vtkWidget.GetRenderWindow().Render()
-
-    def render_editor_window(self):
-        self.renderer.ResetCamera()
-        self.render_editor_window_without_resetting_camera()
     
     def set_color(self, actor: vtkActor, color):
         try:
@@ -1327,11 +1277,11 @@ class GraphicalEditor(QFrame):
         for actor in self.selected_actors:
             self.update_actor_dictionaries(actor)
             saved_actor = actor
-        self.remove_actors(self.selected_actors)
+        remove_actors(self.vtkWidget, self.renderer, self.selected_actors)
         merged_actor = merge_actors(self.selected_actors)
 
         # Adding the merged actor to the scene
-        self.add_actor(merged_actor)
+        add_actor(self.vtkWidget, self.renderer, merged_actor)
         self.update_actor_dictionaries(saved_actor, merged_actor)
         self.update_tree_view(volume_row, surface_indices, merged_actor)
 
@@ -1391,10 +1341,12 @@ class GraphicalEditor(QFrame):
         return self.renderer.GetActors().GetNumberOfItems()
 
     def clear_scene_and_tree_view(self):
+        from util.gmsh_helpers import gmsh_clear
+        
         # There is no need to ask about assurance of deleting when len(actors) = 0
         if self.get_total_count_of_actors() == 0:
             return
-
+        
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
         msgBox.setWindowTitle("Deleting All The Data")
@@ -1403,8 +1355,10 @@ class GraphicalEditor(QFrame):
 
         choice = msgBox.exec()
         if (choice == QMessageBox.Yes):
-            self.erase_all_from_tree_view()
-            self.remove_all_actors()            
+            self.erase_all_from_tree_view()                     # 1. Erasing all records from the tree view
+            remove_all_actors(self.vtkWidget, self.renderer)    # 2. Deleting all the actors
+            GeometryManager.clear()                             # 3. Clearing out internal storage of geometries
+            gmsh_clear()                                        # 4. Clear all loaded models and post-processing data
         self.action_history.clearIndex()
 
     def subtract_button_clicked(self):
@@ -1446,9 +1400,9 @@ class GraphicalEditor(QFrame):
         self.replace_actors_with_result(obj_from, obj_to, result_actor)
         
     def replace_actors_with_result(self, first: vtkActor, second: vtkActor, result: vtkActor):
-        self.remove_actor(first)
-        self.remove_actor(second)
-        self.add_actor(result)
+        remove_actor(self.vtkWidget, self.renderer, first)
+        remove_actor(self.vtkWidget, self.renderer, second)
+        add_actor(self.vtkWidget, self.renderer, result)
 
     def create_cross_section(self):
         from numpy import cross
@@ -1512,9 +1466,9 @@ class GraphicalEditor(QFrame):
         actor2.SetMapper(mapper2)
         actor2.GetProperty().SetColor(0.8, 0.3, 0.3)
 
-        self.remove_actor(list(self.selected_actors)[0])
-        self.add_actor(actor1)
-        self.add_actor(actor2)
+        remove_actor(self.vtkWidget, self.renderer, list(self.selected_actors)[0])
+        add_actor(self.vtkWidget, self.renderer, actor1)
+        add_actor(self.vtkWidget, self.renderer, actor2)
 
         self.log_console.printInfo("Successfully created a cross-section")
 
@@ -1601,35 +1555,4 @@ class GraphicalEditor(QFrame):
             pass
 
     def test(self):
-        print(f"Internal: {GeometryManager.geometries}")
-        print(f"GetEntities: {model.getEntities(dim=3)}")
-        
-        # from util import create_cutting_plane
-        
-        # tag = model.occ.addCone(0, 0, 0, 5, 5, 5, 2, 0)
-
-        # # Create two cutting planes
-        # cutting_plane_tag = create_cutting_plane('z', 2.5, 100)
-        # model.occ.synchronize()
-        # cut_result_dimtags, _ = model.occ.cut(objectDimTags=[(3, tag)], toolDimTags=[(3, cutting_plane_tag)], removeObject=True, removeTool=True)
-        # if len(cut_result_dimtags) == 1:
-        #     raise ValueError("Can't cut with specified plane. Possible reason: The cutting plane does not intersect the shape")
-
-        # # Print the result tags for debugging
-        # print(f"Cut result dim tags:\n{cut_result_dimtags}")
-
-        # # Translate the first part along Z axis for visualization
-        # model.occ.translate([(3, 1)], 0, 10, 0)
-        # model.occ.translate([(3, 2)], 0, 15, 0)
-        # model.occ.synchronize()
-        
-        # model.mesh.generate(3)
-        # option.setNumber("Mesh.MeshSizeMin", 1)
-        # option.setNumber("Mesh.MeshSizeMax", 1)
-        
-
-# GMSH boolean ops
-# model.occ.fuse([(3, 1)], [(3, 2)]) # Union
-# model.occ.intersect([(3, 1)], [(3, 2)]) # Intersection
-# model.occ.cut([(3, 1)], [(3, 2)]) # Subtract
-# cut_result_dimtags, _ = model.occ.cut([(3, tag)], [(3, cutting_plane_tag)]) # Section
+        pass

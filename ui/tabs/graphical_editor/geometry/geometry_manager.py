@@ -85,6 +85,10 @@ class GeometryManager:
     @staticmethod
     def add(obj: str, actor: vtkActor, dimtags):
         GeometryManager.geometries.append((obj, actor, dimtags))
+        
+    @staticmethod
+    def clear():
+        GeometryManager.geometries.clear()
     
     @staticmethod
     def empty() -> bool:
@@ -205,42 +209,40 @@ class GeometryManager:
     def operation_helper(operation: str, first_actor: vtkActor, second_actor: vtkActor) -> vtkActor:
         from logger.internal_logger import InternalLogger
         
-        # 1. Getting dimtags by their actors
-        first_dimtags = GeometryManager.get_dimtags_by_actor(first_actor)
-        second_dimtags = GeometryManager.get_dimtags_by_actor(second_actor)
+        try:
+            # 1. Getting dimtags by their actors
+            first_dimtags = GeometryManager.get_dimtags_by_actor(first_actor)
+            second_dimtags = GeometryManager.get_dimtags_by_actor(second_actor)
+            
+            # 2. Do operation
+            if operation == 'subtract':
+                out_actor, out_dimtags = GeometryManipulator.subtract(first_actor, second_actor, first_dimtags, second_dimtags)
+                prefix = 'subtracted'
+            elif operation == 'combine':
+                out_actor, out_dimtags = GeometryManipulator.combine(first_actor, second_actor, first_dimtags, second_dimtags)
+                prefix = 'combined'
+            elif operation == 'intersect':
+                out_actor, out_dimtags = GeometryManipulator.intersect(first_actor, second_actor, first_dimtags, second_dimtags)
+                prefix = 'intersected'
+            else:
+                raise ValueError(f"{InternalLogger.pretty_function_details()} doesn't support operation [{operation}]")
+            
+            # 3. Composing string to represent new data
+            first_data = GeometryManager.get_str_by_actor(first_actor)
+            second_data = GeometryManager.get_str_by_actor(second_actor)
+            out_data = f'{prefix}_{first_data}_{second_data}'
+            
+            # 4. Deleting elements of the previous actors-dimtags from the internal storage by actor
+            GeometryManager.delete_by_actor(first_actor)
+            GeometryManager.delete_by_actor(second_actor)
+            
+            # 5. Adding new element
+            GeometryManager.add(out_data, out_actor, out_dimtags)
+            
+            return out_actor
         
-        # 2. Do operation
-        if operation == 'subtract':
-            out_actor, out_dimtags = GeometryManipulator.subtract(first_actor, second_actor, first_dimtags, second_dimtags)
-            prefix = 'subtracted'
-        elif operation == 'combine':
-            out_actor, out_dimtags = GeometryManipulator.combine(first_actor, second_actor, first_dimtags, second_dimtags)
-            prefix = 'combined'
-        elif operation == 'intersect':
-            out_actor, out_dimtags = GeometryManipulator.intersect(first_actor, second_actor, first_dimtags, second_dimtags)
-            prefix = 'intersected'
-        else:
-            raise ValueError(f"{InternalLogger.pretty_function_details()} doesn't support operation [{operation}]")
-        
-        from gmsh import model
-        print(f"Operation is - {operation}")
-        print(f"All dimtags before: {model.getEntities(dim=3)}")
-        print(f"Init dimtags: {GeometryManager.get_dimtags_by_actor(first_actor)} {GeometryManager.get_dimtags_by_actor(second_actor)}")
-        print(f"Result dimtags: {out_dimtags}\nAll dimtags after: {model.getEntities(dim=3)}")
-        
-        # 3. Composing string to represent new data
-        first_data = GeometryManager.get_str_by_actor(first_actor)
-        second_data = GeometryManager.get_str_by_actor(second_actor)
-        out_data = f'{prefix}_{first_data}_{second_data}'
-        
-        # 4. Deleting elements of the previous actors-dimtags from the internal storage by actor
-        GeometryManager.delete_by_actor(first_actor)
-        GeometryManager.delete_by_actor(second_actor)
-        
-        # 5. Adding new element
-        GeometryManager.add(out_data, out_actor, out_dimtags)
-        
-        return out_actor
+        except Exception as e:
+            raise ValueError(f"{InternalLogger.pretty_function_details()} can't perform operation {operation}. Reason: {e}")
     
     @staticmethod
     def subtract(first_actor, second_actor) -> vtkActor:
