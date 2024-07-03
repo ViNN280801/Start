@@ -2,8 +2,10 @@ from vtk import (
     vtkUnstructuredGrid, vtkPolyData, vtkPolyDataWriter, vtkActor, vtkBooleanOperationPolyDataFilter, 
     vtkGeometryFilter, vtkPoints, vtkCellArray, vtkTriangle, vtkTransform, vtkCleanPolyData, vtkPlane,
     vtkAppendPolyData, vtkPolyDataMapper, vtkFeatureEdges, vtkPolyDataConnectivityFilter, vtkClipPolyData,
+    vtkRenderer, 
     VTK_TRIANGLE
 )
+from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import DEFAULT_ACTOR_COLOR
 from logger import InternalLogger
 
@@ -272,7 +274,6 @@ def merge_actors(actors):
 
     return merged_actor
 
-
 def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, operation: vtkBooleanOperationPolyDataFilter):
     try:
         obj_from_subtract_polydata = convert_unstructured_grid_to_polydata(obj_from)
@@ -284,6 +285,9 @@ def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, opera
         cleaner2 = vtkCleanPolyData()
         cleaner2.SetInputData(obj_to_subtract_polydata)
         cleaner2.Update()
+        
+        if cleaner1.GetOutput().GetNumberOfCells() == 0 or cleaner2.GetOutput().GetNumberOfCells() == 0:
+            raise ValueError(f"Operation <{operation}> Failed: Invalid input data for the operation")
 
         # Set the input objects for the operation
         operation.SetInputData(0, cleaner1.GetOutput())
@@ -297,7 +301,7 @@ def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, opera
 
         # Check if subtraction was successful
         if resultPolyData is None or resultPolyData.GetNumberOfPoints() == 0:
-            raise ValueError("Operation Failed: No result from the operation operation.")
+            raise ValueError(f"Operation <{operation}> Failed: No result from the operation operation.")
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputData(resultPolyData)
@@ -446,3 +450,47 @@ def colorize_actor_with_rgb(actor: vtkActor, r: float, g: float, b: float):
         except Exception as e:
             print(InternalLogger.get_warning_none_result_with_exception_msg(e))
             return None
+
+
+def add_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor):
+    renderer.AddActor(actor)
+    actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
+    render_editor_window(vtkWidget, renderer)
+
+
+def add_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list):
+    for actor in actors:
+        renderer.AddActor(actor)
+        actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
+    render_editor_window(vtkWidget, renderer)
+
+
+def remove_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor):
+    if actor and isinstance(actor, vtkActor) and actor in renderer.GetActors():
+        renderer.RemoveActor(actor)
+        render_editor_window(vtkWidget, renderer)
+
+
+def remove_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list):
+    for actor in actors:
+        if actor in renderer.GetActors():
+            renderer.RemoveActor(actor)
+    render_editor_window(vtkWidget, renderer)
+
+
+def remove_all_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer):
+    actors = renderer.GetActors()
+    actors.InitTraversal()
+    for i in range(actors.GetNumberOfItems()):
+        actor = actors.GetNextActor()
+        renderer.RemoveActor(actor)
+    render_editor_window(vtkWidget, renderer)
+
+
+def render_editor_window(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer):
+    renderer.ResetCamera()
+    render_editor_window_without_resetting_camera(vtkWidget)
+
+
+def render_editor_window_without_resetting_camera(vtkWidget: QVTKRenderWindowInteractor):
+    vtkWidget.GetRenderWindow().Render()
