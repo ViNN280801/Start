@@ -117,17 +117,18 @@ def align_view_by_axis(axis: str, renderer: vtkRenderer,
 
 
 def calculate_direction(base, tip):
-    from numpy import array, linalg
+    from numpy import array
+    from numpy.linalg import norm
 
-    base = array(base)
-    tip = array(tip)
+    base = array(base, dtype=float)
+    tip = array(tip, dtype=float)
 
     direction = tip - base
 
-    norm = linalg.norm(direction)
-    if norm == 0:
+    norm_ = norm(direction)
+    if norm_ == 0:
         raise ValueError("The direction vector cannot be zero.")
-    direction /= norm
+    direction /= norm_
 
     return direction
 
