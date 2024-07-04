@@ -24,7 +24,7 @@ def convert_stp_to_msh(filename: str, mesh_size: float, mesh_dim: int):
     from gmsh import write
     
     try:
-        check_msh_filename(filename)
+        check_stp_filename(filename)
         check_mesh_size(mesh_size)
         check_mesh_dim(mesh_dim)
         
@@ -58,6 +58,28 @@ def check_msh_filename(filename: str):
     
     if not filename.endswith(".msh"):
         raise ValueError("Filename must end with '.msh' extension.")
+
+    from util import check_path_access
+    check_path_access(filename)
+
+
+def check_stp_filename(filename: str):
+    """
+    Check if the filename ends with '.stp' and if the path is accessible.
+
+    Args:
+    filename (str): The filename to check.
+
+    Raises:
+    TypeError: If the filename is not a string.
+    ValueError: If the filename does not end with '.stp' extension.
+    OSError: If the path is not accessible or writable.
+    """
+    if not isinstance(filename, str):
+        raise TypeError("Filename must be a string.")
+    
+    if not filename.endswith(".stp"):
+        raise ValueError("Filename must end with '.stp' extension.")
 
     from util import check_path_access
     check_path_access(filename)
