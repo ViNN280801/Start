@@ -4,7 +4,7 @@ import string
 from util.number_checkers import *
 
 
-class TestNumberCheckers(unittest.TestCase):
+class NumberCheckersTests(unittest.TestCase):
 
     def generate_random_strings(self, length=10):
         """Generate a random string of fixed length."""
