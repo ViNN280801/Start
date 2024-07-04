@@ -5,7 +5,7 @@ from util.number_checkers import *
 class PhysicalMeasurementUnitsConverter:
     @staticmethod
     def to_kelvin(value, unit):
-        if not is_positive_real_number(value):
+        if not is_real_number(value):
             return 0.0
         value = float(value)
         if unit == "K":
@@ -61,7 +61,7 @@ class PhysicalMeasurementUnitsConverter:
         # Conversion factors to joules
         unit_factors = {
             "eV": 1.602176634e-19,  # 1 eV to Joules
-            "keV": 1.602176634e-16,  # 1 keV to Joules
+            "keV": 1.602176634e-16, # 1 keV to Joules
             "J": 1.,                # 1 Joule to Joules
             "kJ": 1e3,              # 1 kilojoule to Joules
             "cal": 4.184,           # 1 calorie to Joules
