@@ -1,5 +1,5 @@
 from constants import *
-from util import *
+from util.number_checkers import *
 
 
 class PhysicalMeasurementUnitsConverter:
