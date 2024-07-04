@@ -66,6 +66,18 @@ class Cone:
         self.r = r
         self.resolution = resolution
         self.mesh_resolution = mesh_resolution
+        
+        dx_normalized = dx / self.height
+        dy_normalized = dy / self.height
+        dz_normalized = dz / self.height
+        
+        self.x_tip = self.x + self.height * dx_normalized
+        self.y_tip = self.y + self.height * dy_normalized
+        self.z_tip = self.z + self.height * dz_normalized
+        
+        self.x_center = (self.x + self.x_tip) / 2
+        self.y_center = (self.y + self.y_tip) / 2
+        self.z_center = (self.z + self.z_tip) / 2
 
     def __repr__(self):
         """

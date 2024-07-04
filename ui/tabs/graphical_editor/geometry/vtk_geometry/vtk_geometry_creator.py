@@ -17,6 +17,10 @@ from tabs.graphical_editor.geometry.box import Box
 from tabs.graphical_editor.geometry.cone import Cone
 from tabs.graphical_editor.geometry.cylinder import Cylinder
 
+from .vtk_geometry_manipulator import VTKGeometryManipulator
+from numpy import array, cross, dot, arccos, pi
+from numpy.linalg import norm
+
 
 class VTKGeometryCreator:
     
@@ -221,7 +225,7 @@ class VTKGeometryCreator:
         """        
         try:
             cone_source = vtkConeSource()
-            cone_source.SetCenter(cone.x, cone.y, cone.z)
+            cone_source.SetCenter(cone.x_center, cone.y_center, cone.z_center)
             cone_source.SetDirection(cone.dx, cone.dy, cone.dz)
             cone_source.SetRadius(cone.r)
             cone_source.SetHeight(cone.height)
@@ -313,10 +317,6 @@ def sync_vtkcylinder_to_gmshcylinder_helper(cylinder: Cylinder, actor: vtkActor)
     3. Applying the rotation and additional translation to position the cylinder correctly.
     4. Updating the actor's transformation matrix and geometry.
     """    
-    from .vtk_geometry_manipulator import VTKGeometryManipulator
-    from numpy import array, cross, dot, arccos, pi
-    from numpy.linalg import norm
-    
     # Calculate the direction and height
     direction = array([cylinder.dx, cylinder.dy, cylinder.dz])
     direction_normalized = direction / cylinder.height

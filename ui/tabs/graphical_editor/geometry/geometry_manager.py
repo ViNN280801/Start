@@ -11,7 +11,7 @@ from tabs.graphical_editor.geometry.cylinder import Cylinder
 from .geometry_creator import GeometryCreator
 from .geometry_manipulator import GeometryManipulator
 
-from util.gmsh_helpers import complete_dimtag, complete_dimtags
+from util.gmsh_helpers import complete_dimtag, complete_dimtags, gmsh_clear
 
 
 class GeometryManager:
@@ -88,7 +88,8 @@ class GeometryManager:
         
     @staticmethod
     def clear():
-        GeometryManager.geometries.clear()
+        GeometryManager.geometries.clear()    # 1. Clearing out internal storage of geometries
+        gmsh_clear()                          # 2. Clear all loaded models and post-processing data
     
     @staticmethod
     def empty() -> bool:

@@ -1340,9 +1340,7 @@ class GraphicalEditor(QFrame):
     def get_total_count_of_actors(self):
         return self.renderer.GetActors().GetNumberOfItems()
 
-    def clear_scene_and_tree_view(self):
-        from util.gmsh_helpers import gmsh_clear
-        
+    def clear_scene_and_tree_view(self):        
         # There is no need to ask about assurance of deleting when len(actors) = 0
         if self.get_total_count_of_actors() == 0:
             return
@@ -1357,8 +1355,7 @@ class GraphicalEditor(QFrame):
         if (choice == QMessageBox.Yes):
             self.erase_all_from_tree_view()                     # 1. Erasing all records from the tree view
             remove_all_actors(self.vtkWidget, self.renderer)    # 2. Deleting all the actors
-            GeometryManager.clear()                             # 3. Clearing out internal storage of geometries
-            gmsh_clear()                                        # 4. Clear all loaded models and post-processing data
+            GeometryManager.clear()                             
         self.action_history.clearIndex()
 
     def subtract_button_clicked(self):
@@ -1540,6 +1537,7 @@ class GraphicalEditor(QFrame):
                 
                 if not success:
                     self.log_console.printWarning("Something went wrong while saving and meshing created objects")
+                    self.clear_scene_and_tree_view()
                     return
                 else:
                     self.log_console.printInfo("Deleting objects from the list of the created objects...")
