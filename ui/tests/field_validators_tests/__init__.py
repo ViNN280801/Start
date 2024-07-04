@@ -1,1 +1,4 @@
+from .custom_double_validator_tests import CustomDoubleValidatorTests
 from .custom_int_validator_tests import CustomIntValidatorTests
+from .custom_signed_double_validator_tests import CustomSignedDoubleValidatorTests
+from .custom_signed_int_validator_tests import CustomSignedIntValidatorTests
