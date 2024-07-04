@@ -1,1 +1,1 @@
-from .custom_int_validator_tests import TestCustomIntValidator
+from .custom_int_validator_tests import CustomIntValidatorTests

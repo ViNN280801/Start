@@ -1,29 +1,10 @@
 import unittest
-from PyQt5.QtGui import QValidator, QIntValidator
+from PyQt5.QtGui import QValidator
 from PyQt5.QtCore import QObject
+from field_validators import CustomIntValidator
 
 
-class CustomIntValidator(QIntValidator):
-    def __init__(self, bottom, top, parent=None):
-        super().__init__(bottom, top, parent)
-
-    def validate(self, input_str, pos):
-        if not input_str:
-            return (self.Intermediate, input_str, pos)
-
-        try:
-            value = int(input_str)
-            if self.bottom() <= value <= self.top():
-                return (self.Acceptable, input_str, pos)
-            else:
-                return (self.Invalid, input_str, pos)
-        except ValueError:
-            return (self.Invalid, input_str, pos)
-
-        return (self.Intermediate, input_str, pos)
-
-
-class TestCustomIntValidator(unittest.TestCase):
+class CustomIntValidatorTests(unittest.TestCase):
 
     def setUp(self):
         self.parent = QObject()
@@ -52,6 +33,7 @@ class TestCustomIntValidator(unittest.TestCase):
     def test_intermediate_input(self):
         state, _, _ = self.validator.validate("5a", 0)
         self.assertEqual(state, QValidator.Invalid)
+
 
 if __name__ == '__main__':
     unittest.main()
