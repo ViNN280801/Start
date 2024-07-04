@@ -67,7 +67,6 @@ config*.json
 
 # Drawings
 *.vtk
-*.stp
 
 # Pyinstaller files
 dist/
