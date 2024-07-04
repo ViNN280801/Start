@@ -1,3 +1,5 @@
+from .action_history_tests import ActionHistoryTests
 from .gmsh_helpers_tests import GMSHHelpersTests
 from .number_checkers_tests import NumberCheckersTests
 from .util_tests import UtilTests
+from .physical_measurement_units_converter_tests import PhysicalMeasurementUnitsConverterTests
