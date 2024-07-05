@@ -9,9 +9,10 @@ from PyQt5.QtWidgets import (
 )
 from vtk import (
     vtkRenderer, vtkPoints, vtkPolyData, vtkPolyLine, vtkCellArray, vtkPolyDataMapper,
-    vtkActor, vtkAxesActor, vtkOrientationMarkerWidget, vtkGenericDataObjectReader, 
-    vtkDataSetMapper, vtkCellPicker, vtkPlane, vtkClipPolyData, vtkCommand, vtkMatrix4x4, 
-    vtkInteractorStyleTrackballCamera, vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick, 
+    vtkActor, vtkAxesActor, vtkOrientationMarkerWidget, vtkGenericDataObjectReader,
+    vtkDataSetMapper, vtkCellPicker, vtkCommand, vtkMatrix4x4, vtkInteractorStyleTrackballCamera,
+    vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick, vtkPlane, vtkPlaneSource,
+    vtkTriangleFilter, vtkClipPolyData
 )
 from util import (
     align_view_by_axis,
@@ -19,15 +20,15 @@ from util import (
 )
 from util.vtk_helpers import (
     remove_gradient, remove_shadows, render_editor_window_without_resetting_camera,
-    render_editor_window, remove_all_actors, compare_matrices, merge_actors,
-    convert_unstructured_grid_to_polydata, add_actor, add_actors, remove_actor,
-    remove_actors, colorize_actor_with_rgb
+    render_editor_window, remove_all_actors, compare_matrices, merge_actors, 
+    add_actor, add_actors, remove_actor, remove_actors, colorize_actor_with_rgb,
+    convert_unstructured_grid_to_polydata
 )
 from util.gmsh_helpers import (
     convert_stp_to_msh
 )
 from logger import LogConsole
-from .geometry import GeometryManager
+from .geometry import GeometryManager, VTKGeometryManipulator
 from .particle_source_manager import ParticleSourceManager
 from .mesh_tree_manager import MeshTreeManager
 from .geometry.geometry_constants import *
@@ -64,6 +65,8 @@ class GraphicalEditor(QFrame):
         self.firstObjectToPerformOperation = None
         self.statusBar = QStatusBar()
         self.layout.addWidget(self.statusBar)
+        
+        self.cutting_plane_actor = None
 
         self.crossSectionLinePoints = []  # To store points for the cross-section line
         self.isDrawingLine = False        # To check if currently drawing the line
@@ -208,6 +211,9 @@ class GraphicalEditor(QFrame):
     def get_color_by_actor(self, actor):
         return self.actor_color.get(actor, None)
 
+    def actor_color_add(self, actor, color):
+        self.actor_color[actor] = color
+
     def get_actors_by_color(self, color):
         return [actor for actor, clr in self.actor_color.items() if clr == color]
 
@@ -291,8 +297,7 @@ class GraphicalEditor(QFrame):
                 self.actor_color[actor_to_add] = DEFAULT_ACTOR_COLOR
                 self.actor_matrix[actor_to_add] = (
                     actor_to_add.GetMatrix(), actor_to_add.GetMatrix())
-                self.meshfile_actors.setdefault(
-                    filename, []).append(actor_to_add)
+                self.meshfile_actors.setdefault(filename, []).append(actor_to_add)
 
     @pyqtSlot()
     def activate_selection_boundary_conditions_mode_slot(self):
@@ -623,10 +628,12 @@ class GraphicalEditor(QFrame):
         actorColor = QColorDialog.getColor()
         if actorColor.isValid():
             r, g, b = actorColor.redF(), actorColor.greenF(), actorColor.blueF()
-
+            
             for actor in self.selected_actors:
                 if actor and isinstance(actor, vtkActor):
                     colorize_actor_with_rgb(actor, r, g, b)
+                    color = actor.GetProperty().GetColor()
+                    self.actor_color_add(actor, color)
             self.deselect()
             
     def remove_gradient(self):
@@ -869,7 +876,7 @@ class GraphicalEditor(QFrame):
         self.actor_nodes.update(MeshTreeManager.form_actor_nodes_dictionary(treedict, self.actor_rows, objType))
 
     def populate_tree(self, treedict: dict, objType: str, filename: str) -> list:
-        row = MeshTreeManager.populate_tree_view(treedict, self.action_history.id, self.model, self.treeView, objType)
+        row = MeshTreeManager.populate_tree_view(treedict, self.action_history._id, self.model, self.treeView, objType)
         self.treeView.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.treeView.selectionModel().selectionChanged.connect(self.on_tree_selection_changed)
         actors = MeshTreeManager.create_actors_from_tree_dict(treedict, objType)
@@ -1182,8 +1189,10 @@ class GraphicalEditor(QFrame):
                 actor.GetProperty().SetColor(original_color)
 
             self.selected_actors.clear()
+            remove_actor(self.vtkWidget, self.renderer, self.cutting_plane_actor)
             self.vtkWidget.GetRenderWindow().Render()
             self.reset_selection_treeview()
+            
         except Exception as e:
             self.log_console.printError(f"Error in deselect: {e}")
 
@@ -1259,17 +1268,25 @@ class GraphicalEditor(QFrame):
 
     def merge_surfaces(self):
         if len(self.selected_actors) == 1:
-            self.log_console.printInfo(
-                "Nothing to merge, selected only 1 surface")
-            QMessageBox.warning(self, "Merge Surfaces",
-                                "Nothing to merge, selected only 1 surface")
+            self.log_console.printInfo("Nothing to merge, selected only 1 surface")
+            QMessageBox.warning(self, "Merge Surfaces", "Nothing to merge, selected only 1 surface")
             return
 
         # Extracting indices for the actors to be merged
         volume_row, surface_indices = self.extract_indices(self.selected_actors)
         if not surface_indices or volume_row is None:
-            self.log_console.printError(
-                "No valid surface indices found for selected actors")
+            self.log_console.printError("No valid surface indices found for selected actors")
+            return
+        
+        volume_ids = set()
+        for actor in self.selected_actors:
+            volume_id, surface_id = self.actor_rows.get(actor, (None, None))
+            if volume_id is not None:
+                volume_ids.add(volume_id)
+        
+        if len(volume_ids) > 1:
+            self.log_console.printError("Selected surfaces belong to different volumes")
+            QMessageBox.warning(self, "Merge Surfaces", "Application doesn't support merging between surfaces from different volumes")
             return
 
         # Remove selected actors and save the first one for future use
@@ -1377,8 +1394,12 @@ class GraphicalEditor(QFrame):
         self.operationType = 'intersection'
 
     def cross_section_button_clicked(self):
-        if not list(self.selected_actors)[0]:
-            QMessageBox.warning(self, "Warning", "You need to select object first")
+        if not self.selected_actors:
+            QMessageBox.warning(self, "Cross Section", "You need to select object first")
+            return
+
+        if len(self.selected_actors) != 1:
+            QMessageBox.warning(self, "Cross Section", "Can't perform cross section on several objects")
             return
 
         self.start_line_drawing()
