@@ -1,5 +1,47 @@
-from unittest import TestLoader, TextTestRunner
-from os.path import join, dirname, abspath, isdir
+from unittest import TestLoader, TextTestRunner, TextTestResult
+from os.path import join, dirname, abspath, isdir, relpath
+
+
+class CustomTextTestRunner(TextTestRunner):
+    def _makeResult(self):
+        return CustomTestResult(self.stream, self.descriptions, self.verbosity)
+
+
+class CustomTestResult(TextTestResult):
+    def startTest(self, test):
+        test_file = relpath(test.__module__.replace('.', '/') + '.py', start=abspath('.'))
+        self.stream.write(f"{test_file}: {test._testMethodName} ... ")
+        super().startTest(test)
+
+    def addSuccess(self, test):
+        self.stream.write('\033[92m')
+        super().addSuccess(test)
+        self.stream.write('\033[0m')
+
+    def addFailure(self, test, err):
+        self.stream.write('\033[91mFAIL')
+        super().addFailure(test, err)
+        self.stream.write('\033[0m')
+
+    def addError(self, test, err):
+        self.stream.write('\033[91mERROR')
+        super().addError(test, err)
+        self.stream.write('\033[0m')
+
+    def addSkip(self, test, reason):
+        self.stream.write('\033[93mSKIP')
+        super().addSkip(test, reason)
+        self.stream.write('\033[0m')
+
+    def addExpectedFailure(self, test, err):
+        self.stream.write('\033[93mXFAIL')
+        super().addExpectedFailure(test, err)
+        self.stream.write('\033[0m')
+
+    def addUnexpectedSuccess(self, test):
+        self.stream.write('\033[92mXPASS')
+        super().addUnexpectedSuccess(test)
+        self.stream.write('\033[0m')
 
 
 def discover_and_run_suite(path):
@@ -21,7 +63,7 @@ def discover_and_run_suite(path):
     
     try:
         suite = loader.discover(abs_path, pattern="*_tests.py")
-        runner = TextTestRunner()
+        runner = CustomTextTestRunner(verbosity=2)
         runner.run(suite)
     except Exception as e:
         raise RuntimeError(f"Failed to discover tests in directory {abs_path}: {e}")
