@@ -1,4 +1,5 @@
 from gmsh import initialize, finalize, isInitialized, clear, model, option
+from logger.internal_logger import InternalLogger
 
 
 def gmsh_init():
@@ -242,4 +243,4 @@ def create_cutting_plane(axis: str, level: float, size: float):
     elif axis == 'z':
         return model.occ.addBox(-size, -size, level, size * 2, size * 2, 0.01)
     else:
-        raise ValueError("Invalid axis")
+        raise ValueError(f"{InternalLogger.pretty_function_details()}: Invalid axis: {axis}")
