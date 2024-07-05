@@ -135,9 +135,15 @@ class GMSHGeometryManipulator:
     @staticmethod
     def section(dimtags, axis: str, level: float, size: float):
         try:
+            check_dimtags(dimtags)
             cutting_plane_dimtags = create_cutting_plane(axis, level, size)
+            
+            check_dimtags(cutting_plane_dimtags)
             out_dimtags, _ = model.occ.cut(dimtags, cutting_plane_dimtags)
+            
+            check_dimtags(out_dimtags)
             model.occ.synchronize()
             return out_dimtags
+        
         except Exception:
             return None
