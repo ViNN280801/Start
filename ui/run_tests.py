@@ -19,27 +19,27 @@ class CustomTestResult(TextTestResult):
         self.stream.write('\033[0m')
 
     def addFailure(self, test, err):
-        self.stream.write('\033[91mFAIL')
+        self.stream.write('\033[91m')
         super().addFailure(test, err)
         self.stream.write('\033[0m')
 
     def addError(self, test, err):
-        self.stream.write('\033[91mERROR')
+        self.stream.write('\033[91m')
         super().addError(test, err)
         self.stream.write('\033[0m')
 
     def addSkip(self, test, reason):
-        self.stream.write('\033[93mSKIP')
+        self.stream.write('\033[93m')
         super().addSkip(test, reason)
         self.stream.write('\033[0m')
 
     def addExpectedFailure(self, test, err):
-        self.stream.write('\033[93mXFAIL')
+        self.stream.write('\033[93m')
         super().addExpectedFailure(test, err)
         self.stream.write('\033[0m')
 
     def addUnexpectedSuccess(self, test):
-        self.stream.write('\033[92mXPASS')
+        self.stream.write('\033[92m')
         super().addUnexpectedSuccess(test)
         self.stream.write('\033[0m')
 
