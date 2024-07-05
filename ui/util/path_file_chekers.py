@@ -8,6 +8,9 @@ def is_file_valid(path: str):
 
 
 def is_path_accessable(path):
+    if not path:
+        return False
+    
     try:
         with open(path) as _:
             pass
