@@ -10,7 +10,7 @@ class CustomTextTestRunner(TextTestRunner):
 class CustomTestResult(TextTestResult):
     def startTest(self, test):
         test_file = relpath(test.__module__.replace('.', '/') + '.py', start=abspath('.'))
-        self.stream.write(f"{test_file}: {test._testMethodName} ... ")
+        self.stream.write(f"{test_file}: ")
         super().startTest(test)
 
     def addSuccess(self, test):
