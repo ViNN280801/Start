@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication
 from window import WindowApp
 from sys import argv, stderr
 from util.gmsh_helpers import gmsh_init, gmsh_finalize
-from util.util import setup_signal_handlers
+from util.util import setup_signal_handlers, crash_supervisor
 
 
 def main():
@@ -22,6 +22,7 @@ def main():
         exit(app.exec_())
     except Exception as e:
         print(f"Application crushed by reason: {e}", file=stderr)
+        crash_supervisor(type(e), e, e.__traceback__)
     finally:
         gmsh_finalize()
 

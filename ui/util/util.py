@@ -4,7 +4,8 @@ from styles import *
 from constants import *
 from signal import __dict__
 from os import getpid
-from sys import exit
+from sys import exit, __excepthook__, stderr
+from traceback import print_exception
 from util.gmsh_helpers import gmsh_finalize
 
 
@@ -200,3 +201,18 @@ def setup_signal_handlers():
                 signal(sig, signal_handler)
             except (ValueError, OSError, RuntimeError) as e:
                 print(f"Cannot catch signal: {sig.name}, {e}")
+
+
+def crash_supervisor(exc_type, exc_value, exc_traceback):
+    # Do not catch keyboard interrupt to allow program termination with Ctrl+C
+    if issubclass(exc_type, KeyboardInterrupt):
+        __excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    # Log the exception to a file
+    with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
+        f.write("Uncaught exception:\n")
+        print_exception(exc_type, exc_value, exc_traceback, file=f)
+    
+    print("Uncaught exception:", file=stderr)
+    print_exception(exc_type, exc_value, exc_traceback, file=stderr)
