@@ -1,11 +1,12 @@
-import unittest
 import io
-import sys
 import os
+import sys
 import signal
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import patch
 from logger.log_console import LogConsole
 from util.util import get_cur_datetime
+
 
 class LogConsoleTests(unittest.TestCase):
 
@@ -79,6 +80,7 @@ class LogConsoleTests(unittest.TestCase):
         for filename in os.listdir():
             if filename.startswith("crash_log_") and filename.endswith(".txt"):
                 os.remove(filename)
+
 
 if __name__ == '__main__':
     unittest.main()
