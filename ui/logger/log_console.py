@@ -29,7 +29,7 @@ class LogConsole(QWidget):
         self.setup_vtk_logger()
         self.setup_gmsh_logger()
         
-        self.setup_signal_handlers()
+        LogConsole.setup_signal_handlers()
         sys.excepthook = self.crash_supervisor
 
         # Flag to check initial adding of extra new line
@@ -407,30 +407,31 @@ class LogConsole(QWidget):
         else:
             super().keyPressEvent(event)
     
-    def setup_signal_handlers(self):
-        def signal_handler(signum, frame):
-            import gmsh
-            from psutil import Process
+    def signal_handler(signum, frame):
+        import gmsh
+        from psutil import Process
             
-            signals = {v: k for k, v in signal.__dict__.items() if k.startswith('SIG') and not k.startswith('SIG_')}
-            signal_name = signals.get(signum, "UNKNOWN")
-            process = Process(getpid())
-            process_name = " ".join(process.cmdline())
-            msg = (f"Caught signal {signum} ({signal_name})\n"
-                   f"Process ID: {getpid()}\n"
-                   f"Process Name: {process_name}\n"
-                   f"Frame: {frame}")
-            print(msg)
+        signals = {v: k for k, v in signal.__dict__.items() if k.startswith('SIG') and not k.startswith('SIG_')}
+        signal_name = signals.get(signum, "UNKNOWN")
+        process = Process(getpid())
+        process_name = " ".join(process.cmdline())
+        msg = (f"Caught signal {signum} ({signal_name})\n"
+               f"Process ID: {getpid()}\n"
+               f"Process Name: {process_name}\n"
+               f"Frame: {frame}")
+        print(msg)
             
-            with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
-                f.write(msg)
+        with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
+            f.write(msg)
             
-            # Correctly finalize the gmsh
-            if gmsh.isInitialized():
-                gmsh.finalize()
+        # Correctly finalize the gmsh
+        if gmsh.isInitialized():
+            gmsh.finalize()
             
-            exit(1)
-        
+        exit(1)
+    
+    @staticmethod
+    def setup_signal_handlers():        
         for sig in signal.Signals:
             # No need to block users SIGTERM signal that initialized by Ctrl+T keybind
             if sig == signal.SIGTERM:
@@ -438,12 +439,12 @@ class LogConsole(QWidget):
 
             if sig not in (signal.SIGKILL, signal.SIGSTOP):
                 try:
-                    signal.signal(sig, signal_handler)
+                    signal.signal(sig, LogConsole.signal_handler)
                 except (ValueError, OSError, RuntimeError) as e:
                     print(f"Cannot catch signal: {sig.name}, {e}")
 
-
-    def crash_supervisor(self, exc_type, exc_value, exc_traceback):
+    @staticmethod
+    def crash_supervisor(exc_type, exc_value, exc_traceback):
         # Do not catch keyboard interrupt to allow program termination with Ctrl+C
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)

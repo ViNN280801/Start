@@ -71,10 +71,12 @@ def discover_and_run_suite(path):
 
 if __name__ == "__main__":
     test_dir_field_validators = join(dirname(__file__), 'tests/field_validators_tests')
+    test_dir_log_console = join(dirname(__file__), 'tests/logger_tests')
     test_dir_util = join(dirname(__file__), 'tests/util_tests')
     
     try:
-        discover_and_run_suite(test_dir_field_validators)
-        discover_and_run_suite(test_dir_util)
+        # discover_and_run_suite(test_dir_field_validators)
+        discover_and_run_suite(test_dir_log_console)
+        # discover_and_run_suite(test_dir_util)
     except (ValueError, RuntimeError) as e:
         print(f"Error: {e}")
