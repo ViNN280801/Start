@@ -2,11 +2,6 @@ from vtk import vtkRenderer
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import *
 from constants import *
-from signal import __dict__
-from os import getpid
-from sys import exit, __excepthook__, stderr
-from traceback import print_exception
-from util.gmsh_helpers import gmsh_finalize
 
 
 def get_cur_datetime() -> str:
@@ -175,44 +170,3 @@ def compute_distance_between_points(coord1, coord2):
         print(InternalLogger.get_warning_none_result_with_exception_msg(e))
         return None
     return result
-
-
-def signal_handler(signum, frame):
-    signals = {v: k for k, v in __dict__.items() if k.startswith('SIG') and not k.startswith('SIG_')}
-    signal_name = signals.get(signum, "UNKNOWN")
-    print(f"Caught signal {signum} ({signal_name})")
-    print(f"Process ID: {getpid()}")
-    print(f"Frame: {frame}")
-    
-    gmsh_finalize()
-    exit(1)
-
-
-def setup_signal_handlers():
-    from signal import Signals, signal, SIGKILL, SIGSTOP, SIGTERM
-            
-    for sig in Signals:
-        # No need to block users SIGTERM signal that initialized by Ctrl+T keybind
-        if sig == SIGTERM:
-            return
-
-        if sig not in (SIGKILL, SIGSTOP):
-            try:
-                signal(sig, signal_handler)
-            except (ValueError, OSError, RuntimeError) as e:
-                print(f"Cannot catch signal: {sig.name}, {e}")
-
-
-def crash_supervisor(exc_type, exc_value, exc_traceback):
-    # Do not catch keyboard interrupt to allow program termination with Ctrl+C
-    if issubclass(exc_type, KeyboardInterrupt):
-        __excepthook__(exc_type, exc_value, exc_traceback)
-        return
-
-    # Log the exception to a file
-    with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
-        f.write("Uncaught exception:\n")
-        print_exception(exc_type, exc_value, exc_traceback, file=f)
-    
-    print("Uncaught exception:", file=stderr)
-    print_exception(exc_type, exc_value, exc_traceback, file=stderr)

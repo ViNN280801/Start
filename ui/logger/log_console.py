@@ -1,3 +1,5 @@
+import sys
+import signal
 from PyQt5.QtWidgets import (
     QVBoxLayout, QPlainTextEdit, QTextEdit,
     QWidget, QDockWidget, QHBoxLayout,
@@ -5,9 +7,12 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QTextCharFormat, QTextCursor, QColor, QTextDocument
-from util import is_file_valid
+from util.path_file_chekers import is_file_valid
+from util.util import get_cur_datetime
 from .cli_history import CommandLineHistory
 from vtk import vtkLogger
+from traceback import print_exception
+from os import getpid
 
 
 class LogConsole(QWidget):
@@ -23,6 +28,9 @@ class LogConsole(QWidget):
         self.setup_ui()
         self.setup_vtk_logger()
         self.setup_gmsh_logger()
+        
+        self.setup_signal_handlers()
+        sys.excepthook = self.crash_supervisor
 
         # Flag to check initial adding of extra new line
         self.isAddedExtraNewLine = False
@@ -398,3 +406,53 @@ class LogConsole(QWidget):
             self.toggle_search()
         else:
             super().keyPressEvent(event)
+    
+    def setup_signal_handlers(self):
+        def signal_handler(signum, frame):
+            import gmsh
+            from psutil import Process
+            
+            signals = {v: k for k, v in signal.__dict__.items() if k.startswith('SIG') and not k.startswith('SIG_')}
+            signal_name = signals.get(signum, "UNKNOWN")
+            process = Process(getpid())
+            process_name = " ".join(process.cmdline())
+            msg = (f"Caught signal {signum} ({signal_name})\n"
+                   f"Process ID: {getpid()}\n"
+                   f"Process Name: {process_name}\n"
+                   f"Frame: {frame}")
+            print(msg)
+            
+            with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
+                f.write(msg)
+            
+            # Correctly finalize the gmsh
+            if gmsh.isInitialized():
+                gmsh.finalize()
+            
+            exit(1)
+        
+        for sig in signal.Signals:
+            # No need to block users SIGTERM signal that initialized by Ctrl+T keybind
+            if sig == signal.SIGTERM:
+                return
+
+            if sig not in (signal.SIGKILL, signal.SIGSTOP):
+                try:
+                    signal.signal(sig, signal_handler)
+                except (ValueError, OSError, RuntimeError) as e:
+                    print(f"Cannot catch signal: {sig.name}, {e}")
+
+
+    def crash_supervisor(self, exc_type, exc_value, exc_traceback):
+        # Do not catch keyboard interrupt to allow program termination with Ctrl+C
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        # Log the exception to a file
+        with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
+            f.write("Uncaught exception:\n")
+            print_exception(exc_type, exc_value, exc_traceback, file=f)
+        
+        print("Uncaught exception:", file=sys.stderr)
+        print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
