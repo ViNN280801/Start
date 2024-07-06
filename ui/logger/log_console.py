@@ -407,6 +407,7 @@ class LogConsole(QWidget):
         else:
             super().keyPressEvent(event)
     
+    @staticmethod
     def signal_handler(signum, frame):
         import gmsh
         from psutil import Process
