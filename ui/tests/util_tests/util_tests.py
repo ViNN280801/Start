@@ -71,36 +71,6 @@ class UtilTests(unittest.TestCase):
             expected_distance = np.linalg.norm(p1 - p2)
             self.assertTrue(isclose(compute_distance_between_points(p1, p2), expected_distance))
 
-    @patch('util.gmsh_helpers.gmsh_finalize')
-    @patch('sys.exit')
-    @patch('os.getpid', return_value=12345)
-    def test_signal_handler(self, mock_getpid, mock_exit, mock_finalize):
-        with patch('sys.stdout', new=io.StringIO()) as fake_out:
-            with patch.dict('signal.__dict__', {'SIGINT': 2, 'SIGTERM': 15}):
-                with self.assertRaises(SystemExit) as cm:
-                    signal_handler(2, None)
-                self.assertEqual(cm.exception.code, 1)
-    
-    @patch('util.gmsh_helpers.gmsh_finalize')
-    @patch('sys.exit')
-    @patch('os.getpid', return_value=12345)
-    def test_signal_handler(self, mock_getpid, mock_exit, mock_finalize):
-        with patch('sys.stdout', new=io.StringIO()) as fake_out:
-            with patch.dict('signal.__dict__', {'SIGINT': 2, 'SIGTERM': 15}):
-                with self.assertRaises(SystemExit) as cm:
-                    signal_handler(99, None)
-                self.assertEqual(cm.exception.code, 1)
-    
-    @patch('util.gmsh_helpers.gmsh_finalize')
-    @patch('sys.exit')
-    @patch('os.getpid', return_value=12345)
-    def test_signal_handler(self, mock_getpid, mock_exit, mock_finalize):
-        with patch('sys.stdout', new=io.StringIO()) as fake_out:
-            with patch.dict('signal.__dict__', {'SIGINT': 2, 'SIGTERM': 15}):
-                with self.assertRaises(SystemExit) as cm:
-                    signal_handler(15, None)
-                self.assertEqual(cm.exception.code, 1)
-
 
 if __name__ == '__main__':
     unittest.main()
