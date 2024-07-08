@@ -2,7 +2,7 @@ from vtk import (
     vtkUnstructuredGrid, vtkPolyData, vtkPolyDataWriter, vtkActor, vtkBooleanOperationPolyDataFilter, 
     vtkGeometryFilter, vtkPoints, vtkCellArray, vtkTriangle, vtkTransform, vtkCleanPolyData, vtkPlane,
     vtkAppendPolyData, vtkPolyDataMapper, vtkFeatureEdges, vtkPolyDataConnectivityFilter, vtkClipPolyData,
-    vtkRenderer, 
+    vtkRenderer, vtkPlaneSource, vtkTransformPolyDataFilter,
     VTK_TRIANGLE
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
@@ -338,40 +338,48 @@ def remove_shadows(actor):
         actor.GetProperty().SetInterpolationToFlat()
 
 
-def create_cutting_plane(axis: str, level: float):
+def create_cutting_plane(axis: str, level: float, angle: float = 0.0, size: float = 1e9):
     """
-    Creates a cutting plane along a specified axis at a given level in VTK.
-
+    Creates a cutting plane along a specified axis at a given level in VTK with optional rotation.
+    
     Parameters:
     axis (str): The axis along which to create the cutting plane ('x', 'y', or 'z').
     level (float): The position along the specified axis where the cutting plane will be created.
-
+    angle (float): The angle of rotation in degrees (default is 0, no rotation).
+    size (float): The half-size of the cutting plane. The cutting plane will have dimensions (2*size, 2*size) along the other two axes.
+    
     Returns:
     vtkPlane: The created cutting plane.
-
+    
     Raises:
     ValueError: If the specified axis is not 'x', 'y', or 'z'.
-
-    Examples:
-    --------
-    # Create a cutting plane along the z-axis at z=2.5
-    cutting_plane = create_cutting_plane('z', 2.5)
-
-    # Create a cutting plane along the x-axis at x=1.0
-    cutting_plane = create_cutting_plane('x', 1.0)
     """
     plane = vtkPlane()
-    plane.SetOrigin(level, 0, 0) if axis == 'x' else plane.SetOrigin(0, level, 0) if axis == 'y' else plane.SetOrigin(0, 0, level)
+    transform = vtkTransform()
     
+    axis = axis.lower()
+
     if axis == 'x':
+        plane.SetOrigin(level, 0, 0)
         plane.SetNormal(1, 0, 0)
+        transform.RotateWXYZ(angle, 1, 0, 0)
     elif axis == 'y':
+        plane.SetOrigin(0, level, 0)
         plane.SetNormal(0, 1, 0)
+        transform.RotateWXYZ(angle, 0, 1, 0)
     elif axis == 'z':
+        plane.SetOrigin(0, 0, level)
         plane.SetNormal(0, 0, 1)
+        transform.RotateWXYZ(angle, 0, 0, 1)
     else:
-        raise ValueError("Invalid axis")
-    
+        raise ValueError(f"{InternalLogger.pretty_function_details()}: Invalid axis: {axis}")
+
+    # Apply the rotation to the normal
+    normal = plane.GetNormal()
+    normal = transform.TransformNormal(normal)
+
+    plane.SetNormal(normal)
+
     return plane
 
 
@@ -406,7 +414,7 @@ def cut_actor(actor: vtkActor, plane: vtkPlane):
         return actor1, actor2
 
     except Exception as e:
-        print(f"Error while do section on geometry: {e}")
+        print(f"Error while doing section on geometry: {e}")
         return None
 
 
@@ -452,39 +460,59 @@ def colorize_actor_with_rgb(actor: vtkActor, r: float, g: float, b: float):
             return None
 
 
-def add_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor):
+def add_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor, needResetCamera: bool = True):
     renderer.AddActor(actor)
     actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
-    render_editor_window(vtkWidget, renderer)
+    
+    if needResetCamera:
+        render_editor_window(vtkWidget, renderer)
+    else:
+        render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def add_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list):
+def add_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list, needResetCamera: bool = True):
     for actor in actors:
         renderer.AddActor(actor)
         actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
-    render_editor_window(vtkWidget, renderer)
+    
+    if needResetCamera:
+        render_editor_window(vtkWidget, renderer)
+    else:
+        render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def remove_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor):
+def remove_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor, needResetCamera: bool = True):
     if actor and isinstance(actor, vtkActor) and actor in renderer.GetActors():
         renderer.RemoveActor(actor)
-        render_editor_window(vtkWidget, renderer)
+        
+        if needResetCamera:
+            render_editor_window(vtkWidget, renderer)
+        else:
+            render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def remove_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list):
+def remove_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list, needResetCamera: bool = True):
     for actor in actors:
         if actor in renderer.GetActors():
             renderer.RemoveActor(actor)
-    render_editor_window(vtkWidget, renderer)
+   
+    if needResetCamera:
+        render_editor_window(vtkWidget, renderer)
+    else:
+        render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def remove_all_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer):
+def remove_all_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, needResetCamera: bool = True):
     actors = renderer.GetActors()
     actors.InitTraversal()
     for i in range(actors.GetNumberOfItems()):
         actor = actors.GetNextActor()
         renderer.RemoveActor(actor)
-    render_editor_window(vtkWidget, renderer)
+    
+    if needResetCamera:
+        render_editor_window(vtkWidget, renderer)
+    else:
+        render_editor_window_without_resetting_camera(vtkWidget)
 
 
 def render_editor_window(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer):

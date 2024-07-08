@@ -2,6 +2,7 @@ from vtk import vtkTransform, vtkTransformFilter, vtkActor, vtkBooleanOperationP
 from util import object_operation_executor_helper
 from util.vtk_helpers import create_cutting_plane, cut_actor
 from sys import stderr
+from logger.internal_logger import InternalLogger
 
 
 class VTKGeometryManipulator:
@@ -54,7 +55,7 @@ class VTKGeometryManipulator:
             transform.Translate(x_offset, y_offset, z_offset)
             VTKGeometryManipulator.apply_transformation(actor, transform)
         except Exception as e:
-            print(f"Error moving geometry with VTK: {e}", file=stderr)
+            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Error moving geometry with VTK: {e}", file=stderr)
     
     @staticmethod
     def rotate(actor, angle_x: float, angle_y: float, angle_z: float):
@@ -80,7 +81,7 @@ class VTKGeometryManipulator:
             transform.RotateZ(degrees(angle_z))
             VTKGeometryManipulator.apply_transformation(actor, transform)
         except Exception as e:
-            print(f"Error rotating geometry with VTK: {e}", file=stderr)
+            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Error rotating geometry with VTK: {e}", file=stderr)
 
     @staticmethod
     def scale(actor, x_scale: float, y_scale: float, z_scale: float):
@@ -103,7 +104,7 @@ class VTKGeometryManipulator:
             transform.Scale(x_scale, y_scale, z_scale)
             VTKGeometryManipulator.apply_transformation(actor, transform)
         except Exception as e:
-            print(f"Error scaling geometry with VTK: {e}", file=stderr)
+            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Error scaling geometry with VTK: {e}", file=stderr)
     
     @staticmethod
     def subtract(obj_from: vtkActor, obj_to: vtkActor) -> vtkActor:
@@ -124,7 +125,11 @@ class VTKGeometryManipulator:
         return object_operation_executor_helper(obj_from, obj_to, booleanOperation)
     
     @staticmethod
-    def section(actor: vtkActor, axis: str, level: float):
-        plane = create_cutting_plane(axis, level)
+    def cross_section(actor: vtkActor, axis: str, level: float, angle: float):
+        plane = create_cutting_plane(axis, level, angle)
         out_actors = cut_actor(actor, plane)
+        
+        if not out_actors or len(out_actors) != 2:
+            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Failed to create cross section in VTK")
+        
         return out_actors

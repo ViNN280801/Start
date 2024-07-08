@@ -1,5 +1,6 @@
 from .vtk_geometry import VTKGeometryManipulator
 from .gmsh_geometry import GMSHGeometryManipulator
+from logger.internal_logger import InternalLogger
 
 
 class GeometryManipulator:
@@ -38,7 +39,11 @@ class GeometryManipulator:
         return out_actor, out_dimtags
 
     @staticmethod
-    def section(actor, dimtags, axis, level, size):
-        out_actors = VTKGeometryManipulator.section(actor, axis, level)
-        out_dimtags = GMSHGeometryManipulator.section(dimtags, axis, level, size)
+    def cross_section(actor, dimtags, axis, level, angle, size=1e9):
+        out_actors = VTKGeometryManipulator.cross_section(actor, axis, level, angle)
+        out_dimtags = GMSHGeometryManipulator.cross_section(dimtags, axis, level, angle, size)
+        
+        if not out_actors or not out_dimtags:
+            raise ValueError(f"{InternalLogger.pretty_function_details()}: Failed to create cross section")
+        
         return out_actors, out_dimtags

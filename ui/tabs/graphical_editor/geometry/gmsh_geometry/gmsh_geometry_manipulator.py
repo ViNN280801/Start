@@ -1,7 +1,7 @@
 from gmsh import model
 from sys import stderr
 from util import check_dimtags
-from util.gmsh_helpers import create_cutting_plane
+from util.gmsh_helpers import create_cutting_plane, gmsh_rotate
 
 
 class GMSHGeometryManipulator:
@@ -29,33 +29,7 @@ class GMSHGeometryManipulator:
     
     @staticmethod
     def rotate(dimtags, angle_x: float, angle_y: float, angle_z: float):
-        """
-        Rotates the geometries identified by dimtags by the given angles around the x, y, and z axes.
-
-        Parameters:
-        dimtags (list of tuples): A list of (dimension, tag) tuples identifying the geometries to rotate.
-        angle_x (float): The angle to rotate around the x-axis, in radians.
-        angle_y (float): The angle to rotate around the y-axis, in radians.
-        angle_z (float): The angle to rotate around the z-axis, in radians.
-
-        Raises:
-        ValueError: If any dimension in the dimtags is not equal to 3.
-        """
-        try:
-            check_dimtags(dimtags)
-            origin = [0, 0, 0]
-            
-            if angle_x != 0:
-                model.occ.rotate(dimtags, origin[0], origin[1], origin[2], origin[0] + 1, origin[1], origin[2], angle_x)
-            if angle_y != 0:
-                model.occ.rotate(dimtags, origin[0], origin[1], origin[2], origin[0], origin[1] + 1, origin[2], angle_y)
-            if angle_z != 0:
-                model.occ.rotate(dimtags, origin[0], origin[1], origin[2], origin[0], origin[1], origin[2] + 1, angle_z)
-            
-            model.occ.synchronize()
-        
-        except Exception as e:
-            print(f"Error rotating geometry with GMSH: {e}", file=stderr)
+        gmsh_rotate(dimtags, angle_x, angle_y, angle_z)
 
     @staticmethod
     def scale(dimtags, x_scale: float, y_scale: float, z_scale: float):
@@ -133,10 +107,10 @@ class GMSHGeometryManipulator:
             return None        
 
     @staticmethod
-    def section(dimtags, axis: str, level: float, size: float):
+    def cross_section(dimtags, axis: str, level: float, angle: float, size: float = 1e9):
         try:
             check_dimtags(dimtags)
-            cutting_plane_dimtags = create_cutting_plane(axis, level, size)
+            cutting_plane_dimtags = create_cutting_plane(axis, level, angle, size)
             
             check_dimtags(cutting_plane_dimtags)
             out_dimtags, _ = model.occ.cut(dimtags, cutting_plane_dimtags)

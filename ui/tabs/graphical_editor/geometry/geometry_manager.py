@@ -258,9 +258,10 @@ class GeometryManager:
         return GeometryManager.operation_helper('intersect', first_actor, second_actor)
     
     @staticmethod
-    def section(actor, axis, level, size):
+    def section(actor, axis, level, angle, size=1e9):        
         dimtags = GeometryManager.get_dimtags_by_actor(actor)
-        out_actors, out_dimtags = GeometryManipulator.section(actor, dimtags, axis, level, size)
+        out_actors, out_dimtags = GeometryManipulator.cross_section(actor, dimtags, axis, level, angle, size)
+
         out_actor1, out_actor2 = out_actors
         out_dimtags1, out_dimtags2 = [[x] for x in out_dimtags]
         

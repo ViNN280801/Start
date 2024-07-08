@@ -68,7 +68,6 @@ class GraphicalEditor(QFrame):
         
         self.cutting_plane_actor = None
 
-        self.crossSectionLinePoints = []  # To store points for the cross-section line
         self.isDrawingLine = False        # To check if currently drawing the line
         self.tempLineActor = None         # Temporary actor for the line visualization
         
@@ -592,10 +591,6 @@ class GraphicalEditor(QFrame):
             self.add_custom(file_name)
             self.log_console.printInfo(f'Successfully uploaded custom object from {file_name}')
 
-    def remove_objects_with_restore(self, actors: list):
-        # TODO: implement
-        pass
-
     def permanently_remove_actors(self):
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Warning)
@@ -958,66 +953,6 @@ class GraphicalEditor(QFrame):
             mesh_filename = self.config_tab.mesh_file
         return mesh_filename
 
-    def handle_drawing_line(self):
-        click_pos = self.interactor.GetEventPosition()
-        picker = vtkCellPicker()
-        picker.Pick(click_pos[0], click_pos[1], 0, self.renderer)
-
-        pickedPosition = picker.GetPickPosition()
-        self.crossSectionLinePoints.append(pickedPosition)
-
-        if len(self.crossSectionLinePoints) == 1:
-            # First point, just update the scene to show the point
-            self.updateTempLine()
-        elif len(self.crossSectionLinePoints) == 2:
-            # Second point, complete the line and proceed to create cross-section
-            self.updateTempLine()
-            self.create_cross_section()
-            self.endLineDrawing()  # Reset drawing state
-
-    def updateTempLine(self):
-        if self.tempLineActor:
-            self.renderer.RemoveActor(self.tempLineActor)
-
-        if len(self.crossSectionLinePoints) < 1:
-            return
-
-        # Create a line between the two points
-        points = vtkPoints()
-        line = vtkPolyLine()
-        line.GetPointIds().SetNumberOfIds(len(self.crossSectionLinePoints))
-        for i, pos in enumerate(self.crossSectionLinePoints):
-            pid = points.InsertNextPoint(*pos)
-            line.GetPointIds().SetId(i, pid)
-
-        lines = vtkCellArray()
-        lines.InsertNextCell(line)
-
-        polyData = vtkPolyData()
-        polyData.SetPoints(points)
-        polyData.SetLines(lines)
-
-        mapper = vtkPolyDataMapper()
-        mapper.SetInputData(polyData)
-
-        self.tempLineActor = vtkActor()
-        self.tempLineActor.SetMapper(mapper)
-        self.tempLineActor.GetProperty().SetColor(1, 0, 0)  # red color
-
-        self.renderer.AddActor(self.tempLineActor)
-        render_editor_window(self.vtkWidget, self.renderer)
-
-    def start_line_drawing(self):
-        self.crossSectionLinePoints.clear()
-        self.isDrawingLine = True
-
-    def endLineDrawing(self):
-        self.isDrawingLine = False
-        if self.tempLineActor:
-            self.renderer.RemoveActor(self.tempLineActor)
-            self.tempLineActor = None
-        render_editor_window(self.vtkWidget, self.renderer)
-
     def pick_actor(self, obj, event):
         click_pos = self.interactor.GetEventPosition()
         self.picker.Pick(click_pos[0], click_pos[1], 0, self.renderer)
@@ -1086,10 +1021,7 @@ class GraphicalEditor(QFrame):
                 self.statusBar.clearMessage()
 
     def on_left_button_press(self, obj, event):
-        if self.isDrawingLine:
-            self.handle_drawing_line()
-        else:
-            self.pick_actor(obj, event)
+        self.pick_actor(obj, event)
 
     def on_right_button_press(self, obj, event):
         click_pos = self.interactor.GetEventPosition()
@@ -1402,8 +1334,7 @@ class GraphicalEditor(QFrame):
             QMessageBox.warning(self, "Cross Section", "Can't perform cross section on several objects")
             return
 
-        self.start_line_drawing()
-        self.statusBar.showMessage("Click two points to define the cross-section plane.")
+        self.create_cross_section()
 
     def subtract_objects(self, obj_from: vtkActor, obj_to: vtkActor):
         result_actor = GeometryManager.subtract(obj_from, obj_to)
@@ -1423,73 +1354,24 @@ class GraphicalEditor(QFrame):
         add_actor(self.vtkWidget, self.renderer, result)
 
     def create_cross_section(self):
-        from numpy import cross
+        self.actor_to_cut = list(self.selected_actors)[0]
         
-        if len(self.crossSectionLinePoints) != 2:
-            QMessageBox.warning(self, "Warning", "Please define two points for the cross-section.")
-            return
-
-        point1, point2 = self.crossSectionLinePoints
-        direction = [point2[i] - point1[i] for i in range(3)]  # Direction vector of the line
-
-        dialog = AxisSelectionDialog(self)
-        if dialog.exec_() == QDialog.Accepted:
-            selectedAxis = dialog.getSelectedAxis()
-            plane = vtkPlane()
-            plane.SetOrigin(0, 0, 0)
-            viewDirection = [0, 0, 0]
-
-            # Adjust the normal of the plane based on the selected axis
-            if selectedAxis == "X-axis":
-                viewDirection = [1, 0, 0]
-            elif selectedAxis == "Y-axis":
-                viewDirection = [0, 1, 0]
-            elif selectedAxis == "Z-axis":
-                viewDirection = [0, 0, 1]
-
-        normal = cross(direction, viewDirection)
-        plane.SetOrigin(point1)
-        plane.SetNormal(normal)
-
-        self.perform_cut(plane)
-
-    def perform_cut(self, plane):
-        polydata = convert_unstructured_grid_to_polydata(list(self.selected_actors)[0])
-        if not polydata:
-            QMessageBox.warning(
-                self, "Error", "Selected object is not suitable for cross-section.")
-            return
-
-        clipper1 = vtkClipPolyData()
-        clipper1.SetInputData(polydata)
-        clipper1.SetClipFunction(plane)
-        clipper1.InsideOutOn()
-        clipper1.Update()
-
-        clipper2 = vtkClipPolyData()
-        clipper2.SetInputData(polydata)
-        clipper2.SetClipFunction(plane)
-        clipper2.InsideOutOff()
-        clipper2.Update()
-
-        mapper1 = vtkPolyDataMapper()
-        mapper1.SetInputData(clipper1.GetOutput())
-        actor1 = vtkActor()
-        actor1.SetMapper(mapper1)
-        actor1.GetProperty().SetColor(0.8, 0.3, 0.3)
-
-        mapper2 = vtkPolyDataMapper()
-        mapper2.SetInputData(clipper2.GetOutput())
-        actor2 = vtkActor()
-        actor2.SetMapper(mapper2)
-        actor2.GetProperty().SetColor(0.8, 0.3, 0.3)
-
-        remove_actor(self.vtkWidget, self.renderer, list(self.selected_actors)[0])
-        add_actor(self.vtkWidget, self.renderer, actor1)
-        add_actor(self.vtkWidget, self.renderer, actor2)
-
-        self.log_console.printInfo("Successfully created a cross-section")
-
+        dialog = CuttingPlaneDialog(self, self.vtkWidget, self.renderer)
+        dialog.setModal(False)
+        dialog.show()
+        
+        dialog.planeSelector.currentIndexChanged.connect(dialog.update_and_refresh)
+        dialog.levelInput.textChanged.connect(dialog.update_and_refresh)
+        dialog.angleInput.textChanged.connect(dialog.update_and_refresh)
+        
+        dialog.accepted_with_values.connect(self.handle_cross_section_accepted_values)
+        dialog.rejected.connect(dialog.cleanup)
+    
+    def handle_cross_section_accepted_values(self, axis: str, level: float, angle: float):
+        out_actor1, out_actor2 = GeometryManager.section(self.actor_to_cut, axis, level, angle)
+        remove_actor(self.vtkWidget, self.renderer, self.actor_to_cut)
+        add_actors(self.vtkWidget, self.renderer, [out_actor1, out_actor2])
+    
     def save_boundary_conditions(self, node_ids, value):
         from json import dump, load, JSONDecodeError
         
@@ -1574,4 +1456,5 @@ class GraphicalEditor(QFrame):
             pass
 
     def test(self):
+        raise RuntimeError("Test exception")
         pass
