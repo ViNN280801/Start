@@ -89,23 +89,65 @@ class GMSHHelpersTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             complete_dimtags('invalid_geometry', [1, 2, 3])
 
+    @patch('util.gmsh_helpers.gmsh_rotate')
     @patch('gmsh.model.occ.addBox', return_value=1)
-    def test_create_cutting_plane_x_axis(self, mock_addBox):
-        result = create_cutting_plane('x', 2.5, 5)
+    def test_create_cutting_plane_x_axis(self, mock_addBox, gmsh_rotate):
+        gmsh_init()
+        result = create_cutting_plane('x', 2.5, angle=0, size=5)
         mock_addBox.assert_called_once_with(2.5, -5, -5, 0.01, 10, 10)
+        gmsh_rotate.assert_not_called()
         self.assertEqual(result, 1)
+        gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
-    def test_create_cutting_plane_y_axis(self, mock_addBox):
-        result = create_cutting_plane('y', 2.5, 5)
+    @patch('util.gmsh_helpers.gmsh_rotate')
+    def test_create_cutting_plane_y_axis(self, mock_rotate, mock_addBox):
+        gmsh_init()
+        result = create_cutting_plane('y', 2.5, angle=0, size=5)
         mock_addBox.assert_called_once_with(-5, 2.5, -5, 10, 0.01, 10)
+        mock_rotate.assert_not_called()
         self.assertEqual(result, 1)
+        gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
-    def test_create_cutting_plane_z_axis(self, mock_addBox):
-        result = create_cutting_plane('z', 2.5, 5)
+    @patch('util.gmsh_helpers.gmsh_rotate')
+    def test_create_cutting_plane_z_axis(self, mock_rotate, mock_addBox):
+        gmsh_init()
+        result = create_cutting_plane('z', 2.5, angle=0, size=5)
         mock_addBox.assert_called_once_with(-5, -5, 2.5, 10, 10, 0.01)
+        mock_rotate.assert_not_called()
         self.assertEqual(result, 1)
+        gmsh_finalize()
+
+    @patch('gmsh.model.occ.addBox', return_value=1)
+    @patch('util.gmsh_helpers.gmsh_rotate')
+    def test_create_cutting_plane_x_axis_with_rotation(self, mock_rotate, mock_addBox):
+        gmsh_init()
+        result = create_cutting_plane('x', 2.5, angle=45, size=5)
+        mock_addBox.assert_called_once_with(2.5, -5, -5, 0.01, 10, 10)
+        mock_rotate.assert_called_once_with(complete_dimtag('box', 1), radians(45), 0, 0)
+        self.assertEqual(result, 1)
+        gmsh_finalize()
+
+    @patch('gmsh.model.occ.addBox', return_value=1)
+    @patch('util.gmsh_helpers.gmsh_rotate')
+    def test_create_cutting_plane_y_axis_with_rotation(self, mock_rotate, mock_addBox):
+        gmsh_init()
+        result = create_cutting_plane('y', 2.5, angle=45, size=5)
+        mock_addBox.assert_called_once_with(-5, 2.5, -5, 10, 0.01, 10)
+        mock_rotate.assert_called_once_with(complete_dimtag('box', 1), 0, radians(45), 0)
+        self.assertEqual(result, 1)
+        gmsh_finalize()
+
+    @patch('gmsh.model.occ.addBox', return_value=1)
+    @patch('util.gmsh_helpers.gmsh_rotate')
+    def test_create_cutting_plane_z_axis_with_rotation(self, mock_rotate, mock_addBox):
+        gmsh_init()
+        result = create_cutting_plane('z', 2.5, angle=45, size=5)
+        mock_addBox.assert_called_once_with(-5, -5, 2.5, 10, 10, 0.01)
+        mock_rotate.assert_called_once_with(complete_dimtag('box', 1), 0, 0, radians(45))
+        self.assertEqual(result, 1)
+        gmsh_finalize()
 
     def test_create_cutting_plane_invalid_axis(self):
         with self.assertRaises(ValueError):
