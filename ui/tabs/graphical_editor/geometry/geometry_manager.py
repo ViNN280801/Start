@@ -217,6 +217,32 @@ class GeometryManager:
         GeometryManipulator.scale(actor, dimtags, x_scale, y_scale, z_scale)
     
     @staticmethod
+    def transform_general(transform_name: str, actor: vtkActor, x_value: float, y_value: float, z_value: float):
+        """
+        Perform a transformation on a given actor based on the specified transformation name.
+
+        Parameters:
+        transform_name (str): The name of the transformation to be performed. Should be 'move', 'rotate', or 'scale'.
+        actor (vtkActor): The actor to be transformed.
+        x_value (float): The x-component value for the transformation.
+        y_value (float): The y-component value for the transformation.
+        z_value (float): The z-component value for the transformation.
+
+        Raises:
+        ValueError: If the provided transformation name is not 'move', 'rotate', or 'scale'.
+        """
+        transform_name = transform_name.lower()
+        
+        if transform_name == 'move':
+            GeometryManager.move(actor, x_value, y_value, z_value)
+        elif transform_name == 'rotate':
+            GeometryManager.rotate(actor, x_value, y_value, z_value)
+        elif transform_name == 'scale':
+            GeometryManager.scale(actor, x_value, y_value, z_value)
+        else:
+            raise ValueError(f"Failed to perform transformation with name {transform_name}. There is no such transformation")
+    
+    @staticmethod
     def operation_helper(operation: str, first_actor: vtkActor, second_actor: vtkActor) -> vtkActor:
         from logger.internal_logger import InternalLogger
         

@@ -13,7 +13,7 @@ from vtk import (
     vtkInteractorStyleTrackballCamera, vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick,
 )
 from util import (
-    align_view_by_axis,
+    align_view_by_axis, remove_last_occurrence,
     ActionHistory, ProjectManager
 )
 from util.vtk_helpers import (
@@ -140,10 +140,6 @@ class GraphicalEditor(QFrame):
         self.setBoundaryConditionsSurfaceButton.clicked.connect(self.activate_selection_boundary_conditions_mode_for_surface)
         self.setParticleSourceButton.clicked.connect(self.set_particle_source)
         self.meshObjectsButton.clicked.connect(self.mesh_objects)
-        
-        # TODO: Remove test button when it's not needed
-        self.testButton = self.create_button('', '')
-        self.testButton.clicked.connect(self.test)
         
     def setup_ui(self):
         self.vtkWidget = QVTKRenderWindowInteractor(self)
@@ -473,6 +469,9 @@ class GraphicalEditor(QFrame):
                 point_actor = GeometryManager.create_point(point)
                 if point_actor:
                     add_actor(self.vtkWidget, self.renderer, point_actor)
+                    
+                    point_dimtags = GeometryManager.get_dimtags_by_actor(point_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'point', point_actor, point_dimtags)
                 
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Point", str(e))
@@ -486,6 +485,9 @@ class GraphicalEditor(QFrame):
                 line_actor = GeometryManager.create_line(line)
                 if line_actor:
                     add_actor(self.vtkWidget, self.renderer, line_actor)
+                    
+                    line_dimtags = GeometryManager.get_dimtags_by_actor(line_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'line', line_actor, line_dimtags)
                 
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Line", str(e))
@@ -498,6 +500,9 @@ class GraphicalEditor(QFrame):
                 surface_actor = GeometryManager.create_surface(surface)
                 if surface_actor:
                     add_actor(self.vtkWidget, self.renderer, surface_actor)
+                    
+                    surface_dimtags = GeometryManager.get_dimtags_by_actor(surface_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'surface', surface_actor, surface_dimtags)
                 
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Surface", str(e))
@@ -511,6 +516,9 @@ class GraphicalEditor(QFrame):
                 sphere_actor = GeometryManager.create_sphere(sphere)
                 if sphere_actor:
                     add_actor(self.vtkWidget, self.renderer, sphere_actor)
+                    
+                    sphere_dimtags = GeometryManager.get_dimtags_by_actor(sphere_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'sphere', sphere_actor, sphere_dimtags)
                 
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Sphere", str(e))
@@ -524,6 +532,9 @@ class GraphicalEditor(QFrame):
                 box_actor = GeometryManager.create_box(box)
                 if box_actor:
                     add_actor(self.vtkWidget, self.renderer, box_actor)
+                    
+                    box_dimtags = GeometryManager.get_dimtags_by_actor(box_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'box', box_actor, box_dimtags)
             
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Box", str(e))
@@ -537,6 +548,9 @@ class GraphicalEditor(QFrame):
                 cone_actor = GeometryManager.create_cone(cone)
                 if cone_actor:
                     add_actor(self.vtkWidget, self.renderer, cone_actor)
+                    
+                    cone_dimtags = GeometryManager.get_dimtags_by_actor(cone_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'cone', cone_actor, cone_dimtags)
             
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Cone", str(e))
@@ -550,6 +564,9 @@ class GraphicalEditor(QFrame):
                 cylinder_actor = GeometryManager.create_cylinder(cylinder)
                 if cylinder_actor:
                     add_actor(self.vtkWidget, self.renderer, cylinder_actor)
+                    
+                    cylinder_dimtags = GeometryManager.get_dimtags_by_actor(cylinder_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'cylinder', cylinder_actor, cylinder_dimtags)
             
             except RuntimeError as e:
                 QMessageBox.warning(self, "Create Cylinder", str(e))
@@ -649,12 +666,12 @@ class GraphicalEditor(QFrame):
         self.global_redo_stack.append(action)
 
         if action == ACTION_ACTOR_ADDING:
-            self.undo_object_adding()
+            self.undo_adding()
         elif action == ACTION_ACTOR_CREATING:
-            self.undo_object_creating()
+            self.undo_creating()
         elif action == ACTION_ACTOR_TRANSFORMATION:
             self.undo_transform()
-        # TODO: Make other actions
+        # TODO: Make other undo/redo functionality
 
     def global_redo(self):
         if not self.global_redo_stack:
@@ -663,22 +680,45 @@ class GraphicalEditor(QFrame):
         self.global_undo_stack.append(action)
 
         if action == ACTION_ACTOR_ADDING:
-            self.redo_object_adding()
+            self.redo_adding()
         elif action == ACTION_ACTOR_CREATING:
-            self.redo_object_creating()
+            self.redo_creating()
         elif action == ACTION_ACTOR_TRANSFORMATION:
             self.redo_transform()
-        # TODO: Make other actions
+    
+    def global_undo_stack_remove(self, action: str):
+        remove_last_occurrence(self.global_undo_stack, action)
+    
+    def global_redo_stack_remove(self, action: str):
+        remove_last_occurrence(self.global_redo_stack, action)
 
     def undo_transform(self):
-        pass # TODO: implement
+        res = self.action_history.undo()
+        print(f"UNDO transform: {res}")
+        if not res or len(res) != 5:
+            return
+
+        action_name, actor, x_value, y_value, z_value = res
+        GeometryManager.transform_general(action_name, actor, -x_value, -y_value, -z_value)
+        
+        self.global_redo_stack.append(ACTION_ACTOR_TRANSFORMATION)
+        self.global_undo_stack_remove(ACTION_ACTOR_TRANSFORMATION)
 
     def redo_transform(self):
-        pass # TODO: implement
+        res = self.action_history.redo()
+        print(f"REDO transform: {res}")
+        if not res or len(res) != 5:
+            return
+        
+        action_name, actor, x_value, y_value, z_value = res
+        GeometryManager.transform_general(action_name, actor, x_value, y_value, z_value)
+        
+        self.global_undo_stack.append(ACTION_ACTOR_TRANSFORMATION)
+        self.global_redo_stack_remove(ACTION_ACTOR_TRANSFORMATION)
 
-    def undo_object_adding(self):
+    def undo_adding(self):
         res = self.action_history.undo()
-        if not res:
+        if not res or len(res) != 4:
             return
         row, actors, treedict, objType = res
 
@@ -688,21 +728,51 @@ class GraphicalEditor(QFrame):
             self.remove_row_from_tree(row)
         else:
             self.remove_rows_from_tree(row)
+        
+        self.global_redo_stack.append(ACTION_ACTOR_ADDING)
+        self.global_undo_stack_remove(ACTION_ACTOR_ADDING)
 
-    def redo_object_adding(self):
+    def redo_adding(self):
         res = self.action_history.redo()
-        if not res:
+        if not res or len(res) != 4:
             return
         row, actors, treedict, objType = res
 
         add_actors(self.vtkWidget, self.renderer, actors)
         self.populate_tree(treedict, objType)
         
-    def undo_object_creating(self):
-        pass # TODO: implement
+        self.global_undo_stack.append(ACTION_ACTOR_ADDING)
+        self.global_redo_stack_remove(ACTION_ACTOR_ADDING)
+        
+    def undo_creating(self):
+        res = self.action_history.undo()
+        print(f"UNDO creating: {res}")
+        if not res or len(res) != 3:
+            return
+        obj_str, actor, dimtags = res
 
-    def redo_object_creating(self):
-        pass # TODO: implement
+        try:
+            remove_actor(self.vtkWidget, self.renderer, actor)
+            GeometryManager.delete_by_actor(actor)
+        except Exception as e:
+            self.log_console.printInternalError(f"Failed to delete actor from the GeometryManager: {e}")
+            return
+
+        self.global_redo_stack.append(ACTION_ACTOR_CREATING)
+        self.global_undo_stack_remove(ACTION_ACTOR_CREATING)
+
+    def redo_creating(self):
+        res = self.action_history.redo()
+        print(f"REDO creating: {res}")
+        if not res or len(res) != 3:
+            return
+        obj_str, actor, dimtags = res
+
+        add_actor(self.vtkWidget, self.renderer, actor)
+        GeometryManager.add(obj_str, actor, dimtags)
+
+        self.global_undo_stack.append(ACTION_ACTOR_CREATING)
+        self.global_redo_stack_remove(ACTION_ACTOR_CREATING)
 
     def remove_row_from_tree(self, row):
         self.model.removeRow(row)
@@ -886,8 +956,39 @@ class GraphicalEditor(QFrame):
             self.externRow_actors[row] = []
         self.externRow_actors[row].append(actors)
 
-        self.action_history.add_action((row, actors, treedict, objType))
-        self.global_undo_stack.append(ACTION_ACTOR_ADDING)
+        self.add_action(ACTION_ACTOR_ADDING, row, actors, treedict, objType)
+    
+    def add_action(self, action: str, *args):
+        if action == ACTION_ACTOR_ADDING:
+            if len(args) == 4 and isinstance(args[0], int) and isinstance(args[1], list) and isinstance(args[2], dict) and isinstance(args[3], str):
+                row, actors, treedict, objType = args
+                self.action_history.add_action((row, actors, treedict, objType))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_ADDING)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_ADDING")
+        
+        elif action == ACTION_ACTOR_CREATING:
+            if len(args) == 3 and isinstance(args[0], str) and isinstance(args[1], vtkActor) and isinstance(args[2], list):
+                objType, actor, dimtags = args
+                self.action_history.add_action((objType, actor, dimtags))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_CREATING)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_CREATING")
+        
+        elif action == ACTION_ACTOR_TRANSFORMATION:
+            if len(args) == 5 and isinstance(args[0], str) and isinstance(args[1], vtkActor) and isinstance(args[2], float) and isinstance(args[3], float) and isinstance(args[4], float):
+                trandform_name, actor, x_value, y_value, z_value = args
+                self.action_history.add_action((trandform_name, actor, x_value, y_value, z_value))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_TRANSFORMATION)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_TRANSFORMATION")
+        
+        else:
+            raise ValueError(f"Unknown action type {action}")
+                
 
     def restore_actor_colors(self):
         try:
@@ -1130,6 +1231,8 @@ class GraphicalEditor(QFrame):
                 
             for actor in self.selected_actors:
                 GeometryManager.move(actor, x_offset, y_offset, z_offset)
+                self.add_action(ACTION_ACTOR_TRANSFORMATION, 'move', actor, x_offset, y_offset, z_offset)
+
             self.deselect()
             
     def rotate_actors(self):
@@ -1138,7 +1241,9 @@ class GraphicalEditor(QFrame):
             angle_x, angle_y, angle_z = dialog.getValues()
                 
             for actor in self.selected_actors:
-                GeometryManager.rotate(actor, angle_x, angle_y, angle_z)   
+                GeometryManager.rotate(actor, angle_x, angle_y, angle_z)
+                self.add_action(ACTION_ACTOR_TRANSFORMATION, 'rotate', actor, angle_x, angle_y, angle_z)
+ 
             self.deselect()
     
     def scale_actors(self):
@@ -1148,6 +1253,8 @@ class GraphicalEditor(QFrame):
             
             for actor in self.selected_actors:
                 GeometryManager.scale(actor, x_scale, y_scale, z_scale)
+                self.add_action(ACTION_ACTOR_TRANSFORMATION, 'scale', actor, x_scale, y_scale, z_scale)
+            
             self.deselect()
             
     def change_interactor(self, style: str):
