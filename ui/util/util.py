@@ -170,3 +170,18 @@ def compute_distance_between_points(coord1, coord2):
         print(InternalLogger.get_warning_none_result_with_exception_msg(e))
         return None
     return result
+
+
+def remove_last_occurrence(lst, item):
+    """
+    Remove the last occurrence of `item` from `lst`.
+    If the item is not found, the function does nothing.
+
+    Parameters:
+    lst (list): The list from which to remove the item.
+    item: The item to remove.
+    """
+    for i in range(len(lst) - 1, -1, -1):  # Iterate from the end to the beginning
+        if lst[i] == item:
+            del lst[i]  # Remove the item if found
+            break       # Exit the loop after removing the item
