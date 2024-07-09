@@ -8,11 +8,9 @@ from PyQt5.QtWidgets import (
     QMenu, QAction, QStatusBar, QAbstractItemView,
 )
 from vtk import (
-    vtkRenderer, vtkPoints, vtkPolyData, vtkPolyLine, vtkCellArray, vtkPolyDataMapper,
-    vtkActor, vtkAxesActor, vtkOrientationMarkerWidget, vtkGenericDataObjectReader,
-    vtkDataSetMapper, vtkCellPicker, vtkCommand, vtkMatrix4x4, vtkInteractorStyleTrackballCamera,
-    vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick, vtkPlane, vtkPlaneSource,
-    vtkTriangleFilter, vtkClipPolyData
+    vtkRenderer, vtkPolyDataMapper, vtkActor, vtkAxesActor, vtkOrientationMarkerWidget, 
+    vtkGenericDataObjectReader, vtkDataSetMapper, vtkCellPicker, vtkCommand, vtkMatrix4x4, 
+    vtkInteractorStyleTrackballCamera, vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick,
 )
 from util import (
     align_view_by_axis,
@@ -20,15 +18,14 @@ from util import (
 )
 from util.vtk_helpers import (
     remove_gradient, remove_shadows, render_editor_window_without_resetting_camera,
-    render_editor_window, remove_all_actors, compare_matrices, merge_actors, 
-    add_actor, add_actors, remove_actor, remove_actors, colorize_actor_with_rgb,
-    convert_unstructured_grid_to_polydata
+    remove_all_actors, compare_matrices, merge_actors, add_actor, add_actors, 
+    remove_actor, remove_actors, colorize_actor_with_rgb,
 )
 from util.gmsh_helpers import (
     convert_stp_to_msh
 )
 from logger import LogConsole
-from .geometry import GeometryManager, VTKGeometryManipulator
+from .geometry import GeometryManager
 from .particle_source_manager import ParticleSourceManager
 from .mesh_tree_manager import MeshTreeManager
 from .geometry.geometry_constants import *
@@ -68,9 +65,6 @@ class GraphicalEditor(QFrame):
         
         self.cutting_plane_actor = None
 
-        self.isDrawingLine = False        # To check if currently drawing the line
-        self.tempLineActor = None         # Temporary actor for the line visualization
-        
     def setup_dicts(self):
         # External row - is the 1st row in the tree view (volume, excluding objects like: line, point)
         # Internal row - is the 2nd row in the tree view (surface)
@@ -97,7 +91,7 @@ class GraphicalEditor(QFrame):
         self.log_console = log_console
         
     def setup_toolbar(self):
-        self.layout = QVBoxLayout()  # Main layout
+        self.layout = QVBoxLayout()         # Main layout
         self.toolbarLayout = QHBoxLayout()  # Layout for the toolbar
 
         # Create buttons for the toolbar
@@ -607,6 +601,7 @@ class GraphicalEditor(QFrame):
                     row = self.get_volume_row(actor)
                     if row is None:
                         remove_actor(self.vtkWidget, self.renderer, actor)
+                        GeometryManager.remove(self.vtkWidget, self.renderer, actor, needResetCamera=True)
                         return
 
                     actors = self.get_actor_from_volume_row(row)
@@ -1354,18 +1349,22 @@ class GraphicalEditor(QFrame):
         add_actor(self.vtkWidget, self.renderer, result)
 
     def create_cross_section(self):
-        self.actor_to_cut = list(self.selected_actors)[0]
+        try:
+            self.actor_to_cut = list(self.selected_actors)[0]
+            
+            dialog = CuttingPlaneDialog(self, self.vtkWidget, self.renderer)
+            dialog.setModal(False)
+            dialog.show()
+            
+            dialog.planeSelector.currentIndexChanged.connect(dialog.update_and_refresh)
+            dialog.levelInput.textChanged.connect(dialog.update_and_refresh)
+            dialog.angleInput.textChanged.connect(dialog.update_and_refresh)
+            
+            dialog.accepted_with_values.connect(self.handle_cross_section_accepted_values)
+            dialog.rejected.connect(dialog.cleanup)
         
-        dialog = CuttingPlaneDialog(self, self.vtkWidget, self.renderer)
-        dialog.setModal(False)
-        dialog.show()
-        
-        dialog.planeSelector.currentIndexChanged.connect(dialog.update_and_refresh)
-        dialog.levelInput.textChanged.connect(dialog.update_and_refresh)
-        dialog.angleInput.textChanged.connect(dialog.update_and_refresh)
-        
-        dialog.accepted_with_values.connect(self.handle_cross_section_accepted_values)
-        dialog.rejected.connect(dialog.cleanup)
+        except Exception:
+            return
     
     def handle_cross_section_accepted_values(self, axis: str, level: float, angle: float):
         out_actor1, out_actor2 = GeometryManager.section(self.actor_to_cut, axis, level, angle)

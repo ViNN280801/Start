@@ -13,6 +13,11 @@ from .gmsh_geometry import GMSHGeometryCreator
 class GeometryCreator:
     
     @staticmethod
+    def remove(vtkWidget, renderer, actor, needResetCamera, dimtags):
+        VTKGeometryCreator.remove(vtkWidget, renderer, actor, needResetCamera)
+        GMSHGeometryCreator.remove(dimtags)
+    
+    @staticmethod
     def create_point(point: Point):
         out_actor = VTKGeometryCreator.create_point(point)
         out_tag = GMSHGeometryCreator.create_point(point)

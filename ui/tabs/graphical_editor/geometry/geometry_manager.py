@@ -63,7 +63,7 @@ class GeometryManager:
             if actor == search_actor:
                 del GeometryManager.geometries[index]
                 return
-        raise ValueError(f"Actor {search_actor} not found in the geometries list.")
+        raise ValueError(f"Failed to delete object by actor: Actor {search_actor} not found in the geometries list.")
     
     @staticmethod
     def delete_by_dimtags(search_dimtags):
@@ -80,16 +80,26 @@ class GeometryManager:
             if dimtags == search_dimtags:
                 del GeometryManager.geometries[index]
                 return
-        raise ValueError("Dimtags not found in the geometries list.")
+        raise ValueError(f"Failed to delete object by actor: Dimtags {search_dimtags} not found in the geometries list.")
     
     @staticmethod
     def add(obj: str, actor: vtkActor, dimtags):
         GeometryManager.geometries.append((obj, actor, dimtags))
+    
+    @staticmethod
+    def remove(vtkWidget, renderer, actor_to_remove, needResetCamera):
+        try:
+            dimtags_to_remove = GeometryManager.get_dimtags_by_actor(actor_to_remove)
+            GeometryCreator.remove(vtkWidget, renderer, actor_to_remove, needResetCamera, dimtags_to_remove)
+            GeometryManager.delete_by_actor(actor_to_remove)
+
+        except Exception as e:
+            raise ValueError(f"Failed to remove geometrical object: {e}")
         
     @staticmethod
     def clear():
-        GeometryManager.geometries.clear()    # 1. Clearing out internal storage of geometries
-        gmsh_clear()                          # 2. Clear all loaded models and post-processing data
+        GeometryManager.geometries.clear() # 1. Clearing out internal storage of geometries
+        gmsh_clear()                       # 2. Clear all loaded models and post-processing data
     
     @staticmethod
     def empty() -> bool:
@@ -262,8 +272,13 @@ class GeometryManager:
         dimtags = GeometryManager.get_dimtags_by_actor(actor)
         out_actors, out_dimtags = GeometryManipulator.cross_section(actor, dimtags, axis, level, angle, size)
 
+        if len(out_actors) != 2 or len(out_dimtags) != 2:
+            raise ValueError(f"Can't create cross-section. In result got <{len(out_actors)}> visual objects and <{len(out_dimtags)}> geometrical objects")
+        
         out_actor1, out_actor2 = out_actors
         out_dimtags1, out_dimtags2 = [[x] for x in out_dimtags]
+        
+        print(f"Actors: {out_actors}\nDimtags: {out_dimtags}")
         
         data = GeometryManager.get_str_by_actor(actor)
         out_data_part1 = f'sectioned_part1_{data}'

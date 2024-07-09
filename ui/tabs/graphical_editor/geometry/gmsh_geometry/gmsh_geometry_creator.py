@@ -1,5 +1,5 @@
 from gmsh import model
-from util import check_tag
+from util.gmsh_helpers import check_tag, check_dimtags
 from sys import stderr
 from tabs.graphical_editor.geometry.point import Point
 from tabs.graphical_editor.geometry.line import Line
@@ -11,6 +11,19 @@ from tabs.graphical_editor.geometry.cylinder import Cylinder
 
 
 class GMSHGeometryCreator:
+    
+    @staticmethod
+    def remove(dimtags):
+        """
+        Remove specified entities in Gmsh by their dimension and tags.
+        
+        Parameters:
+        dimtags (list of tuple): List of (dim, tag) tuples where dim is the dimension (e.g., 0 for points, 1 for curves)
+                                 and tag is the identifier of the entity to be removed.
+        """
+        check_dimtags(dimtags)
+        model.occ.remove(dimtags)
+        model.occ.synchronize()
     
     @staticmethod
     def create_point(point: Point) -> int:

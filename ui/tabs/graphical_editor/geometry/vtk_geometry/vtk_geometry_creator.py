@@ -20,9 +20,28 @@ from tabs.graphical_editor.geometry.cylinder import Cylinder
 from .vtk_geometry_manipulator import VTKGeometryManipulator
 from numpy import array, cross, dot, arccos, pi
 from numpy.linalg import norm
+from util.vtk_helpers import remove_actor
 
 
 class VTKGeometryCreator:
+    
+    @staticmethod
+    def remove(vtkWidget, renderer, actor: vtkActor, needResetCamera: bool = True):
+        """
+        Remove an actor from a VTK renderer and optionally reset the camera.
+
+        Parameters:
+        vtkWidget : vtkRenderWindowInteractor
+            The VTK widget that contains the render window.
+        renderer : vtkRenderer
+            The renderer from which the actor will be removed.
+        actor : vtkActor
+            The actor to be removed from the renderer.
+        needResetCamera : bool, optional
+            If True, the camera will be reset after removing the actor (default is True).
+        
+        """
+        remove_actor(vtkWidget, renderer, actor, needResetCamera)
     
     @staticmethod
     def create_point(point: Point) -> vtkActor:
