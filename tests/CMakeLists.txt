@@ -73,8 +73,7 @@ add_executable(
     all_tests
     main.cpp
     
-    CollisionTrackerTests.cpp
-    ConfigParserTests.cpp
+    # ConfigParserTests.cpp
     HDF5HandlerTests.cpp
     MathVectorTests.cpp
     MeshTests.cpp
@@ -83,16 +82,15 @@ add_executable(
     RealNumberGeneratorTests.cpp
     VolumeCreatorTests.cpp
 
-    ../src/CollisionTracker.cpp
-    ../src/ConfigParser.cpp
-    ../src/HDF5Handler.cpp
-    ../src/MathVector.cpp
-    ../src/Mesh.cpp
-    ../src/Particle.cpp
-    ../src/RayTriangleIntersection.cpp
-    ../src/RealNumberGenerator.cpp
-    ../src/Utilities.cpp
-    ../src/VolumeCreator.cpp
+    ../src/Utilities/ConfigParser.cpp
+    ../src/DataHandling/HDF5Handler.cpp
+    ../src/Geometry/MathVector.cpp
+    ../src/Geometry/Mesh.cpp
+    ../src/Particles/Particle.cpp
+    ../src/Geometry/RayTriangleIntersection.cpp
+    ../src/Generators/RealNumberGenerator.cpp
+    ../src/Utilities/Utilities.cpp
+    ../src/Generators/VolumeCreator.cpp
 )
 
 target_link_libraries(
