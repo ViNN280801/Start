@@ -73,7 +73,7 @@ add_executable(
     all_tests
     main.cpp
     
-    # ConfigParserTests.cpp
+    ConfigParserTests.cpp
     HDF5HandlerTests.cpp
     MathVectorTests.cpp
     MeshTests.cpp
