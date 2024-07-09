@@ -694,7 +694,6 @@ class GraphicalEditor(QFrame):
 
     def undo_transform(self):
         res = self.action_history.undo()
-        print(f"UNDO transform: {res}")
         if not res or len(res) != 5:
             return
 
@@ -706,7 +705,6 @@ class GraphicalEditor(QFrame):
 
     def redo_transform(self):
         res = self.action_history.redo()
-        print(f"REDO transform: {res}")
         if not res or len(res) != 5:
             return
         
@@ -746,7 +744,6 @@ class GraphicalEditor(QFrame):
         
     def undo_creating(self):
         res = self.action_history.undo()
-        print(f"UNDO creating: {res}")
         if not res or len(res) != 3:
             return
         obj_str, actor, dimtags = res
@@ -763,7 +760,6 @@ class GraphicalEditor(QFrame):
 
     def redo_creating(self):
         res = self.action_history.redo()
-        print(f"REDO creating: {res}")
         if not res or len(res) != 3:
             return
         obj_str, actor, dimtags = res
