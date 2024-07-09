@@ -96,7 +96,7 @@ class GMSHHelpersTests(unittest.TestCase):
         result = create_cutting_plane('x', 2.5, angle=0, size=5)
         mock_addBox.assert_called_once_with(2.5, -5, -5, 0.01, 10, 10)
         gmsh_rotate.assert_not_called()
-        self.assertEqual(result, 1)
+        self.assertEqual(result, [(3, 1)])
         gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
@@ -106,7 +106,7 @@ class GMSHHelpersTests(unittest.TestCase):
         result = create_cutting_plane('y', 2.5, angle=0, size=5)
         mock_addBox.assert_called_once_with(-5, 2.5, -5, 10, 0.01, 10)
         mock_rotate.assert_not_called()
-        self.assertEqual(result, 1)
+        self.assertEqual(result, [(3, 1)])
         gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
@@ -116,7 +116,7 @@ class GMSHHelpersTests(unittest.TestCase):
         result = create_cutting_plane('z', 2.5, angle=0, size=5)
         mock_addBox.assert_called_once_with(-5, -5, 2.5, 10, 10, 0.01)
         mock_rotate.assert_not_called()
-        self.assertEqual(result, 1)
+        self.assertEqual(result, [(3, 1)])
         gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
@@ -126,7 +126,7 @@ class GMSHHelpersTests(unittest.TestCase):
         result = create_cutting_plane('x', 2.5, angle=45, size=5)
         mock_addBox.assert_called_once_with(2.5, -5, -5, 0.01, 10, 10)
         mock_rotate.assert_called_once_with(complete_dimtag('box', 1), radians(45), 0, 0)
-        self.assertEqual(result, 1)
+        self.assertEqual(result, [(3, 1)])
         gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
@@ -136,7 +136,7 @@ class GMSHHelpersTests(unittest.TestCase):
         result = create_cutting_plane('y', 2.5, angle=45, size=5)
         mock_addBox.assert_called_once_with(-5, 2.5, -5, 10, 0.01, 10)
         mock_rotate.assert_called_once_with(complete_dimtag('box', 1), 0, radians(45), 0)
-        self.assertEqual(result, 1)
+        self.assertEqual(result, [(3, 1)])
         gmsh_finalize()
 
     @patch('gmsh.model.occ.addBox', return_value=1)
@@ -146,7 +146,7 @@ class GMSHHelpersTests(unittest.TestCase):
         result = create_cutting_plane('z', 2.5, angle=45, size=5)
         mock_addBox.assert_called_once_with(-5, -5, 2.5, 10, 10, 0.01)
         mock_rotate.assert_called_once_with(complete_dimtag('box', 1), 0, 0, radians(45))
-        self.assertEqual(result, 1)
+        self.assertEqual(result, [(3, 1)])
         gmsh_finalize()
 
     def test_create_cutting_plane_invalid_axis(self):
