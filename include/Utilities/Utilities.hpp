@@ -142,6 +142,21 @@ namespace util
 
     /// @brief Cheks restrictions for the certain simulation parameters, if something wrong - exits from the program.
     void checkRestrictions(double time_step, size_t particles_count, std::string_view mshfilename);
+
+    /**
+     * @brief Checks the validity of a Gmsh mesh file.
+     *
+     * This function performs several checks on the provided file path to ensure it is a valid Gmsh mesh file.
+     * It checks whether the file exists, is not a directory, has the correct ".msh" extension, and is not empty.
+     *
+     * @param mesh_filename The file path of the Gmsh mesh file to check.
+     *
+     * @throws std::runtime_error If the file does not exist.
+     * @throws std::runtime_error If the provided path is a directory.
+     * @throws std::runtime_error If the file extension is not ".msh".
+     * @throws std::runtime_error If the file is empty.
+     */
+    void check_gmsh_mesh_file(std::string_view mesh_filename);
 }
 
 #endif // !UTILITIES_HPP
