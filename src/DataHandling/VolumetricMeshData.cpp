@@ -28,6 +28,8 @@ Point VolumetricMeshData::TetrahedronData::getTetrahedronCenter() const
 
 VolumetricMeshData::VolumetricMeshData(std::string_view mesh_filename)
 {
+    util::check_gmsh_mesh_file(mesh_filename);
+
     try
     {
         gmsh::open(mesh_filename.data());
@@ -80,6 +82,8 @@ VolumetricMeshData::VolumetricMeshData(std::string_view mesh_filename)
 
 VolumetricMeshData &VolumetricMeshData::getInstance(std::string_view mesh_filename)
 {
+    util::check_gmsh_mesh_file(mesh_filename);
+
     std::lock_guard<std::mutex> lock(instanceMutex);
     if (instance == nullptr)
         instance = std::unique_ptr<VolumetricMeshData>(new VolumetricMeshData(mesh_filename));
