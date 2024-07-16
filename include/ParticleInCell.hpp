@@ -1,5 +1,5 @@
-#ifndef PARTICLETRACKER_HPP
-#define PARTICLETRACKER_HPP
+#ifndef PARTICLEINCELL_HPP
+#define PARTICLEINCELL_HPP
 
 #include <barrier>
 #include <mutex>
@@ -8,11 +8,11 @@
 #include "FiniteElementMethod/MatrixEquationSolver.hpp"
 #include "Generators/VolumeCreator.hpp"
 #include "Geometry/Mesh.hpp"
-#include "ParticleInCell/Grid3D.hpp"
+#include "ParticleTracker/Grid3D.hpp"
 #include "Particles/Particle.hpp"
 #include "Utilities/ConfigParser.hpp"
 
-class ParticleTracker final
+class ParticleInCell final
 {
 private:
     static constexpr short const kdefault_polynomOrder{1};                 ///< Polynom order. Responds for count of the basis functions.
@@ -123,9 +123,9 @@ private:
                                         std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier);
 
 public:
-    ParticleTracker(std::string_view config_filename);
+    ParticleInCell(std::string_view config_filename);
 
     void startSimulation();
 };
 
-#endif // !PARTICLETRACKER_HPP
+#endif // !PARTICLEINCELL_HPP

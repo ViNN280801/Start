@@ -2,12 +2,12 @@
 #include <execution>
 #include <future>
 
-#include "../include/ParticleInCell/ParticleInCellTracker.hpp"
+#include "../include/ParticleTracker/ParticleTracker.hpp"
 
-std::mutex ParticleInCellTracker::m_trackerMutex;
-std::mutex ParticleInCellTracker::m_PICMutex;
+std::mutex ParticleTracker::m_trackerMutex;
+std::mutex ParticleTracker::m_PICMutex;
 
-void ParticleInCellTracker::fillTimeMap()
+void ParticleTracker::fillTimeMap()
 {
     int timeID{};
     if (!m_chargeDensityMap.empty())
@@ -15,7 +15,7 @@ void ParticleInCellTracker::fillTimeMap()
             m_timeMap.insert({timeID++, entry.first});
 }
 
-bool ParticleInCellTracker::isParticleInsideTetrahedron(Particle const &particle, Tetrahedron const &tetrahedron)
+bool ParticleTracker::isParticleInsideTetrahedron(Particle const &particle, Tetrahedron const &tetrahedron)
 {
     CGAL::Oriented_side oriented_side{tetrahedron.oriented_side(particle.getCentre())};
     if (oriented_side == CGAL::ON_POSITIVE_SIDE)
@@ -26,7 +26,7 @@ bool ParticleInCellTracker::isParticleInsideTetrahedron(Particle const &particle
         return true;
 }
 
-void ParticleInCellTracker::processSegment(double start_time, double end_time)
+void ParticleTracker::processSegment(double start_time, double end_time)
 {
     for (double t{start_time}; t <= end_time; t += m_dt)
     {
@@ -53,7 +53,7 @@ void ParticleInCellTracker::processSegment(double start_time, double end_time)
     }
 }
 
-void ParticleInCellTracker::trackParticles(unsigned int num_threads)
+void ParticleTracker::trackParticles(unsigned int num_threads)
 {
     if (auto curThreads{std::thread::hardware_concurrency()}; curThreads < num_threads)
         throw std::runtime_error("The number of threads requested (" + std::to_string(num_threads) +
@@ -76,7 +76,7 @@ void ParticleInCellTracker::trackParticles(unsigned int num_threads)
         future.get();
 }
 
-void ParticleInCellTracker::calculateChargeDensityMap()
+void ParticleTracker::calculateChargeDensityMap()
 {
     if (!m_chargeDensityMap.empty())
         m_chargeDensityMap.clear();
@@ -94,7 +94,7 @@ void ParticleInCellTracker::calculateChargeDensityMap()
     }
 }
 
-ParticleInCellTracker::ParticleInCellTracker(ParticleVector &particles, Grid3D &grid,
+ParticleTracker::ParticleTracker(ParticleVector &particles, Grid3D &grid,
                                              double dt, double simtime,
                                              unsigned int num_threads)
     : m_particles(particles), m_grid(grid), m_dt(dt), m_simtime(simtime)
@@ -104,7 +104,7 @@ ParticleInCellTracker::ParticleInCellTracker(ParticleVector &particles, Grid3D &
     fillTimeMap();
 }
 
-void ParticleInCellTracker::printParticlesMap() const
+void ParticleTracker::printParticlesMap() const
 {
     if (m_particlesInCell.empty())
     {
@@ -128,7 +128,7 @@ void ParticleInCellTracker::printParticlesMap() const
     }
 }
 
-void ParticleInCellTracker::printChargeDensityMap() const
+void ParticleTracker::printChargeDensityMap() const
 {
     if (m_chargeDensityMap.empty())
     {
@@ -144,7 +144,7 @@ void ParticleInCellTracker::printChargeDensityMap() const
     }
 }
 
-std::map<size_t, ParticleVector> ParticleInCellTracker::getParticlesInCell(int time_interval) const
+std::map<size_t, ParticleVector> ParticleTracker::getParticlesInCell(int time_interval) const
 {
     if (m_particlesInCell.empty())
     {
@@ -158,7 +158,7 @@ std::map<size_t, ParticleVector> ParticleInCellTracker::getParticlesInCell(int t
     return m_particlesInCell.at(m_timeMap.at(time_interval));
 }
 
-std::map<size_t, double> ParticleInCellTracker::getChargeDensityMap(int time_interval) const
+std::map<size_t, double> ParticleTracker::getChargeDensityMap(int time_interval) const
 {
     if (m_chargeDensityMap.empty())
     {

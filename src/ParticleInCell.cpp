@@ -6,15 +6,15 @@
 using json = nlohmann::json;
 
 #include "../include/DataHandling/HDF5Handler.hpp"
-#include "../include/ParticleTracker.hpp"
+#include "../include/ParticleInCell.hpp"
 
-std::mutex ParticleTracker::m_PICTracker_mutex;
-std::mutex ParticleTracker::m_nodeChargeDensityMap_mutex;
-std::mutex ParticleTracker::m_particlesMovement_mutex;
-std::shared_mutex ParticleTracker::m_settledParticles_mutex;
-std::atomic_flag ParticleTracker::m_stop_processing = ATOMIC_FLAG_INIT;
+std::mutex ParticleInCell::m_PICTracker_mutex;
+std::mutex ParticleInCell::m_nodeChargeDensityMap_mutex;
+std::mutex ParticleInCell::m_particlesMovement_mutex;
+std::shared_mutex ParticleInCell::m_settledParticles_mutex;
+std::atomic_flag ParticleInCell::m_stop_processing = ATOMIC_FLAG_INIT;
 
-void ParticleTracker::checkMeshfilename() const
+void ParticleInCell::checkMeshfilename() const
 {
     if (m_config.getMeshFilename() == "")
         throw std::runtime_error("Can't open mesh file: Name of the file is empty");
@@ -26,9 +26,9 @@ void ParticleTracker::checkMeshfilename() const
         throw std::runtime_error(util::stringify("Can't open mesh file: Format of the file must be .msh. Current filename: ", m_config.getMeshFilename()));
 }
 
-void ParticleTracker::initializeSurfaceMesh() { _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename()); }
+void ParticleInCell::initializeSurfaceMesh() { _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename()); }
 
-void ParticleTracker::initializeSurfaceMeshAABB()
+void ParticleInCell::initializeSurfaceMeshAABB()
 {
     if (_triangleMesh.empty())
         throw std::runtime_error("Can't construct AABB for triangle mesh - surface mesh is empty");
@@ -46,7 +46,7 @@ void ParticleTracker::initializeSurfaceMeshAABB()
     _surfaceMeshAABBtree = AABB_Tree_Triangle(std::cbegin(_triangles), std::cend(_triangles));
 }
 
-void ParticleTracker::initializeParticles()
+void ParticleInCell::initializeParticles()
 {
     if (m_config.isParticleSourcePoint())
     {
@@ -65,13 +65,13 @@ void ParticleTracker::initializeParticles()
         throw std::runtime_error("Particles are uninitialized, check your configuration file");
 }
 
-void ParticleTracker::initialize()
+void ParticleInCell::initialize()
 {
     initializeSurfaceMesh();
     initializeSurfaceMeshAABB();
 }
 
-void ParticleTracker::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
+void ParticleInCell::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
                                     std::shared_ptr<Grid3D> &cubicGrid,
                                     std::map<GlobalOrdinal, double> &boundaryConditions,
                                     std::shared_ptr<SolutionVector> &solutionVector)
@@ -93,7 +93,7 @@ void ParticleTracker::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assembl
     solutionVector->clear();
 }
 
-size_t ParticleTracker::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
+size_t ParticleInCell::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
 {
     // Returning invalid index if ray or triangle is degenerate
     if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
@@ -104,7 +104,7 @@ size_t ParticleTracker::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam
                : -1ul;
 }
 
-unsigned int ParticleTracker::getNumThreads() const
+unsigned int ParticleInCell::getNumThreads() const
 {
     if (auto curThreads{m_config.getNumThreads()}; curThreads < 1 || curThreads > std::thread::hardware_concurrency())
         throw std::runtime_error("The number of threads requested (1) exceeds the number of hardware threads supported by the system (" +
@@ -122,7 +122,7 @@ unsigned int ParticleTracker::getNumThreads() const
     return num_threads;
 }
 
-void ParticleTracker::saveParticleMovements() const
+void ParticleInCell::saveParticleMovements() const
 {
     try
     {
@@ -166,7 +166,7 @@ void ParticleTracker::saveParticleMovements() const
     }
 }
 
-void ParticleTracker::updateSurfaceMesh()
+void ParticleInCell::updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
     auto mapEnd{_settledParticlesCounterMap.cend()};
@@ -181,7 +181,7 @@ void ParticleTracker::updateSurfaceMesh()
 }
 
 template <typename Function, typename... Args>
-void ParticleTracker::processWithThreads(unsigned int num_threads, Function &&function, Args &&...args)
+void ParticleInCell::processWithThreads(unsigned int num_threads, Function &&function, Args &&...args)
 {
     size_t particles_per_thread{m_particles.size() / num_threads}, start_index{},
         managed_particles{particles_per_thread * num_threads}; // Count of the managed particles.
@@ -209,7 +209,7 @@ void ParticleTracker::processWithThreads(unsigned int num_threads, Function &&fu
         f.get();
 }
 
-ParticleTracker::ParticleTracker(std::string_view config_filename) : m_config(config_filename)
+ParticleInCell::ParticleInCell(std::string_view config_filename) : m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
     checkMeshfilename();
@@ -226,7 +226,7 @@ ParticleTracker::ParticleTracker(std::string_view config_filename) : m_config(co
     initializeParticles();
 }
 
-void ParticleTracker::processPIC(size_t start_index, size_t end_index, double t,
+void ParticleInCell::processPIC(size_t start_index, size_t end_index, double t,
                                  std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
                                  std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
@@ -296,7 +296,7 @@ void ParticleTracker::processPIC(size_t start_index, size_t end_index, double t,
     }
 }
 
-void ParticleTracker::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
+void ParticleInCell::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
                                     std::shared_ptr<GSMatrixAssemblier> &assemblier,
                                     std::shared_ptr<SolutionVector> &solutionVector,
                                     std::map<GlobalOrdinal, double> &boundaryConditions, double time)
@@ -330,7 +330,7 @@ void ParticleTracker::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeD
     }
 }
 
-void ParticleTracker::processSurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
+void ParticleInCell::processSurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
                                                      std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier)
 {
     try
@@ -435,7 +435,7 @@ void ParticleTracker::processSurfaceCollisionTracker(size_t start_index, size_t 
     }
 }
 
-void ParticleTracker::startSimulation()
+void ParticleInCell::startSimulation()
 {
     /* Beginning of the FEM initialization. */
     std::shared_ptr<GSMatrixAssemblier> assemblier;
@@ -453,13 +453,13 @@ void ParticleTracker::startSimulation()
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
         // 1. Obtain charge densities in all the nodes.
-        processWithThreads(num_threads, &ParticleTracker::processPIC, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+        processWithThreads(num_threads, &ParticleInCell::processPIC, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
 
         // 2. Solve equation in the main thread.
         solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
         // 3. Process surface collision tracking in parallel.
-        processWithThreads(num_threads, &ParticleTracker::processSurfaceCollisionTracker, t, cubicGrid, assemblier);
+        processWithThreads(num_threads, &ParticleInCell::processSurfaceCollisionTracker, t, cubicGrid, assemblier);
     }
 
     updateSurfaceMesh();

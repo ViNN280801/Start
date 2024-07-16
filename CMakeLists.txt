@@ -107,7 +107,7 @@ add_subdirectory(src)
 
 set(SOURCES
     src/main.cpp
-    src/ParticleTracker.cpp
+    src/ParticleInCell.cpp
 )
 
 add_executable(nia_start ${SOURCES})
@@ -128,7 +128,7 @@ target_link_libraries(nia_start PRIVATE
     FiniteElementMethod
     Generators
     Geometry
-    ParticleInCell
+    ParticleTracker
     Particles
     Utilities
 )

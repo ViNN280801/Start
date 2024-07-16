@@ -1,11 +1,11 @@
 set(PIC_SOURCES
     Grid3D.cpp
-    ParticleInCellTracker.cpp
+    ParticleTracker.cpp
 )
 
-add_library(ParticleInCell ${PIC_SOURCES})
+add_library(ParticleTracker ${PIC_SOURCES})
 
-target_link_libraries(ParticleInCell PRIVATE
+target_link_libraries(ParticleTracker PRIVATE
     ${GMSH_LIBRARIES}
     ${CGAL_LIBRARIES}
     ${Boost_LIBRARIES}
@@ -13,7 +13,7 @@ target_link_libraries(ParticleInCell PRIVATE
     ${Trilinos_LIBRARIES}
 )
 
-target_include_directories(ParticleInCell PRIVATE
+target_include_directories(ParticleTracker PRIVATE
     ${CGAL_INCLUDE_DIRS}
     ${GMSH_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}

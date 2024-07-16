@@ -1,4 +1,4 @@
-#include "../include/ParticleTracker.hpp"
+#include "../include/ParticleInCell.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -11,8 +11,8 @@ int main(int argc, char *argv[])
         ERRMSG(util::stringify("Usage: ", argv[0], " <config_file>"));
         return EXIT_FAILURE;
     }
-    ParticleTracker particleTracker(argv[1]);
-    particleTracker.startSimulation();
+    ParticleInCell pic(argv[1]);
+    pic.startSimulation();
 
     Kokkos::finalize();
     return EXIT_SUCCESS;

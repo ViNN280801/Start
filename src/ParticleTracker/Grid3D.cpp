@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "../include/ParticleInCell/Grid3D.hpp"
+#include "../include/ParticleTracker/Grid3D.hpp"
 
 Grid3D::Grid3D(VolumetricMeshData const &meshData, double edgeSize)
     : m_cubeEdgeSize(edgeSize), m_meshData(meshData)
