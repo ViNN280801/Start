@@ -735,7 +735,7 @@ class ConfigTab(QWidget):
             # Show dialog for user input
             dialog = MeshDialog(self)
             if dialog.exec() == QDialog.Accepted:
-                mesh_size, mesh_dim = dialog.get_values()
+                mesh_size, mesh_dim = dialog.getValues()
                 try:
                     mesh_size = float(mesh_size)
                     mesh_dim = int(mesh_dim)
