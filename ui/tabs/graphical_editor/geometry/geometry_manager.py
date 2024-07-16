@@ -11,7 +11,14 @@ from tabs.graphical_editor.geometry.cylinder import Cylinder
 from .geometry_creator import GeometryCreator
 from .geometry_manipulator import GeometryManipulator
 
-from util.gmsh_helpers import complete_dimtag, complete_dimtags, gmsh_clear
+from logger.internal_logger import InternalLogger
+from util.gmsh_helpers import(
+    complete_dimtag, complete_dimtags, check_tag, 
+    gmsh_clear, check_msh_filename, check_mesh_dim, 
+    check_mesh_size
+)
+from util.vtk_helpers import cut_actor
+from gmsh import model
 
 
 class GeometryManager:
@@ -107,8 +114,35 @@ class GeometryManager:
     
     @staticmethod
     def create_helper(obj_type, object, actor, tag) -> vtkActor:
-        from logger.internal_logger import InternalLogger
-        
+        """
+        Helper function to create VTK actors and associate them with corresponding dimension tags.
+
+        Parameters:
+        obj_type (str): The type of the object being created (e.g., 'point', 'line', 'surface', 'sphere', 'box', 'cone', 'cylinder').
+        object: The VTK object being created.
+        actor: The VTK actor associated with the object.
+        tag (int or list): The tag or tags associated with the object. Must be a list for 'line' type.
+
+        Returns:
+        vtkActor: The resulting VTK actor associated with the object.
+
+        Raises:
+        TypeError: If the `tag` is not a list for 'line' type.
+        ValueError: If the `obj_type` is not one of the supported types.
+
+        Notes:
+        This function performs the following steps:
+        1. Retrieves a string representation of the created object.
+        2. Converts the tag to dimension tags based on the object type.
+        - For 'point', 'surface', 'sphere', 'box', 'cone', and 'cylinder' types, it uses the `complete_dimtag` function.
+        - For 'line' type, it checks that the `tag` is a list and then uses the `complete_dimtags` function.
+        - If the `obj_type` is not supported, it raises a ValueError.
+        3. Adds the object data, actor, and dimension tags to the internal storage using `GeometryManager.add`.
+        4. Returns the resulting VTK actor.
+
+        Example:
+        create_helper('sphere', sphere_object, sphere_actor, sphere_tag)
+        """
         # 1. Getting string data of the created object
         data = object.__repr__()
         
@@ -152,6 +186,11 @@ class GeometryManager:
     def create_surface(surface: Surface) -> vtkActor:
         actor, tag = GeometryCreator.create_surface(surface)
         return GeometryManager.create_helper('surface', surface, actor, tag)
+    
+    @staticmethod
+    def create_plane(p1, p2, axis='z'):
+        vtkplane, actor, tag = GeometryCreator.create_plane(p1, p2, axis)
+        return vtkplane, GeometryManager.create_helper('box', vtkplane, actor, tag)
     
     @staticmethod
     def create_sphere(sphere: Sphere) -> vtkActor:
@@ -292,19 +331,20 @@ class GeometryManager:
     @staticmethod
     def intersect(first_actor, second_actor):
         return GeometryManager.operation_helper('intersect', first_actor, second_actor)
-    
+
     @staticmethod
-    def section(actor, axis, level, angle, size=1e9):        
-        dimtags = GeometryManager.get_dimtags_by_actor(actor)
-        out_actors, out_dimtags = GeometryManipulator.cross_section(actor, dimtags, axis, level, angle, size)
+    def cross_section(actor, point1, point2, axis):
+        vtkplane, plane_actor = GeometryManager.create_plane(point1, point2, axis)
+        actor_dimtags = GeometryManager.get_dimtags_by_actor(actor)
+        plane_dimtags = GeometryManager.get_dimtags_by_actor(plane_actor)
+        
+        out_actors, out_dimtags = GeometryManipulator.cross_section(actor, vtkplane, actor_dimtags, plane_dimtags)
 
         if len(out_actors) != 2 or len(out_dimtags) != 2:
             raise ValueError(f"Can't create cross-section. In result got <{len(out_actors)}> visual objects and <{len(out_dimtags)}> geometrical objects")
         
         out_actor1, out_actor2 = out_actors
         out_dimtags1, out_dimtags2 = [[x] for x in out_dimtags]
-        
-        print(f"Actors: {out_actors}\nDimtags: {out_dimtags}")
         
         data = GeometryManager.get_str_by_actor(actor)
         out_data_part1 = f'sectioned_part1_{data}'
@@ -318,8 +358,7 @@ class GeometryManager:
 
     @staticmethod
     def mesh(filename: str, mesh_dim: int, mesh_size: float) -> bool:
-        from gmsh import model, option, write, clear
-        from util.gmsh_helpers import check_msh_filename, check_mesh_dim, check_mesh_size
+        from gmsh import option, write, clear
         
         check_msh_filename(filename)
         check_mesh_dim(mesh_dim)

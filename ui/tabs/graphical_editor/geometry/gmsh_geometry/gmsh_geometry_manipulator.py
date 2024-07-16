@@ -1,7 +1,7 @@
 from gmsh import model
 from sys import stderr
 from util import check_dimtags
-from util.gmsh_helpers import create_cutting_plane, gmsh_rotate
+from util.gmsh_helpers import gmsh_rotate, gmsh_cut_with_plane
 
 
 class GMSHGeometryManipulator:
@@ -104,20 +104,10 @@ class GMSHGeometryManipulator:
             return out_dimtags
         
         except Exception:
-            return None        
-
-    @staticmethod
-    def cross_section(dimtags, axis: str, level: float, angle: float, size: float = 1e9):
-        try:
-            check_dimtags(dimtags)
-            cutting_plane_dimtags = create_cutting_plane(axis, level, angle, size)
-            
-            check_dimtags(cutting_plane_dimtags)
-            out_dimtags, _ = model.occ.cut(dimtags, cutting_plane_dimtags)
-            
-            check_dimtags(out_dimtags)
-            model.occ.synchronize()
-            return out_dimtags
-        
-        except Exception:
             return None
+    
+    @staticmethod
+    def cross_section(input_dimtags, plane_dimtags):
+        out_dimtags = gmsh_cut_with_plane(input_dimtags, plane_dimtags)
+        check_dimtags(out_dimtags)
+        return out_dimtags

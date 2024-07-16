@@ -2,6 +2,7 @@ from vtk import vtkRenderer
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import *
 from constants import *
+from numpy import all, array
 
 
 def get_cur_datetime() -> str:
@@ -170,6 +171,28 @@ def compute_distance_between_points(coord1, coord2):
         print(InternalLogger.get_warning_none_result_with_exception_msg(e))
         return None
     return result
+
+
+def can_create_plane(p1, p2):
+    """
+    Check if a plane can be created from two points.
+    Returns True if the points can form a plane, otherwise raises an exception.
+
+    Parameters:
+    p1 (list or array): The first point in 3D space.
+    p2 (list or array): The second point in 3D space.
+
+    Returns:
+    bool: True if a plane can be created, otherwise raises ValueError.
+    
+    Raises:
+    ValueError: If the points are identical.
+    """
+    p1 = array(p1)
+    p2 = array(p2)
+    if all(p1 == p2):
+        raise ValueError(f"Cannot create a plane with identical points: {p1}, {p2}")
+    return True
 
 
 def remove_last_occurrence(lst, item):

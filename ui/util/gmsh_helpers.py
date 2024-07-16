@@ -264,50 +264,24 @@ def gmsh_rotate(dimtags, angle_x: float, angle_y: float, angle_z: float):
         print(f"Error rotating geometry with GMSH: {e}", file=stderr)
 
 
-def create_cutting_plane(axis: str, level: float, angle: float = 0.0, size: float = 1e9):
+def gmsh_cut_with_plane(input_dimtags, plane_dimtags):
     """
-    Creates a cutting plane along a specified axis at a given level.
-
+    Perform a cut operation on the given `input_dimtags` using a plane defined by `plane_dimtags`.
+    
     Parameters:
-    axis (str): The axis along which to create the cutting plane ('x', 'y', or 'z').
-    level (float): The position along the specified axis where the cutting plane will be created.
-    angle (float): The angle of rotation in degrees (default is 0, no rotation).
-    size (float): The half-size of the cutting plane. The cutting plane will have dimensions (2*size, 2*size) along the other two axes.
-
+    input_dimtags (list of tuples): List of dimension tags to be cut.
+    plane_dimtags (list of tuples): The dimension tags of the plane used for cutting.
+    
     Returns:
-    int: The tag of the created cutting plane.
-
+    list of tuples: The resulting dimension tags after the cut operation.
+    
     Raises:
-    ValueError: If the specified axis is not 'x', 'y', or 'z'.
+    RuntimeError: If the cut operation cannot be performed.
+    """
+    try:
+        out_dimtags, out_dimtags_map = model.occ.cut(input_dimtags, plane_dimtags)
+    except Exception as e:
+        raise RuntimeError(f"Intersection operation cannot be performed with plane dimtags {plane_dimtags}") from e
 
-    Examples:
-    --------
-    # Create a cutting plane along the z-axis at z=2.5 with a half-size of 5
-    cutting_plane_tag = create_cutting_plane('z', 2.5, 5)
-
-    # Create a cutting plane along the x-axis at x=1.0 with a half-size of 3
-    cutting_plane_tag = create_cutting_plane('x', 1.0, 3)
-    """    
-    if axis == 'x':
-        planeTag = model.occ.addBox(level, -size, -size, 0.01, size * 2, size * 2)
-    elif axis == 'y':
-        planeTag = model.occ.addBox(-size, level, -size, size * 2, 0.01, size * 2)
-    elif axis == 'z':
-        planeTag = model.occ.addBox(-size, -size, level, size * 2, size * 2, 0.01)
-    else:
-        raise ValueError(f"{InternalLogger.pretty_function_details()}: Invalid axis: {axis}")
-    
-    check_tag(planeTag)
-    planeDimTag = complete_dimtag('box', planeTag)
-    check_dimtags(planeDimTag)
-    
-    if angle != 0.0:
-        if axis == 'x':
-            gmsh_rotate(planeDimTag, radians(angle), 0, 0)
-        elif axis == 'y':
-            gmsh_rotate(planeDimTag, 0, radians(angle), 0)
-        else:
-            gmsh_rotate(planeDimTag, 0, 0, radians(angle))
-    
     model.occ.synchronize()
-    return planeDimTag
+    return out_dimtags

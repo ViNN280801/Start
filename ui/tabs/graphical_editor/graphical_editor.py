@@ -1,5 +1,5 @@
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from PyQt5.QtCore import QSize, Qt, pyqtSlot, QItemSelectionModel
+from PyQt5.QtCore import Qt, QSize, QItemSelectionModel, pyqtSlot
 from PyQt5.QtGui import QCursor, QStandardItemModel, QBrush, QIcon
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QTreeView,
@@ -8,9 +8,9 @@ from PyQt5.QtWidgets import (
     QMenu, QAction, QStatusBar, QAbstractItemView,
 )
 from vtk import (
-    vtkRenderer, vtkPolyDataMapper, vtkActor, vtkAxesActor, vtkOrientationMarkerWidget, 
-    vtkGenericDataObjectReader, vtkDataSetMapper, vtkCellPicker, vtkCommand, vtkMatrix4x4, 
-    vtkInteractorStyleTrackballCamera, vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick,
+    vtkRenderer, vtkPolyDataMapper, vtkActor, vtkAxesActor, vtkOrientationMarkerWidget, vtkGenericDataObjectReader, 
+    vtkDataSetMapper, vtkCellPicker, vtkCommand, vtkMatrix4x4, vtkInteractorStyleTrackballCamera,
+    vtkInteractorStyleTrackballActor, vtkInteractorStyleRubberBandPick,
 )
 from util import (
     align_view_by_axis, remove_last_occurrence,
@@ -19,11 +19,9 @@ from util import (
 from util.vtk_helpers import (
     remove_gradient, remove_shadows, render_editor_window_without_resetting_camera,
     remove_all_actors, compare_matrices, merge_actors, add_actor, add_actors, 
-    remove_actor, remove_actors, colorize_actor_with_rgb,
+    remove_actor, remove_actors, colorize_actor_with_rgb
 )
-from util.gmsh_helpers import (
-    convert_stp_to_msh
-)
+from util.gmsh_helpers import convert_stp_to_msh
 from logger import LogConsole
 from .geometry import GeometryManager
 from .particle_source_manager import ParticleSourceManager
@@ -62,8 +60,6 @@ class GraphicalEditor(QFrame):
         self.firstObjectToPerformOperation = None
         self.statusBar = QStatusBar()
         self.layout.addWidget(self.statusBar)
-        
-        self.cutting_plane_actor = None
 
     def setup_dicts(self):
         # External row - is the 1st row in the tree view (volume, excluding objects like: line, point)
@@ -1213,7 +1209,6 @@ class GraphicalEditor(QFrame):
                 actor.GetProperty().SetColor(original_color)
 
             self.selected_actors.clear()
-            remove_actor(self.vtkWidget, self.renderer, self.cutting_plane_actor)
             self.vtkWidget.GetRenderWindow().Render()
             self.reset_selection_treeview()
             
@@ -1432,7 +1427,26 @@ class GraphicalEditor(QFrame):
             QMessageBox.warning(self, "Cross Section", "Can't perform cross section on several objects")
             return
 
-        self.create_cross_section()
+        dialog = TwoPointSelectionDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            point1, point2 = dialog.getPoints()
+        else:
+            return
+        
+        try:
+            dialog = AxisSelectionDialog(self)
+            if dialog.exec_() == QDialog.Accepted:
+                axis = dialog.getSelectedAxis()
+                
+                actor_to_cut = list(self.selected_actors)[0]                
+                out_actor1, out_actor2 = GeometryManager.cross_section(actor_to_cut, point1, point2, axis)
+                
+                remove_actor(self.vtkWidget, self.renderer, actor_to_cut, needResetCamera=False)
+                add_actors(self.vtkWidget, self.renderer, [out_actor1, out_actor2], needResetCamera=True)
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to perform plane cut: {e}")
+            self.log_console.printError(f"Failed to perform plane cut: {e}")
 
     def subtract_objects(self, obj_from: vtkActor, obj_to: vtkActor):
         result_actor = GeometryManager.subtract(obj_from, obj_to)
@@ -1450,29 +1464,6 @@ class GraphicalEditor(QFrame):
         remove_actor(self.vtkWidget, self.renderer, first)
         remove_actor(self.vtkWidget, self.renderer, second)
         add_actor(self.vtkWidget, self.renderer, result)
-
-    def create_cross_section(self):
-        try:
-            self.actor_to_cut = list(self.selected_actors)[0]
-            
-            dialog = CuttingPlaneDialog(self, self.vtkWidget, self.renderer)
-            dialog.setModal(False)
-            dialog.show()
-            
-            dialog.planeSelector.currentIndexChanged.connect(dialog.update_and_refresh)
-            dialog.levelInput.textChanged.connect(dialog.update_and_refresh)
-            dialog.angleInput.textChanged.connect(dialog.update_and_refresh)
-            
-            dialog.accepted_with_values.connect(self.handle_cross_section_accepted_values)
-            dialog.rejected.connect(dialog.cleanup)
-        
-        except Exception:
-            return
-    
-    def handle_cross_section_accepted_values(self, axis: str, level: float, angle: float):
-        out_actor1, out_actor2 = GeometryManager.section(self.actor_to_cut, axis, level, angle)
-        remove_actor(self.vtkWidget, self.renderer, self.actor_to_cut)
-        add_actors(self.vtkWidget, self.renderer, [out_actor1, out_actor2])
     
     def save_boundary_conditions(self, node_ids, value):
         from json import dump, load, JSONDecodeError
@@ -1556,7 +1547,3 @@ class GraphicalEditor(QFrame):
                 return
             # TODO: Handle the selected material here (e.g., add it to the application)
             pass
-
-    def test(self):
-        raise RuntimeError("Test exception")
-        pass

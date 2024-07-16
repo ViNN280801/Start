@@ -6,7 +6,9 @@ from vtk import (
     vtkCubeSource,
     vtkConeSource,
     vtkCylinderSource,
-    vtkActor, vtkPolyData, vtkPolyDataMapper, vtkTriangleFilter, vtkLinearSubdivisionFilter, vtkTransform, vtkMatrix4x4
+    vtkActor, vtkPolyData, vtkPolyDataMapper, vtkTriangleFilter, 
+    vtkLinearSubdivisionFilter, vtkTransform, vtkTransformFilter,
+    vtkPlane, vtkPlaneSource
 )
 from sys import stderr
 from tabs.graphical_editor.geometry.point import Point
@@ -17,10 +19,10 @@ from tabs.graphical_editor.geometry.box import Box
 from tabs.graphical_editor.geometry.cone import Cone
 from tabs.graphical_editor.geometry.cylinder import Cylinder
 
-from .vtk_geometry_manipulator import VTKGeometryManipulator
 from numpy import array, cross, dot, arccos, pi
 from numpy.linalg import norm
 from util.vtk_helpers import remove_actor
+from util.util import can_create_plane
 
 
 class VTKGeometryCreator:
@@ -149,6 +151,66 @@ class VTKGeometryCreator:
         
         except Exception as e:
             print(f"An error occurred while creating the surface with VTK: {e}", file=stderr)
+    
+    @staticmethod
+    def create_plane(p1, p2, axis='z'):
+        """
+        Create a cutting plane in VTK defined by two points and an axis.
+
+        Args:
+            p1 (list): Coordinates of the first point [x, y, z].
+            p2 (list): Coordinates of the second point [x, y, z].
+            axis (str): The axis along which to extrude the plane ('x', 'y', 'z'). Default is 'z'.
+
+        Returns:
+            vtkPlane: The created VTK plane. (`vtkPlane` type).
+
+        Raises:
+            ValueError: If the inputs are not valid.
+            RuntimeError: If there is an error during the plane creation.
+        """
+        if not (isinstance(p1, (list, set, tuple)) and isinstance(p2, (list, set, tuple)) and len(p1) == 3 and len(p2) == 3):
+            raise ValueError("Both points must be lists/sets/tuples of three numerical coordinates.")
+        if not all(isinstance(coord, (int, float)) for coord in p1 + p2):
+            raise ValueError("All coordinates must be integers or floats.")
+        if axis not in ["x", "y", "z"]:
+            raise ValueError("Selected axis must be 'x', 'Y', or 'z'.")
+        
+        can_create_plane(p1, p2)
+
+        try:
+            direction = [p2[i] - p1[i] for i in range(3)]  # Direction vector of the line
+            plane = vtkPlane()
+            viewDirection = [0, 0, 0]
+
+            # Set the view direction based on the selected axis
+            if axis == "x":
+                viewDirection = [1, 0, 0]
+            elif axis == "Y":
+                viewDirection = [0, 1, 0]
+            elif axis == "z":
+                viewDirection = [0, 0, 1]
+
+            normal = cross(direction, viewDirection)
+            plane.SetOrigin(p1)
+            plane.SetNormal(normal)
+            
+            plane_source = vtkPlaneSource()
+            plane_source.SetOrigin(p1)
+            plane_source.SetPoint1(p1[0] + viewDirection[0], p1[1] + viewDirection[1], p1[2] + viewDirection[2])
+            plane_source.SetPoint2(p2[0] + viewDirection[0], p2[1] + viewDirection[1], p2[2] + viewDirection[2])
+            plane_source.Update()
+
+            mapper = vtkPolyDataMapper()
+            mapper.SetInputConnection(plane_source.GetOutputPort())
+
+            actor = vtkActor()
+            actor.SetMapper(mapper)
+            
+            return plane, actor
+            
+        except Exception as e:
+            raise RuntimeError(f"Error creating plane in VTK: {e}")
 
     @staticmethod
     def create_sphere(sphere: Sphere) -> vtkActor:
@@ -361,4 +423,14 @@ def sync_vtkcylinder_to_gmshcylinder_helper(cylinder: Cylinder, actor: vtkActor)
     transform.Translate(0, cylinder.height / 2, 0)
     
     # Applying transformation not only for te actor, but for its geometry too
-    VTKGeometryManipulator.apply_transformation(actor, transform)
+    if actor and isinstance(actor, vtkActor):
+        mapper = actor.GetMapper()
+        if mapper:
+            input_data = mapper.GetInput()
+            transform_filter = vtkTransformFilter()
+            transform_filter.SetTransform(transform)
+            transform_filter.SetInputData(input_data)
+            transform_filter.Update()
+            mapper.SetInputConnection(transform_filter.GetOutputPort())
+            mapper.Update()
+        actor.Modified()

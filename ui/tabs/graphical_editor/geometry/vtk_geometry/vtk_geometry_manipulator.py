@@ -1,6 +1,5 @@
-from vtk import vtkTransform, vtkTransformFilter, vtkActor, vtkBooleanOperationPolyDataFilter
-from util import object_operation_executor_helper
-from util.vtk_helpers import create_cutting_plane, cut_actor
+from vtk import vtkTransform, vtkTransformFilter, vtkActor, vtkPlane, vtkBooleanOperationPolyDataFilter
+from util.vtk_helpers import object_operation_executor_helper, cut_actor
 from sys import stderr
 from logger.internal_logger import InternalLogger
 
@@ -123,13 +122,7 @@ class VTKGeometryManipulator:
         booleanOperation = vtkBooleanOperationPolyDataFilter()
         booleanOperation.SetOperationToIntersection()
         return object_operation_executor_helper(obj_from, obj_to, booleanOperation)
-    
+
     @staticmethod
-    def cross_section(actor: vtkActor, axis: str, level: float, angle: float):
-        plane = create_cutting_plane(axis, level, angle)
-        out_actors = cut_actor(actor, plane)
-        
-        if not out_actors or len(out_actors) != 2:
-            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Failed to create cross section in VTK")
-        
-        return out_actors
+    def cross_section(obj_to_cut: vtkActor, plane: vtkPlane):
+        return cut_actor(obj_to_cut, plane)

@@ -34,6 +34,12 @@ class GeometryCreator:
         out_actor = VTKGeometryCreator.create_surface(surface)
         out_tag = GMSHGeometryCreator.create_surface(surface)
         return out_actor, out_tag
+    
+    @staticmethod
+    def create_plane(p1, p2, axis='z'):
+        out_vtkplane, out_plane_actor = VTKGeometryCreator.create_plane(p1, p2, axis)
+        out_tag = GMSHGeometryCreator.create_plane(p1, p2, axis)
+        return out_vtkplane, out_plane_actor, out_tag
 
     @staticmethod
     def create_sphere(sphere: Sphere):

@@ -1,5 +1,8 @@
 from gmsh import model
-from util.gmsh_helpers import check_tag, check_dimtags
+from util.gmsh_helpers import check_tag, check_dimtags, complete_dimtag
+from util.util import can_create_plane
+from numpy import array
+from numpy.linalg import norm
 from sys import stderr
 from tabs.graphical_editor.geometry.point import Point
 from tabs.graphical_editor.geometry.line import Line
@@ -28,7 +31,7 @@ class GMSHGeometryCreator:
     @staticmethod
     def create_point(point: Point) -> int:
         """
-        Creates the point using Gmsh.
+        Creates the point using 
         """
         try:
             tag = model.occ.addPoint(point.x, point.y, point.z)
@@ -42,7 +45,7 @@ class GMSHGeometryCreator:
     @staticmethod
     def create_line(line: Line) -> list:
         """
-        Creates the line using Gmsh.
+        Creates the line using 
         """
         linetags = []
         try:
@@ -62,7 +65,7 @@ class GMSHGeometryCreator:
     @staticmethod
     def create_surface(surface: Surface) -> int:
         """
-        Creates the surface using Gmsh.
+        Creates the surface using 
         """
         try:
             for idx, (x, y, z) in enumerate(surface.points, start=1):
@@ -82,9 +85,80 @@ class GMSHGeometryCreator:
             return surface_tag
     
     @staticmethod
+    def create_plane(p1, p2, axis='z'):
+        """
+        Create a plane from two points and extrude it slightly along the given axis.
+        
+        Parameters:
+        p1 (list or array): The first point defining the plane in 3D space.
+        p2 (list or array): The second point defining the plane in 3D space.
+        axis (str): The axis along which to extrude the plane ('x', 'y', 'z'). Default is 'z'.
+        
+        Returns:
+        list of tuples: The dimension tags of the created plane.
+        
+        Raises:
+        ValueError: If the points p1 and p2 are identical or the axis is invalid.
+        """
+        if not (isinstance(p1, (list, set, tuple)) and isinstance(p2, (list, set, tuple)) and len(p1) == 3 and len(p2) == 3):
+            raise ValueError("Both points must be lists/sets/tuples of three numerical coordinates.")
+        if not all(isinstance(coord, (int, float)) for coord in p1 + p2):
+            raise ValueError("All coordinates must be integers or floats.")
+        if axis not in ["x", "y", "z"]:
+            raise ValueError("Selected axis must be 'x', 'y', or 'z'.")
+        
+        can_create_plane(p1, p2)
+
+        p1 = array(p1)
+        p2 = array(p2)
+        normal = p2 - p1
+        normal = normal / norm(normal)
+
+        plane_size = 1e9
+        plane_points = [
+            p1 - plane_size,
+            [p1[0] + plane_size, p1[1] - plane_size, p1[2] + plane_size],
+            [p1[0] + plane_size, p1[1] + plane_size, p1[2] + plane_size],
+            [p1[0] - plane_size, p1[1] + plane_size, p1[2] - plane_size]
+        ]
+        
+        point_tags = [model.occ.addPoint(*point) for point in plane_points]
+        for point_tag in point_tags:
+            check_tag(point_tag)
+        
+        line_tags = [
+            model.occ.addLine(point_tags[i], point_tags[(i + 1) % 4])
+            for i in range(4)
+        ]
+        for line_tag in line_tags:
+            check_tag(line_tag)
+        
+        cl_tag = model.occ.addCurveLoop(line_tags)
+        check_tag(cl_tag)
+        ps_tag = model.occ.addPlaneSurface([cl_tag])
+        check_tag(ps_tag)
+        model.occ.synchronize()
+        ps_dimtag = complete_dimtag('surface', ps_tag)
+
+        extrusion_thickness = 1e-9
+        if axis.lower() == 'x':
+            extrusion_direction = [extrusion_thickness, 0, 0]
+        elif axis.lower() == 'y':
+            extrusion_direction = [0, extrusion_thickness, 0]
+        elif axis.lower() == 'z':
+            extrusion_direction = [0, 0, extrusion_thickness]
+
+        volume_dimtag = model.occ.extrude(ps_dimtag, *extrusion_direction)
+        tag = volume_dimtag[1][1]
+        check_tag(tag)
+        model.occ.synchronize()
+        
+        return tag
+    
+    @staticmethod
     def create_sphere(sphere: Sphere) -> int:
         """
-        Creates the sphere using Gmsh.
+        Creates the sphere using 
         """
         try:
             tag = model.occ.addSphere(sphere.x, sphere.y, sphere.z, sphere.radius)
@@ -98,7 +172,7 @@ class GMSHGeometryCreator:
     @staticmethod
     def create_box(box: Box) -> int:
         """
-        Creates the box using Gmsh.
+        Creates the box using 
         """
         try:
             tag = model.occ.addBox(box.x, box.y, box.z, box.length, box.width, box.height)
@@ -112,7 +186,7 @@ class GMSHGeometryCreator:
     @staticmethod
     def create_cone(cone: Cone) -> int:
         """
-        Creates the cone using Gmsh.
+        Creates the cone using 
         """
         try:
             # By default make full cone, without 2nd radius
@@ -127,7 +201,7 @@ class GMSHGeometryCreator:
     @staticmethod
     def create_cylinder(cylinder: Cylinder) -> int:
         """
-        Creates the cylinder using Gmsh.
+        Creates the cylinder using 
         """
         try:
             tag = model.occ.addCylinder(cylinder.x, cylinder.y, cylinder.z, cylinder.dx, cylinder.dy, cylinder.dz, cylinder.radius)

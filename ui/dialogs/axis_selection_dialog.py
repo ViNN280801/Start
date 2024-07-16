@@ -8,15 +8,19 @@ class AxisSelectionDialog(QDialog):
         self.setFixedSize(250, 150)
         layout = QVBoxLayout(self)
 
-        # Combo box for axis selection
         self.axisComboBox = QComboBox()
         self.axisComboBox.addItems(["X-axis", "Y-axis", "Z-axis"])
         layout.addWidget(self.axisComboBox)
 
-        # OK button
         okButton = QPushButton("OK")
         okButton.clicked.connect(self.accept)
         layout.addWidget(okButton)
 
     def getSelectedAxis(self):
-        return self.axisComboBox.currentText()
+        axis_text = self.axisComboBox.currentText()
+        if axis_text == "X-axis":
+            return 'x'
+        elif axis_text == "Y-axis":
+            return 'y'
+        elif axis_text == "Z-axis":
+            return 'z'
