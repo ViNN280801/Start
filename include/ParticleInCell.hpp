@@ -112,9 +112,9 @@ private:
     template <typename Function, typename... Args>
     void processWithThreads(unsigned int num_threads, Function &&function, Args &&...args);
 
-    void processPIC(size_t start_index, size_t end_index, double t,
-                    std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
-                    std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
+    void processParticleTracker(size_t start_index, size_t end_index, double t,
+                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
+                                std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
     void solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
                        std::shared_ptr<GSMatrixAssemblier> &assemblier,
                        std::shared_ptr<SolutionVector> &solutionVector,
@@ -124,7 +124,6 @@ private:
 
 public:
     ParticleInCell(std::string_view config_filename);
-
     void startSimulation();
 };
 

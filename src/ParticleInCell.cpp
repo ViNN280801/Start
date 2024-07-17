@@ -72,9 +72,9 @@ void ParticleInCell::initialize()
 }
 
 void ParticleInCell::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
-                                    std::shared_ptr<Grid3D> &cubicGrid,
-                                    std::map<GlobalOrdinal, double> &boundaryConditions,
-                                    std::shared_ptr<SolutionVector> &solutionVector)
+                                   std::shared_ptr<Grid3D> &cubicGrid,
+                                   std::map<GlobalOrdinal, double> &boundaryConditions,
+                                   std::shared_ptr<SolutionVector> &solutionVector)
 {
     // Assembling global stiffness matrix from the mesh file.
     assemblier = std::make_shared<GSMatrixAssemblier>(m_config.getMeshFilename(), m_config.getDesiredCalculationAccuracy());
@@ -226,9 +226,9 @@ ParticleInCell::ParticleInCell(std::string_view config_filename) : m_config(conf
     initializeParticles();
 }
 
-void ParticleInCell::processPIC(size_t start_index, size_t end_index, double t,
-                                 std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
-                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
+void ParticleInCell::processParticleTracker(size_t start_index, size_t end_index, double t,
+                                            std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
+                                            std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
     try
     {
@@ -297,9 +297,9 @@ void ParticleInCell::processPIC(size_t start_index, size_t end_index, double t,
 }
 
 void ParticleInCell::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                                    std::shared_ptr<GSMatrixAssemblier> &assemblier,
-                                    std::shared_ptr<SolutionVector> &solutionVector,
-                                    std::map<GlobalOrdinal, double> &boundaryConditions, double time)
+                                   std::shared_ptr<GSMatrixAssemblier> &assemblier,
+                                   std::shared_ptr<SolutionVector> &solutionVector,
+                                   std::map<GlobalOrdinal, double> &boundaryConditions, double time)
 {
     try
     {
@@ -331,7 +331,7 @@ void ParticleInCell::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDe
 }
 
 void ParticleInCell::processSurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                     std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier)
+                                                    std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier)
 {
     try
     {
@@ -453,7 +453,7 @@ void ParticleInCell::startSimulation()
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
         // 1. Obtain charge densities in all the nodes.
-        processWithThreads(num_threads, &ParticleInCell::processPIC, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+        processWithThreads(num_threads, &ParticleInCell::processParticleTracker, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
 
         // 2. Solve equation in the main thread.
         solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
