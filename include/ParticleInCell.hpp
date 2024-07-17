@@ -36,9 +36,9 @@ private:
     std::set<int> _settledParticlesIds;                ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
     std::map<size_t, int> _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
 
-    ConfigParser m_config;                                           ///< `ConfigParser` object to get all the simulation physical paramters.
-    std::map<size_t, std::vector<Point>> m_particlesMovement;        ///< Map to store all the particle movements: (Particle ID | All positions).
-    std::map<double, std::map<size_t, ParticleVector>> m_PICtracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
+    ConfigParser m_config;                                                ///< `ConfigParser` object to get all the simulation physical paramters.
+    std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
+    std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
 
     /**
      * @brief Checks the validity of the provided mesh filename.

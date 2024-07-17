@@ -232,10 +232,10 @@ void ParticleInCell::processParticleTracker(size_t start_index, size_t end_index
 {
     try
     {
-        std::map<size_t, ParticleVector> PICtracker;
+        std::map<size_t, ParticleVector> particleTracker;
         std::map<size_t, double> tetrahedronChargeDensityMap;
 
-        std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index, [this, &cubicGrid, &PICtracker](auto &particle)
+        std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index, [this, &cubicGrid, &particleTracker](auto &particle)
                       {
         if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.cend())
             return;
@@ -243,10 +243,10 @@ void ParticleInCell::processParticleTracker(size_t start_index, size_t end_index
         auto meshParams{cubicGrid->getTetrahedronsByGridIndex(cubicGrid->getGridIndexByPosition(particle.getCentre()))};
         for (auto const &meshParam : meshParams)
             if (Mesh::isPointInsideTetrahedron(particle.getCentre(), meshParam.tetrahedron))
-                PICtracker[meshParam.globalTetraId].emplace_back(particle); });
+                particleTracker[meshParam.globalTetraId].emplace_back(particle); });
 
-        // Calculating charge density in each of the tetrahedron using `PICtracker`.
-        for (auto const &[tetrId, particlesInside] : PICtracker)
+        // Calculating charge density in each of the tetrahedron using `particleTracker`.
+        for (auto const &[tetrId, particlesInside] : particleTracker)
             tetrahedronChargeDensityMap.insert({tetrId,
                                                 (std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0, [](double sum, Particle const &particle)
                                                                  { return sum + particle.getCharge(); })) /
@@ -280,9 +280,9 @@ void ParticleInCell::processParticleTracker(size_t start_index, size_t end_index
 
         // Adding all the elements from this thread from this local PICTracker to the global PIC tracker.
         std::lock_guard<std::mutex> lock_PIC(m_PICTracker_mutex);
-        for (auto const &[tetraId, particlesInside] : PICtracker)
+        for (auto const &[tetraId, particlesInside] : particleTracker)
         {
-            auto &globalParticles{m_PICtracker[t][tetraId]};
+            auto &globalParticles{m_particleTracker[t][tetraId]};
             globalParticles.insert(globalParticles.begin(), particlesInside.begin(), particlesInside.end());
         }
     }
@@ -347,7 +347,7 @@ void ParticleInCell::processSurfaceCollisionTracker(size_t start_index, size_t e
                           }
 
                           size_t containingTetrahedron{};
-                          for (auto const &[tetraId, particlesInside] : m_PICtracker[t])
+                          for (auto const &[tetraId, particlesInside] : m_particleTracker[t])
                           {
                               if (std::ranges::find_if(particlesInside, [particle](Particle const &storedParticle)
                                                        { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
