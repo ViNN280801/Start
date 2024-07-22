@@ -401,6 +401,7 @@ class GraphicalEditor(QFrame):
                 cur_visibility = actor.GetVisibility()
                 actor.SetVisibility(not cur_visibility)
                 self.update_tree_item_visibility(actor, not cur_visibility)
+                self.add_action(ACTION_ACTOR_HIDE, actor, not cur_visibility)
 
         if all_visible:
             action.setText('Show')
@@ -667,6 +668,8 @@ class GraphicalEditor(QFrame):
             self.undo_creating()
         elif action == ACTION_ACTOR_TRANSFORMATION:
             self.undo_transform()
+        elif action == ACTION_ACTOR_HIDE:
+            self.undo_hide()
         # TODO: Make other undo/redo functionality
 
     def global_redo(self):
@@ -681,6 +684,8 @@ class GraphicalEditor(QFrame):
             self.redo_creating()
         elif action == ACTION_ACTOR_TRANSFORMATION:
             self.redo_transform()
+        elif action == ACTION_ACTOR_HIDE:
+            self.redo_hide()
     
     def global_undo_stack_remove(self, action: str):
         remove_last_occurrence(self.global_undo_stack, action)
@@ -765,6 +770,30 @@ class GraphicalEditor(QFrame):
 
         self.global_undo_stack.append(ACTION_ACTOR_CREATING)
         self.global_redo_stack_remove(ACTION_ACTOR_CREATING)
+
+    def undo_hide(self):
+        res = self.action_history.undo()
+        if not res or len(res) != 2:
+            return
+
+        actor, visibility = res
+        actor.SetVisibility(visibility)
+        self.update_tree_item_visibility(actor, visibility)
+        
+        self.global_redo_stack.append(ACTION_ACTOR_HIDE)
+        self.global_undo_stack_remove(ACTION_ACTOR_HIDE)
+
+    def redo_hide(self):
+        res = self.action_history.redo()
+        if not res or len(res) != 2:
+            return
+        
+        actor, visibility = res
+        actor.SetVisibility(not visibility)
+        self.update_tree_item_visibility(actor, not visibility)
+        
+        self.global_undo_stack.append(ACTION_ACTOR_HIDE)
+        self.global_redo_stack_remove(ACTION_ACTOR_HIDE)
 
     def remove_row_from_tree(self, row):
         self.model.removeRow(row)
@@ -977,6 +1006,15 @@ class GraphicalEditor(QFrame):
                 self.global_undo_stack.append(ACTION_ACTOR_TRANSFORMATION)
             else:
                 raise ValueError("Invalid arguments for ACTION_ACTOR_TRANSFORMATION")
+        
+        elif action == ACTION_ACTOR_HIDE:
+            if len(args) == 2 and isinstance(args[0], vtkActor) and isinstance(args[1], bool):
+                actor, visibility = args
+                self.action_history.add_action((actor, visibility))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_HIDE)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_HIDE")
         
         else:
             raise ValueError(f"Unknown action type {action}")
