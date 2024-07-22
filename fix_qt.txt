@@ -13,8 +13,8 @@ conda activate startenv
 
 # Step 3. Installing all necessary dependencies
 conda install numpy h5py matplotlib psutil
-conda install -c conda-forge gcc=13.3 gxx=13.3 cxx-compiler
-pip install gmsh vtk pyinstaller
+conda install -c conda-forge gcc=13.3 gxx=13.3 cxx-compiler xorg-libxfixes
+pip install gmsh vtk pyinstaller sip
 
 # Step 4. Now can run `ui/main.py`
 python ui/main.py
