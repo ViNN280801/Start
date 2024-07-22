@@ -1,0 +1,19 @@
+If you faced with problems:
+1. undefined symbol: _ZdlPvm, version Qt_5
+2. conda qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+You need to follow these steps:
+
+# Step 1. Reinstall conda env
+conda deactivate
+conda env remove -n startenv
+conda create -n startenv python=3.7
+
+# Step 2. Activate new created env
+conda activate startenv
+
+# Step 3. Installing all necessary deps
+conda install numpy h5py matplotlib psutil
+pip install gmsh vtk
+
+# Step 4. Now can run `ui/main.py`
+python ui/main.py
