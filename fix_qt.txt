@@ -11,9 +11,10 @@ conda create -n startenv python=3.7
 # Step 2. Activate new created env
 conda activate startenv
 
-# Step 3. Installing all necessary deps
+# Step 3. Installing all necessary dependencies
 conda install numpy h5py matplotlib psutil
-pip install gmsh vtk
+conda install -c conda-forge gcc=13.3 gxx=13.3 cxx-compiler
+pip install gmsh vtk pyinstaller
 
 # Step 4. Now can run `ui/main.py`
 python ui/main.py
