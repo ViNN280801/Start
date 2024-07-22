@@ -1,0 +1,8 @@
+numpy
+h5py
+gmsh
+matplotlib
+PyQt5
+vtk
+nlohmann-json
+psutil
