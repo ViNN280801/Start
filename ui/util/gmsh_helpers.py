@@ -1,6 +1,5 @@
 from gmsh import initialize, finalize, isInitialized, clear, model, option
 from logger.internal_logger import InternalLogger
-from math import radians
 from sys import stderr
 
 
