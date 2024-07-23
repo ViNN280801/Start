@@ -19,7 +19,7 @@ from util import (
 from util.vtk_helpers import (
     remove_gradient, remove_shadows, render_editor_window_without_resetting_camera,
     remove_all_actors, compare_matrices, merge_actors, add_actor, add_actors, 
-    remove_actor, remove_actors, colorize_actor_with_rgb
+    remove_actor, remove_actors, colorize_actor_with_rgb, add_gradient, add_shadows
 )
 from util.gmsh_helpers import convert_stp_to_msh
 from logger import LogConsole
@@ -638,18 +638,21 @@ class GraphicalEditor(QFrame):
                     colorize_actor_with_rgb(actor, r, g, b)
                     color = actor.GetProperty().GetColor()
                     self.actor_color_add(actor, color)
+                    self.add_action(ACTION_ACTOR_COLORIZE, actor, color)
             self.deselect()
             
     def remove_gradient(self):
         for actor in self.selected_actors:
             if actor and isinstance(actor, vtkActor):
                 remove_gradient(actor)
+                self.add_action(ACTION_ACTOR_GRADIENT, actor)
         self.deselect()
         
     def remove_shadows(self):
         for actor in self.selected_actors:
             if actor and isinstance(actor, vtkActor):
                 remove_shadows(actor)
+                self.add_action(ACTION_ACTOR_SHADOW, actor)
         self.deselect()
 
     def add_custom(self, meshfilename: str):        
@@ -670,6 +673,12 @@ class GraphicalEditor(QFrame):
             self.undo_transform()
         elif action == ACTION_ACTOR_HIDE:
             self.undo_hide()
+        elif action == ACTION_ACTOR_COLORIZE:
+            self.undo_colorize()
+        elif action == ACTION_ACTOR_GRADIENT:
+            self.undo_gradient()
+        elif action == ACTION_ACTOR_SHADOW:
+            self.undo_shadow()
         # TODO: Make other undo/redo functionality
 
     def global_redo(self):
@@ -686,6 +695,12 @@ class GraphicalEditor(QFrame):
             self.redo_transform()
         elif action == ACTION_ACTOR_HIDE:
             self.redo_hide()
+        elif action == ACTION_ACTOR_COLORIZE:
+            self.redo_colorize()
+        elif action == ACTION_ACTOR_GRADIENT:
+            self.redo_gradient()
+        elif action == ACTION_ACTOR_SHADOW:
+            self.redo_shadow()
     
     def global_undo_stack_remove(self, action: str):
         remove_last_occurrence(self.global_undo_stack, action)
@@ -794,6 +809,74 @@ class GraphicalEditor(QFrame):
         
         self.global_undo_stack.append(ACTION_ACTOR_HIDE)
         self.global_redo_stack_remove(ACTION_ACTOR_HIDE)
+    
+    def undo_colorize(self):
+        res = self.action_history.undo()
+        if not res or len(res) != 2:
+            return
+
+        actor, color = res
+        actor.GetProperty().SetColor(color)
+        del self.actor_color[actor]
+        
+        self.global_redo_stack.append(ACTION_ACTOR_COLORIZE)
+        self.global_undo_stack_remove(ACTION_ACTOR_COLORIZE)
+
+    def redo_colorize(self):
+        res = self.action_history.redo()
+        if not res or len(res) != 2:
+            return
+        
+        actor, color = res
+        actor.GetProperty().SetColor(color)
+        self.actor_color_add(actor, color)
+        
+        self.global_undo_stack.append(ACTION_ACTOR_COLORIZE)
+        self.global_redo_stack_remove(ACTION_ACTOR_COLORIZE)
+    
+    def undo_gradient(self):
+        res = self.action_history.undo()
+        if not res or len(res) != 1:
+            return
+
+        actor = res
+        add_gradient(actor)
+        
+        self.global_redo_stack.append(ACTION_ACTOR_GRADIENT)
+        self.global_undo_stack_remove(ACTION_ACTOR_GRADIENT)
+
+    def redo_gradient(self):
+        res = self.action_history.redo()
+        if not res or len(res) != 1:
+            return
+        
+        actor = res
+        remove_gradient(actor)
+        
+        self.global_undo_stack.append(ACTION_ACTOR_GRADIENT)
+        self.global_redo_stack_remove(ACTION_ACTOR_GRADIENT)
+    
+    def undo_shadow(self):
+        res = self.action_history.undo()
+        if not res or len(res) != 1:
+            return
+
+        actor = res
+        add_shadows(actor)
+        
+        self.global_redo_stack.append(ACTION_ACTOR_SHADOW)
+        self.global_undo_stack_remove(ACTION_ACTOR_SHADOW)
+
+    def redo_shadow(self):
+        res = self.action_history.redo()
+        if not res or len(res) != 1:
+            return
+        
+        actor = res
+        remove_shadows(actor)
+        
+        self.global_undo_stack.append(ACTION_ACTOR_SHADOW)
+        self.global_redo_stack_remove(ACTION_ACTOR_SHADOW)
 
     def remove_row_from_tree(self, row):
         self.model.removeRow(row)
@@ -1016,10 +1099,36 @@ class GraphicalEditor(QFrame):
             else:
                 raise ValueError("Invalid arguments for ACTION_ACTOR_HIDE")
         
+        elif action == ACTION_ACTOR_COLORIZE:
+            if len(args) == 2 and isinstance(args[0], vtkActor):
+                actor, color = args
+                self.action_history.add_action((actor, color))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_COLORIZE)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_COLORIZE")
+
+        elif action == ACTION_ACTOR_GRADIENT:
+            if len(args) == 1 and isinstance(args[0], vtkActor):
+                actor = args
+                self.action_history.add_action((actor))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_GRADIENT)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_GRADIENT")
+            
+        elif action == ACTION_ACTOR_SHADOW:
+            if len(args) == 1 and isinstance(args[0], vtkActor):
+                actor = args
+                self.action_history.add_action((actor))
+                self.action_history.incrementIndex()
+                self.global_undo_stack.append(ACTION_ACTOR_SHADOW)
+            else:
+                raise ValueError("Invalid arguments for ACTION_ACTOR_SHADOW")
+              
         else:
             raise ValueError(f"Unknown action type {action}")
                 
-
     def restore_actor_colors(self):
         try:
             for actor, color in self.actor_color.items():

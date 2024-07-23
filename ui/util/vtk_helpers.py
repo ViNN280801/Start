@@ -316,7 +316,7 @@ def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, opera
         return None
     
 
-def remove_gradient(actor):
+def remove_gradient(actor: vtkActor):
     """
     Removes gradient (scalar visibility) of the given vtkActor.
 
@@ -327,7 +327,18 @@ def remove_gradient(actor):
         actor.GetMapper().ScalarVisibilityOff()
 
 
-def remove_shadows(actor):
+def add_gradient(actor: vtkActor):
+    """
+    Adds gradient (scalar visibility) of the given vtkActor.
+
+    Parameters:
+    actor (vtkActor): The actor whose color needs to be set.
+    """
+    if actor and isinstance(actor, vtkActor):
+        actor.GetMapper().ScalarVisibilityOn()
+
+
+def remove_shadows(actor: vtkActor):
     """
     Removes shadows of the given vtkActor.
 
@@ -337,6 +348,16 @@ def remove_shadows(actor):
     if actor and isinstance(actor, vtkActor):
         actor.GetProperty().SetInterpolationToFlat()
 
+
+def add_shadows(actor: vtkActor):
+    """
+    Adds shadows of the given vtkActor.
+
+    Parameters:
+    actor (vtkActor): The actor whose color needs to be set.
+    """
+    if actor and isinstance(actor, vtkActor):
+        actor.GetProperty().SetInterpolationToPhong()
 
 def create_cutting_plane(axis: str, level: float, angle: float = 0.0, size: float = 1e9):
     """
