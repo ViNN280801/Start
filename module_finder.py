@@ -164,8 +164,6 @@ def print_imports(all_imports, local_modules, local_submodules, start_path, show
     printed_imports = set()
     print("All imports in the project:")
     for imp in sorted_imports:
-        if '.' in imp and not show_embedded_imports:
-            continue
         parts = imp.split('.')
         colorized_parts = []
         for i, part in enumerate(parts):
@@ -178,8 +176,12 @@ def print_imports(all_imports, local_modules, local_submodules, start_path, show
                 colorized_parts.append(part)
                 if i == 0:  # Only count top-level parts as imported modules
                     imported_modules_count += 1
-        if parts[0] not in printed_imports:  # Print only if the top-level part has not been printed
-            print('.'.join(colorized_parts))
+        # Print only top-level part if it's a local module, otherwise print full import
+        if parts[0] not in printed_imports:
+            if is_local_module(parts[0], start_path):
+                print(f"\033[34m{parts[0]}\033[0m")
+            else:
+                print('.'.join(colorized_parts))
             printed_imports.add(parts[0])
     print(f"\nOwn modules: {own_modules_count}")
     print(f"Imported modules: {imported_modules_count}")
