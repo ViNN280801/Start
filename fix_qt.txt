@@ -6,15 +6,14 @@ You need to follow these steps:
 # Step 1. Reinstall conda env
 conda deactivate
 conda env remove -n startenv
-conda create -n startenv python=3.7
+conda create -n startenv python=3.7.16
 
 # Step 2. Activate new created env
 conda activate startenv
 
 # Step 3. Installing all necessary dependencies
-conda install numpy h5py matplotlib psutil
-conda install -c conda-forge gcc=13.3 gxx=13.3 cxx-compiler xorg-libxfixes
-pip install gmsh vtk pyinstaller sip
+conda install -c conda-forge numpy h5py matplotlib psutil pyinstaller gcc=13.3 gxx=13.3 cxx-compiler xorg-libxfixes vtk sip pyqt pyqt5-sip
+pip install gmsh
 
 # Step 4. Now can run `ui/main.py`
 python ui/main.py
