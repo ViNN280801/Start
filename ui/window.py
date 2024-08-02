@@ -20,6 +20,9 @@ from PyQt5.QtGui import QColor, QTextCharFormat
 from PyQt5.QtCore import QProcess, pyqtSlot
 
 
+EXECUTABLE_NAME = "nia_start_core"
+
+
 class WindowApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -467,7 +470,7 @@ class WindowApp(QMainWindow):
     def kill_application(self):
         for proc in psutil.process_iter(['pid', 'name']):
             try:
-                if proc.info['name'].startswith('nia_start'):
+                if proc.info['name'].startswith(EXECUTABLE_NAME):
                     proc.kill()
                     self.log_console.printInfo(f"Process {proc.info['name']} with PID {proc.info['pid']} killed")
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
@@ -537,9 +540,9 @@ class WindowApp(QMainWindow):
 
         # Checking OS
         if os.name == 'nt':
-            executable_path = 'Release/nia_start.exe'
+            executable_path = f'Release/{EXECUTABLE_NAME}.exe'
         else:
-            executable_path = './nia_start'
+            executable_path = EXECUTABLE_NAME
         self.process.start(executable_path, args.split())
 
     @pyqtSlot()
