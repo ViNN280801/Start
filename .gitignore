@@ -75,3 +75,10 @@ dist/
 
 # My project directories
 proj*/*
+
+# Log files
+*.log
+
+# Crash log files
+crash*.log
+crash*.txt
