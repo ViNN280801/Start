@@ -28,7 +28,7 @@ def main():
     
     # Handling app crush
     try:
-        exit(app.exec_())
+        sys.exit(app.exec_())
     except Exception as e:
         print(f"Application crushed by reason: {e}", file=sys.stderr)
     finally:
