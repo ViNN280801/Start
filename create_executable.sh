@@ -1,11 +1,22 @@
 #!/bin/bash
 
-current_date=$(date +"%d.%m.%Y")
-output_name="nia_start_$current_date"
+output_name="nia_start"
 
+# Compile the core
 ./compile.sh -j 4
-pyinstaller --onefile --add-binary='./nia_start:.' --add-data='./icons:icons' --paths=./ui --name "$output_name" ui/main.py
-pyinstaller $output_name.spec
 
-cp -rv icons/ dist/icons
-cp -v nia_start dist/nia_start
+# Create executable with PyInstaller
+pyinstaller --noconfirm \
+            --onedir \
+            --console \
+            --clean \
+            --log-level "INFO" \
+            --name "nia_start_exe" \
+            --add-data "./build:build/" \
+            --add-data "./icons:icons/" \
+            --add-data "./results:results/" \
+            --add-data "./tests:tests/" \
+            --add-data "./ui:ui/" \
+            --add-binary "./nia_start_core:." \
+            --paths "./ui" \
+            "./ui/main.py"
