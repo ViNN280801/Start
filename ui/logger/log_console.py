@@ -411,6 +411,7 @@ class LogConsole(QWidget):
     def signal_handler(signum, frame):
         import gmsh
         from psutil import Process
+        from sys import exit
             
         signals = {v: k for k, v in signal.__dict__.items() if k.startswith('SIG') and not k.startswith('SIG_')}
         signal_name = signals.get(signum, "UNKNOWN")
