@@ -542,7 +542,7 @@ class WindowApp(QMainWindow):
         if os.name == 'nt':
             executable_path = f'Release/{EXECUTABLE_NAME}.exe'
         else:
-            executable_path = EXECUTABLE_NAME
+            executable_path = f'./{EXECUTABLE_NAME}'
         self.process.start(executable_path, args.split())
 
     @pyqtSlot()
