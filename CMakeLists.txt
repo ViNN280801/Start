@@ -110,10 +110,11 @@ set(SOURCES
     src/ParticleInCell.cpp
 )
 
-add_executable(nia_start ${SOURCES})
+set(EXECUTABLE_NAME nia_start_core)
+add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-set_target_properties(nia_start PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")
-target_link_libraries(nia_start PRIVATE 
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE 
     ${CGAL_NAMESPACE}
     ${CGAL_LIBRARIES}
     ${GMSH_LIBRARIES} 
