@@ -6,7 +6,7 @@ You need to follow these steps:
 # Step 1. Reinstall conda env
 conda deactivate
 conda env remove -n startenv
-conda create -n startenv python=3.7.16
+conda create -n startenv python=3.7
 
 # Step 2. Activate new created env
 conda activate startenv
@@ -17,3 +17,30 @@ pip install gmsh
 
 # Step 4. Now can run `ui/main.py`
 python ui/main.py
+
+
+
+### If all above didn't help
+# For me it just specify the path to Qt5 (you need to locate YOUR libqt [locate libQt5Core.so] and execute the command below):
+export LD_LIBRARY_PATH=/home/vladislavsemykin/miniconda3/envs/startenv/lib/python3.7/site-packages/PyQt5/Qt5/lib:$LD_LIBRARY_PATH
+
+# Full algorithm
+# Step 1. Reinstall conda env
+conda deactivate
+conda env remove -n startenv
+conda create -n startenv python=3.7
+
+# Step 2. Activate new created env
+conda activate startenv
+
+# Step 2*. Upgrade pip (need if installing dependencies failed)
+pip install --upgrade pip
+
+# Step 3. Installing all necessary dependencies
+pip install -r requirements.txt
+
+# Step 4. Exporting to LD_LIBRARY_PATH path to python3.7 Qt5:
+export LD_LIBRARY_PATH=/home/vladislavsemykin/miniconda3/envs/startenv/lib/python3.7/site-packages/PyQt5/Qt5/lib:$LD_LIBRARY_PATH
+
+# Step 4*. You can just add this line to your ~/.bashrc (to avoid exporting each time for new terminal):
+LD_LIBRARY_PATH=/home/vladislavsemykin/miniconda3/envs/startenv/lib/python3.7/site-packages/PyQt5/Qt5/lib:$LD_LIBRARY_PATH
