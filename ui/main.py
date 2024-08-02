@@ -1,13 +1,5 @@
-from util.inst_deps import check_and_install_packages
-check_and_install_packages(["numpy", "h5py", "gmsh", "matplotlib", "PyQt5", "vtk", "nlohmann-json", "psutil"])
-
-
 import os
 import sys
-from PyQt5.QtWidgets import QApplication
-from window import WindowApp
-from util.gmsh_helpers import gmsh_init, gmsh_finalize
-
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "constants")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "data")))
@@ -18,6 +10,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "styl
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "tabs")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "tests")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "util")))
+
+
+from util.inst_deps import check_and_install_packages
+check_and_install_packages(["numpy", "h5py", "gmsh", "matplotlib", "PyQt5", "vtk", "nlohmann-json", "psutil"])
+
+from PyQt5.QtWidgets import QApplication
+from window import WindowApp
+from util.gmsh_helpers import gmsh_init, gmsh_finalize
 
 
 def main():
