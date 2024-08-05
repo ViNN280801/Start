@@ -9,20 +9,28 @@ from constants import (
     DEFAULT_TEMP_VTK_FILE
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from logger.log_console import LogConsole
+from json import dump, load
+
 
 class ProjectManager:
     
     @staticmethod
-    def save_scene(renderer: vtkRenderer,
-               logConsole,
-               fontColor,
-               actors_file='scene_actors.vtk',
-               camera_file='scene_camera.json'):
+    def save_scene(renderer: vtkRenderer, 
+                logConsole: LogConsole, 
+                fontColor, 
+                colorbar_manager = None, 
+                actors_file='scene_actors.vtk', 
+                camera_file='scene_camera.json', 
+                colorbar_file='scene_colorbar.json'):
         if ProjectManager.save_actors(renderer, logConsole, fontColor, actors_file) is not None and \
                 ProjectManager.save_camera_settings(renderer, logConsole, fontColor, camera_file) is not None:
+            
+            if colorbar_manager is not None:
+                ProjectManager.save_colorbar_manager(colorbar_manager, logConsole, colorbar_file)
 
-            logConsole.insert_colored_text('Successfully: ', 'green')
-            logConsole.insert_colored_text(f'Saved scene from to the files: {actors_file} and {camera_file}\n', fontColor)
+            logConsole.insert_colored_text('Successfully: ', f'Saved scene to the files: {actors_file}, {camera_file}, and {colorbar_file}', 'green')
+
 
     @staticmethod
     def save_actors(renderer: vtkRenderer,
@@ -48,14 +56,10 @@ class ProjectManager:
             writer.SetInputData(append_filter.GetOutput())
             writer.Write()
 
-            logConsole.insert_colored_text('Info: ', 'blue')
-            logConsole.insert_colored_text(f'Saved all actors to {actors_file}\n',
-                                        fontColor)
+            logConsole.insert_colored_text('Info: ', f'Saved all actors to {actors_file}\n', 'blue')
             return 1
         except Exception as e:
-            logConsole.insert_colored_text('Error: ', 'red')
-            logConsole.insert_colored_text(f'Failed to save actors: {e}\n',
-                                        fontColor)
+            logConsole.insert_colored_text('Error: ', f'Failed to save actors: {e}\n', 'red')
             return None
 
     @staticmethod
@@ -78,26 +82,28 @@ class ProjectManager:
 
             return 1
         except Exception as e:
-            logConsole.insert_colored_text('Error: ', 'red')
-            logConsole.insert_colored_text(
-                f'Failed to save camera settings: {e}\n', fontColor)
+            logConsole.insert_colored_text('Error: ', f'Failed to save camera settings: {e}\n', 'red')
             return None
 
     @staticmethod
-    def load_scene(vtkWidget: QVTKRenderWindowInteractor,
-                renderer: vtkRenderer,
-                logConsole,
-                fontColor,
-                actors_file='scene_actors.vtk',
-                camera_file='scene_camera.json'):
+    def load_scene(vtkWidget: QVTKRenderWindowInteractor, 
+                renderer: vtkRenderer, 
+                logConsole: LogConsole, 
+                fontColor, 
+                colorbar_manager = None, 
+                actors_file='scene_actors.vtk', 
+                camera_file='scene_camera.json', 
+                colorbar_file='scene_colorbar.json'):
         if ProjectManager.load_actors(renderer, logConsole, fontColor, actors_file) is not None and \
                 ProjectManager.load_camera_settings(renderer, logConsole, fontColor, camera_file) is not None:
+            
+            if colorbar_manager is not None:
+                loaded_colorbar_manager = ProjectManager.load_colorbar_manager(vtkWidget, renderer, logConsole, colorbar_file)
+                if loaded_colorbar_manager:
+                    colorbar_manager = loaded_colorbar_manager
 
             vtkWidget.GetRenderWindow().Render()
-            logConsole.insert_colored_text('Successfully: ', 'green')
-            logConsole.insert_colored_text(
-                f'Loaded scene from the files: {actors_file} and {camera_file}\n',
-                fontColor)
+            logConsole.insert_colored_text('Successfully: ', f'Loaded scene from the files: {actors_file}, {camera_file}, and {colorbar_file}', 'green')
 
     @staticmethod
     def load_actors(renderer: vtkRenderer,
@@ -114,17 +120,13 @@ class ProjectManager:
 
             actor = vtkActor()
             actor.SetMapper(mapper)
-            renderer.AddActor(actor)
+            # There we don't need to add actor, because it added from the config file (config file contains mesh file)
             renderer.ResetCamera()
 
-            logConsole.insert_colored_text('Info: ', 'blue')
-            logConsole.insert_colored_text(f'Loaded actors from {actors_file}\n',
-                                        fontColor)
+            logConsole.insert_colored_text('Info: ', f'Loaded actors from {actors_file}\n', 'blue')
             return 1
         except Exception as e:
-            logConsole.insert_colored_text('Error: ', 'red')
-            logConsole.insert_colored_text(f'Failed to load actors: {e}\n',
-                                        fontColor)
+            logConsole.insert_colored_text('Error: ', f'Failed to load actors: {e}\n', 'red')
             return None
 
     @staticmethod
@@ -147,9 +149,7 @@ class ProjectManager:
             renderer.ResetCamera()
             return 1
         except Exception as e:
-            logConsole.insert_colored_text('Error: ', 'red')
-            logConsole.insert_colored_text(
-                f'Failed to load camera settings: {e}\n', fontColor)
+            logConsole.insert_colored_text('Error: ', f'Failed to load camera settings: {e}\n', 'red')
             return None
 
     @staticmethod
@@ -172,3 +172,29 @@ class ProjectManager:
         ProjectManager.remove_temp_files_helper(DEFAULT_TEMP_MESH_FILE)
         ProjectManager.remove_temp_files_helper(DEFAULT_TEMP_VTK_FILE)
         ProjectManager.remove_temp_files_helper(DEFAULT_TEMP_HDF5_FILE)
+    
+    @staticmethod
+    def save_colorbar_manager(colorbar_manager, logConsole: LogConsole, colorbar_file='scene_colorbar.json'):
+        try:
+            properties = colorbar_manager.get_properties()
+            with open(colorbar_file, 'w') as f:
+                dump(properties, f)
+            logConsole.insert_colored_text('Info: ', f'Saved colorbar manager to {colorbar_file}', 'blue')
+            return 1
+        except Exception as e:
+            logConsole.insert_colored_text('Error: ', f'Failed to save colorbar manager: {e}', 'red')
+            return None
+
+    @staticmethod
+    def load_colorbar_manager(vtkWidget, renderer, logConsole: LogConsole, colorbar_file='scene_colorbar.json'):
+        from tabs import ColorbarManager
+        
+        try:
+            with open(colorbar_file, 'r') as f:
+                properties = load(f)
+            colorbar_manager = ColorbarManager.from_properties(vtkWidget, renderer, properties)
+            logConsole.insert_colored_text('Info: ', f'Loaded colorbar manager from {colorbar_file}', 'blue')
+            return colorbar_manager
+        except Exception as e:
+            logConsole.insert_colored_text('Error: ', f'Failed to load colorbar manager: {e}', 'red')
+            return None
