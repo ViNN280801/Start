@@ -1521,10 +1521,10 @@ class GraphicalEditor(QFrame):
         align_view_by_axis(axis, self.renderer, self.vtkWidget)
 
     def save_scene(self, logConsole, fontColor, actors_file='scene_actors_meshTab.vtk', camera_file='scene_camera_meshTab.json'):
-        ProjectManager.save_scene(self.renderer, logConsole, fontColor, actors_file, camera_file)
+        ProjectManager.save_scene(self.renderer, logConsole, fontColor, actors_file=actors_file, camera_file=camera_file)
 
     def load_scene(self, logConsole, fontColor, actors_file='scene_actors_meshTab.vtk', camera_file='scene_camera_meshTab.json'):
-        ProjectManager.load_scene(self.vtkWidget, self.renderer, logConsole, fontColor, actors_file, camera_file)
+        ProjectManager.load_scene(self.vtkWidget, self.renderer, logConsole, fontColor, actors_file=actors_file, camera_file=camera_file)
 
     def get_total_count_of_actors(self):
         return self.renderer.GetActors().GetNumberOfItems()

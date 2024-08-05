@@ -1,5 +1,6 @@
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtk import vtkRenderer, vtkScalarBarActor, vtkLookupTable, vtkFloatArray, vtkStringArray, vtkActor
+from json import dump, load
 
 
 class ColorbarManager:
@@ -80,6 +81,12 @@ class ColorbarManager:
         self.scalarBar.SetWidth(width)
         self.scalarBar.SetHeight(height)
         
+    def apply_color_to_actor(self, actor):
+        mapper = actor.GetMapper()
+        if mapper:
+            mapper.SetLookupTable(self.lookup_table)
+            mapper.Update()
+        
     def change_font(self, font, color_rgb):
         text_property = self.scalarBar.GetLabelTextProperty()
         text_property.SetFontFamilyAsString(font.family())
@@ -103,4 +110,73 @@ class ColorbarManager:
         
     def reset_to_default(self):
         self.setup_default_scalarbar_properties()
+        
+    def get_properties(self):
+        properties = {
+            'position': self.scalarBar.GetPosition(),
+            'width': self.scalarBar.GetWidth(),
+            'height': self.scalarBar.GetHeight(),
+            'num_labels': self.scalarBar.GetNumberOfLabels(),
+            'label_font': {
+                'family': self.scalarBar.GetLabelTextProperty().GetFontFamilyAsString(),
+                'size': self.scalarBar.GetLabelTextProperty().GetFontSize(),
+                'bold': self.scalarBar.GetLabelTextProperty().GetBold(),
+                'italic': self.scalarBar.GetLabelTextProperty().GetItalic(),
+                'color': self.scalarBar.GetLabelTextProperty().GetColor()
+            },
+            'title_font': {
+                'family': self.scalarBar.GetTitleTextProperty().GetFontFamilyAsString(),
+                'size': self.scalarBar.GetTitleTextProperty().GetFontSize(),
+                'bold': self.scalarBar.GetTitleTextProperty().GetBold(),
+                'italic': self.scalarBar.GetTitleTextProperty().GetItalic(),
+                'color': self.scalarBar.GetTitleTextProperty().GetColor()
+            }
+        }
+        return properties
+
+    def save_colorbar(self, colorbar_file='scene_colorbar.json'):
+        try:
+            properties = self.get_properties()
+            with open(colorbar_file, 'w') as f:
+                dump(properties, f)
+            return 1
+        except Exception as e:
+            print(f"Error saving colorbar: {e}")
+            return None
+        
+    def load_colorbar(self, colorbar_file='scene_colorbar.json'):
+        try:
+            with open(colorbar_file, 'r') as f:
+                properties = load(f)
+            
+            self.scalarBar.SetPosition(*properties['position'])
+            self.scalarBar.SetWidth(properties['width'])
+            self.scalarBar.SetHeight(properties['height'])
+            self.scalarBar.SetNumberOfLabels(properties['num_labels'])
+            
+            label_font = properties['label_font']
+            label_text_property = self.scalarBar.GetLabelTextProperty()
+            label_text_property.SetFontFamilyAsString(label_font['family'])
+            label_text_property.SetFontSize(label_font['size'])
+            label_text_property.SetBold(label_font['bold'])
+            label_text_property.SetItalic(label_font['italic'])
+            label_text_property.SetColor(label_font['color'])
+            
+            title_font = properties['title_font']
+            title_text_property = self.scalarBar.GetTitleTextProperty()
+            title_text_property.SetFontFamilyAsString(title_font['family'])
+            title_text_property.SetFontSize(title_font['size'])
+            title_text_property.SetBold(title_font['bold'])
+            title_text_property.SetItalic(title_font['italic'])
+            title_text_property.SetColor(title_font['color'])
+            
+            self.renderer.AddActor2D(self.scalarBar)
+            return 1
+        except Exception as e:
+            print(f"Error loading colorbar: {e}")
+            return None
     
+    @staticmethod
+    def from_properties(vtkWidget, renderer, properties):
+        actor = properties['actor']
+        return ColorbarManager(vtkWidget, renderer, properties['mesh_data'], actor)

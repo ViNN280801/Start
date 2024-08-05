@@ -358,16 +358,10 @@ class WindowApp(QMainWindow):
 
         files = os.listdir(project_dir)
         paths = [os.path.join(project_dir, file) for file in files]
+        paths.sort()
 
-        if len(paths) != DEFAULT_COUNT_OF_PROJECT_FILES or \
-                not paths[0].endswith('.json') or not paths[1].endswith('scene_camera_meshTab.json') or \
-                not paths[2].endswith('scene_actors_meshTab.vtk'):
-            self.log_console.printError(f'Can\'t open the project, check contegrity of all the files in directory {project_dir}. There must be {DEFAULT_COUNT_OF_PROJECT_FILES} files')
-            QMessageBox.critical(self, 'Open Project', f'Can\'t open the project, check contegrity of all the files in directory {project_dir}. There must be {DEFAULT_COUNT_OF_PROJECT_FILES} files')
-            return
-
-        self.geditor.load_scene(
-            self.log_console, self.setupFontColor, paths[2], paths[1])
+        self.geditor.load_scene(self.log_console, self.setupFontColor, actors_file=paths[1], camera_file=paths[2])
+        # self.results_tab.load_scene(self.log_console, self.setupFontColor, actors_file=paths[1], camera_file=paths[4], colorbar_file=paths[5])
         self.config_tab.upload_config(paths[0])
 
     def save_project(self):
@@ -383,6 +377,7 @@ class WindowApp(QMainWindow):
 
         # Generating all project files
         self.geditor.save_scene(self.log_console, self.setupFontColor)
+        # self.results_tab.save_scene(self.log_console, self.setupFontColor) # Now it isn't working
 
         if not self.config_tab.config_file_path:
             self.config_tab.save_config_to_file()
@@ -408,9 +403,10 @@ class WindowApp(QMainWindow):
                 dst = os.path.join(project_dir, filename)
                 copy(src, dst)
 
-            # Deleting unnecessary .vtks and .jsons
-            original_files = original_files[:4]
-            for filename in original_files:
+            # Deleting unnecessary .vtks and .jsons except the config file
+            files_to_remove = ['scene_actors_meshTab.vtk',
+                              'scene_camera_meshTab.json']
+            for filename in files_to_remove:
                 os.remove(filename)
 
         except Exception as e:

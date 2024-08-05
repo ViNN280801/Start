@@ -17,6 +17,7 @@ from logger.log_console import LogConsole
 from styles import DEFAULT_QLINEEDIT_STYLE
 from field_validators import CustomIntValidator, CustomDoubleValidator
 from .results import ParticleAnimator
+from util.project_manager import ProjectManager
 
 
 class ResultsTab(QWidget):
@@ -25,6 +26,8 @@ class ResultsTab(QWidget):
         self.layout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
         self.log_console = log_console
+        
+        self.colorbar_manger = None
 
         self.setup_ui()
         self.setup_axes()
@@ -305,3 +308,18 @@ class ResultsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(
                 self, "Error", f"Failed to save screenshot: {e}")
+    
+    def save_scene(self, logConsole, fontColor, actors_file='scene_actors_resultsTab.vtk', camera_file='scene_camera_resultsTab.json', colorbar_file='scene_colorbar_resultsTab.json'):
+        ProjectManager.save_scene(self.renderer, logConsole, fontColor, self.colorbar_manger, actors_file, camera_file, colorbar_file)
+        ProjectManager.save_colorbar_manager(self.colorbar_manger, logConsole, colorbar_file)
+
+    def load_scene(self, logConsole, fontColor, actors_file='scene_actors_resultsTab.vtk', camera_file='scene_camera_resultsTab.json', colorbar_file='scene_colorbar_resultsTab.json'):
+        ProjectManager.load_scene(self.vtkWidget, self.renderer, logConsole, fontColor, actors_file, camera_file)
+        self.colorbar_manger = ProjectManager.load_colorbar_manager(self.vtkWidget, self.renderer, logConsole, colorbar_file)
+        self.add_colorbar_and_color_objects()
+
+    def add_colorbar_and_color_objects(self):
+        if self.colorbar_manger:
+            self.colorbar_manger.add_colorbar('Particle Count')
+            self.colorbar_manger.apply_color_to_actor(self.actor)
+
