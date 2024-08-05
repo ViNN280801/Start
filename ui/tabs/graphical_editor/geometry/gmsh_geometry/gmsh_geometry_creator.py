@@ -68,6 +68,8 @@ class GMSHGeometryCreator:
         Creates the surface using 
         """
         try:
+            surface_tag = -1
+            
             for idx, (x, y, z) in enumerate(surface.points, start=1):
                 tag = model.occ.addPoint(x, y, z, tag=idx)
                 check_tag(tag)
