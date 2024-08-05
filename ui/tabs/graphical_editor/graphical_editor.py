@@ -1031,6 +1031,12 @@ class GraphicalEditor(QFrame):
                 return actor
         return None
 
+    def add_actor(self, actor):
+        add_actor(self.vtkWidget, self.renderer, actor)
+        
+    def remove_actor(self, actor):
+        remove_actor(self.vtkWidget, self.renderer, actor)
+    
     def fill_actor_nodes(self, treedict: dict, objType: str):
         # Ensure the dictionary exists
         if not hasattr(self, 'actor_nodes'):
