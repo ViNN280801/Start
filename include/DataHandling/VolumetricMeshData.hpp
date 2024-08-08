@@ -18,6 +18,13 @@ private:
     static std::unique_ptr<VolumetricMeshData> instance; ///< Singleton instance of VolumetricMeshData.
     static std::mutex instanceMutex;                     ///< Mutex for thread-safe access to the singleton instance.
 
+#ifdef _WIN32
+#define TETRAHEDRON_DATA_VISIBILITY public
+#else
+#define TETRAHEDRON_DATA_VISIBILITY private
+#endif
+
+TETRAHEDRON_DATA_VISIBILITY:
     struct TetrahedronData
     {
         struct NodeData
@@ -40,6 +47,8 @@ private:
         [[nodiscard("The center of the tetrahedron is important for further geometric calculations and shouldn't be discarded.")]]
         Point getTetrahedronCenter() const;
     };
+
+private:
     std::vector<TetrahedronData> m_meshComponents; ///< Array of all the tetrahedrons from the mesh.
 
     /**

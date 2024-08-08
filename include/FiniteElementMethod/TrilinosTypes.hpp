@@ -9,10 +9,7 @@
 #include <Intrepid2_HGRAD_TET_C1_FEM.hpp>
 #include <Intrepid2_HGRAD_TET_C2_FEM.hpp>
 #include <Intrepid2_HGRAD_TET_Cn_FEM.hpp>
-#include <Intrepid_FunctionSpaceTools.hpp>
 #include <Kokkos_Core.hpp>
-#include <Panzer_DOFManager.hpp>
-#include <Panzer_IntrepidFieldPattern.hpp>
 #include <Shards_CellTopology.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_ParameterList.hpp>

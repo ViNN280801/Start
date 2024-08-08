@@ -104,7 +104,11 @@ namespace constants
 
     namespace ion_charges_coulombs
     {
-        static constinit const double O2_charge{-2 * physical_constants::e_charge};
+#ifdef _WIN32
+        static constexpr double O2_charge{ -2 * physical_constants::e_charge };
+#else
+        static constinit const double O2_charge{ -2 * physical_constants::e_charge };
+#endif
         static constinit const double Ar_charge{0.0};
         static constinit const double Ne_charge{0.0};
         static constinit const double He_charge{0.0};
