@@ -1,0 +1,55 @@
+# Step 1. Forking their repo from source in web github:
+# https://github.com/trilinos
+
+# Step 2. Fixing possible error (do it if you have this error):
+# error: RPC failed; curl 92 HTTP/2 stream 0 was not closed cleanly: PROTOCOL_ERROR (err 1)
+git config --global http.version HTTP/1.1
+
+# Step 3. Cloning your fork somehere
+git clone <YOUR_GITHUB_FORK>
+
+# Step 4 - optional. View configured remote on this repo
+git remote -v
+
+# Step 5. Adding upstream repo of original owner of the repo
+git remote add upstream https://github.com/trilinos
+
+# Step 6 - optional. Adding it to your path to include
+sudo mv Trilinos/ /usr/local
+
+# Step 7. Compiling from source
+# !!! If u change -DCMAKE_CXX_FLAGS or -DCMAKE_EXE_LINKER_FLAGS it'll require to recompile the whole project from the scratch !!!
+rm -rvf CMakeCache.txt CMakeFiles/
+mkdir -p build && cd build
+cmake -DTPL_ENABLE_MPI=ON \
+      -DMPI_BASE_DIR=/usr/include/mpich-x86_64/ \
+      -DCMAKE_C_COMPILER=/usr/lib64/mpich/bin/mpicc \
+      -DCMAKE_CXX_COMPILER=/usr/lib64/mpich/bin/mpicxx \
+      -DCMAKE_Fortran_COMPILER=/usr/lib64/mpich/bin/mpifort \
+      -DTrilinos_ENABLE_ALL_PACKAGES=ON \
+      -DCMAKE_INSTALL_PREFIX=/usr/local/include \
+      -DTPL_ENABLE_HDF5=ON \
+      -DHDF5_INCLUDE_DIRS=/usr/include/mpich-x86_64/hdf5 \
+      -DHDF5_LIBRARY_DIRS=/usr/lib64/mpich/lib \
+      -DTrilinos_ENABLE_STK=OFF ..
+make -j<n> install
+
+
+# CMake compiling command for Debian (checked on Debian 12 bookworm)
+cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ \
+      -DCMAKE_BUILD_TYPE:STRING=RELEASE \
+      -DTPL_ENABLE_MPI:BOOL=ON \
+      -DHDF5_PREFER_PARALLEL=ON \
+      -DCMAKE_C_COMPILER=mpicc \
+      -DCMAKE_CXX_COMPILER=mpicxx \
+      -DCMAKE_Fortran_COMPILER=mpifort \
+      -DTPL_ENABLE_HDF5=ON \
+      -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_cpp.so" \
+      -DTrilinos_ENABLE_Fortran:BOOL=ON \
+      -DTrilinos_ENABLE_TESTS:BOOL=OFF \
+      -DTrilinos_ENABLE_ALL_PACKAGES:BOOL=ON \
+      ../trilinos
+
+
+Link to the precompiled Trilinos (Visual Studio 17 2022. MSVC 14.40.33807):
+https://drive.google.com/file/d/1utiHNigjNQdjRsQYwPAxWlJM8ZNY64tj/view?usp=sharing
