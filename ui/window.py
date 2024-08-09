@@ -536,7 +536,7 @@ class WindowApp(QMainWindow):
 
         # Checking OS
         if os.name == 'nt':
-            executable_path = f'Release/{EXECUTABLE_NAME}.exe'
+            executable_path = f'{EXECUTABLE_NAME}.exe'
         else:
             executable_path = f'./{EXECUTABLE_NAME}'
         self.process.start(executable_path, args.split())
