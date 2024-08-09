@@ -1,4 +1,5 @@
 import sys
+import platform
 import signal
 from PyQt5.QtWidgets import (
     QVBoxLayout, QPlainTextEdit, QTextEdit,
@@ -433,13 +434,31 @@ class LogConsole(QWidget):
         exit(1)
     
     @staticmethod
-    def setup_signal_handlers():        
-        for sig in signal.Signals:
-            # No need to block users SIGTERM signal that initialized by Ctrl+T keybind
-            if sig == signal.SIGTERM:
-                return
+    def setup_signal_handlers():
+        # Define a list of signals to ignore on Unix-like systems
+        signals_to_ignore = []
+        if platform.system() != 'Windows':
+            signals_to_ignore = [signal.SIGKILL, signal.SIGSTOP]
 
-            if sig not in (signal.SIGKILL, signal.SIGSTOP):
+        # Handle only the signals supported by the platform
+        supported_signals = [
+            signal.SIGINT,   # Interrupt from the keyboard
+            signal.SIGTERM,  # Termination signal
+        ]
+
+        if platform.system() != 'Windows':
+            # Add Unix-specific signals if not on Windows
+            supported_signals.extend([
+                signal.SIGHUP,   # Hangup detected on controlling terminal or death of controlling process
+                signal.SIGQUIT,  # Quit from keyboard
+                signal.SIGUSR1,  # User-defined signal 1
+                signal.SIGUSR2,  # User-defined signal 2
+                signal.SIGPIPE,  # Broken pipe: write to pipe with no readers
+                signal.SIGALRM,  # Alarm clock
+            ])
+
+        for sig in supported_signals:
+            if sig not in signals_to_ignore:
                 try:
                     signal.signal(sig, LogConsole.signal_handler)
                 except (ValueError, OSError, RuntimeError) as e:
