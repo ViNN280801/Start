@@ -4,7 +4,7 @@ x64/
 *.vcxproj*
 *.sln
 Debug/
-Release/
+!Release/*.dll
 
 # Visual Studio Code files
 .vscode/
