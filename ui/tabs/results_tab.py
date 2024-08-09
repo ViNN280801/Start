@@ -275,6 +275,8 @@ class ResultsTab(QWidget):
         self.vtkWidget.GetRenderWindow().Render()
 
     def save_screenshot(self):
+        from os.path import splitext
+        
         try:
             options = QFileDialog.Options()
             file_path, _ = QFileDialog.getSaveFileName(
@@ -289,6 +291,9 @@ class ResultsTab(QWidget):
                 w2i = vtkWindowToImageFilter()
                 w2i.SetInput(render_window)
                 w2i.Update()
+
+                if not splitext(file_path)[1]:
+                    file_path += ".png"
 
                 writer = None
                 if file_path.endswith('.png'):
