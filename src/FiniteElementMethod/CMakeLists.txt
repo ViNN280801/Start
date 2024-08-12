@@ -4,6 +4,10 @@ set(FEM_SOURCES
     SolutionVector.cpp
 )
 
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+
 add_library(FiniteElementMethod ${FEM_SOURCES})
 
 target_link_libraries(FiniteElementMethod PRIVATE
