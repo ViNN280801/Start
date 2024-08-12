@@ -6,15 +6,15 @@
 using json = nlohmann::json;
 
 #include "../include/DataHandling/HDF5Handler.hpp"
-#include "../include/ParticleInCell.hpp"
+#include "../include/ModelingMainDriver.hpp"
 
-std::mutex ParticleInCell::m_PICTracker_mutex;
-std::mutex ParticleInCell::m_nodeChargeDensityMap_mutex;
-std::mutex ParticleInCell::m_particlesMovement_mutex;
-std::shared_mutex ParticleInCell::m_settledParticles_mutex;
-std::atomic_flag ParticleInCell::m_stop_processing = ATOMIC_FLAG_INIT;
+std::mutex ModelingMainDriver::m_PICTracker_mutex;
+std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
+std::mutex ModelingMainDriver::m_particlesMovement_mutex;
+std::shared_mutex ModelingMainDriver::m_settledParticles_mutex;
+std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
 
-void ParticleInCell::checkMeshfilename() const
+void ModelingMainDriver::checkMeshfilename() const
 {
     if (m_config.getMeshFilename() == "")
         throw std::runtime_error("Can't open mesh file: Name of the file is empty");
@@ -26,9 +26,9 @@ void ParticleInCell::checkMeshfilename() const
         throw std::runtime_error(util::stringify("Can't open mesh file: Format of the file must be .msh. Current filename: ", m_config.getMeshFilename()));
 }
 
-void ParticleInCell::initializeSurfaceMesh() { _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename()); }
+void ModelingMainDriver::initializeSurfaceMesh() { _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename()); }
 
-void ParticleInCell::initializeSurfaceMeshAABB()
+void ModelingMainDriver::initializeSurfaceMeshAABB()
 {
     if (_triangleMesh.empty())
         throw std::runtime_error("Can't construct AABB for triangle mesh - surface mesh is empty");
@@ -46,7 +46,7 @@ void ParticleInCell::initializeSurfaceMeshAABB()
     _surfaceMeshAABBtree = AABB_Tree_Triangle(std::cbegin(_triangles), std::cend(_triangles));
 }
 
-void ParticleInCell::initializeParticles()
+void ModelingMainDriver::initializeParticles()
 {
     if (m_config.isParticleSourcePoint())
     {
@@ -65,16 +65,16 @@ void ParticleInCell::initializeParticles()
         throw std::runtime_error("Particles are uninitialized, check your configuration file");
 }
 
-void ParticleInCell::initialize()
+void ModelingMainDriver::initialize()
 {
     initializeSurfaceMesh();
     initializeSurfaceMeshAABB();
 }
 
-void ParticleInCell::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
-                                   std::shared_ptr<Grid3D> &cubicGrid,
-                                   std::map<GlobalOrdinal, double> &boundaryConditions,
-                                   std::shared_ptr<SolutionVector> &solutionVector)
+void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
+                                       std::shared_ptr<Grid3D> &cubicGrid,
+                                       std::map<GlobalOrdinal, double> &boundaryConditions,
+                                       std::shared_ptr<SolutionVector> &solutionVector)
 {
     // Assembling global stiffness matrix from the mesh file.
     assemblier = std::make_shared<GSMatrixAssemblier>(m_config.getMeshFilename(), m_config.getDesiredCalculationAccuracy());
@@ -93,7 +93,7 @@ void ParticleInCell::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assembli
     solutionVector->clear();
 }
 
-size_t ParticleInCell::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
+size_t ModelingMainDriver::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
 {
     // Returning invalid index if ray or triangle is degenerate
     if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
@@ -104,7 +104,7 @@ size_t ParticleInCell::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam 
                : -1ul;
 }
 
-unsigned int ParticleInCell::getNumThreads() const
+unsigned int ModelingMainDriver::getNumThreads() const
 {
     if (auto curThreads{m_config.getNumThreads()}; curThreads < 1 || curThreads > std::thread::hardware_concurrency())
         throw std::runtime_error("The number of threads requested (1) exceeds the number of hardware threads supported by the system (" +
@@ -122,7 +122,7 @@ unsigned int ParticleInCell::getNumThreads() const
     return num_threads;
 }
 
-void ParticleInCell::saveParticleMovements() const
+void ModelingMainDriver::saveParticleMovements() const
 {
     try
     {
@@ -166,7 +166,7 @@ void ParticleInCell::saveParticleMovements() const
     }
 }
 
-void ParticleInCell::updateSurfaceMesh()
+void ModelingMainDriver::updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
     auto mapEnd{_settledParticlesCounterMap.cend()};
@@ -181,7 +181,7 @@ void ParticleInCell::updateSurfaceMesh()
 }
 
 template <typename Function, typename... Args>
-void ParticleInCell::processWithThreads(unsigned int num_threads, Function &&function, Args &&...args)
+void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &&function, Args &&...args)
 {
     size_t particles_per_thread{m_particles.size() / num_threads}, start_index{},
         managed_particles{particles_per_thread * num_threads}; // Count of the managed particles.
@@ -209,7 +209,7 @@ void ParticleInCell::processWithThreads(unsigned int num_threads, Function &&fun
         f.get();
 }
 
-ParticleInCell::ParticleInCell(std::string_view config_filename) : m_config(config_filename)
+ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
     checkMeshfilename();
@@ -226,9 +226,9 @@ ParticleInCell::ParticleInCell(std::string_view config_filename) : m_config(conf
     initializeParticles();
 }
 
-void ParticleInCell::processParticleTracker(size_t start_index, size_t end_index, double t,
-                                            std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
-                                            std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
+void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_index, double t,
+                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
+                                                std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
     try
     {
@@ -296,10 +296,10 @@ void ParticleInCell::processParticleTracker(size_t start_index, size_t end_index
     }
 }
 
-void ParticleInCell::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                                   std::shared_ptr<GSMatrixAssemblier> &assemblier,
-                                   std::shared_ptr<SolutionVector> &solutionVector,
-                                   std::map<GlobalOrdinal, double> &boundaryConditions, double time)
+void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
+                                       std::shared_ptr<GSMatrixAssemblier> &assemblier,
+                                       std::shared_ptr<SolutionVector> &solutionVector,
+                                       std::map<GlobalOrdinal, double> &boundaryConditions, double time)
 {
     try
     {
@@ -330,8 +330,8 @@ void ParticleInCell::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDe
     }
 }
 
-void ParticleInCell::processSurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                    std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier)
+void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
+                                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier)
 {
     try
     {
@@ -435,7 +435,7 @@ void ParticleInCell::processSurfaceCollisionTracker(size_t start_index, size_t e
     }
 }
 
-void ParticleInCell::startSimulation()
+void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
     std::shared_ptr<GSMatrixAssemblier> assemblier;
@@ -453,13 +453,13 @@ void ParticleInCell::startSimulation()
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
         // 1. Obtain charge densities in all the nodes.
-        processWithThreads(num_threads, &ParticleInCell::processParticleTracker, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+        processWithThreads(num_threads, &ModelingMainDriver::processParticleTracker, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
 
         // 2. Solve equation in the main thread.
         solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
         // 3. Process surface collision tracking in parallel.
-        processWithThreads(num_threads, &ParticleInCell::processSurfaceCollisionTracker, t, cubicGrid, assemblier);
+        processWithThreads(num_threads, &ModelingMainDriver::processPIC_and_SurfaceCollisionTracker, t, cubicGrid, assemblier);
     }
 
     updateSurfaceMesh();

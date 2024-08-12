@@ -1,4 +1,4 @@
-#include "../include/ParticleInCell.hpp"
+#include "../include/ModelingMainDriver.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -11,8 +11,8 @@ int main(int argc, char *argv[])
         ERRMSG(util::stringify("Usage: ", argv[0], " <config_file>"));
         return EXIT_FAILURE;
     }
-    ParticleInCell pic(argv[1]);
-    pic.startSimulation();
+    ModelingMainDriver modeling(argv[1]);
+    modeling.startModeling();
 
     Kokkos::finalize();
     return EXIT_SUCCESS;

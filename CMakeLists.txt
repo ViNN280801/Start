@@ -133,7 +133,7 @@ add_subdirectory(src)
 
 set(SOURCES
     src/main.cpp
-    src/ParticleInCell.cpp
+    src/ModelingMainDriver.cpp
 )
 
 set(EXECUTABLE_NAME nia_start_core)

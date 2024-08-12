@@ -12,7 +12,12 @@
 #include "Particles/Particle.hpp"
 #include "Utilities/ConfigParser.hpp"
 
-class ParticleInCell final
+/**
+ * @brief This class represents main driver that manages the PIC part and surface collision tracker.
+ * Main algo:
+ *      1. Processing
+ */
+class ModelingMainDriver final
 {
 private:
     static constexpr short const kdefault_polynomOrder{1};                 ///< Polynom order. Responds for count of the basis functions.
@@ -119,12 +124,12 @@ private:
                        std::shared_ptr<GSMatrixAssemblier> &assemblier,
                        std::shared_ptr<SolutionVector> &solutionVector,
                        std::map<GlobalOrdinal, double> &boundaryConditions, double time);
-    void processSurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                        std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier);
+    void processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
+                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier);
 
 public:
-    ParticleInCell(std::string_view config_filename);
-    void startSimulation();
+    ModelingMainDriver(std::string_view config_filename);
+    void startModeling();
 };
 
 #endif // !PARTICLEINCELL_HPP
