@@ -15,7 +15,23 @@
 /**
  * @brief This class represents main driver that manages the PIC part and surface collision tracker.
  * Main algo:
- *      1. Processing
+ *      1. Get the mesh from the mesh file. Filling basis gradient functions ∇φi for each node.
+ *      2. Construct GSM (Global Stiffness Matrix) at once. Setting BC (Boundary Conditions) to the GSM and vector `b`. Ax=b, where A = GSM.
+ *      3. Spawn particles from the specified in configuration file sources.
+ *      4. Tracking particles in the mesh.
+ *      5. Collecting node charge densities (ρi) on each time step for each node.
+ *      6. Pass ρi to the vector `b` to solve equation Ax=b. (Dirichlet Boundary conditions).
+ *      7. Solve the equation Ax=b on each time step.
+ *      8. Calculate electric potential (φi) of the each node from the `x` vector in result from Ax=b.
+ *      9. Calculate electic field E=(Ex,Ey,Ez) of the each mesh cell based on the φi and ∇φi. E=-∇φ -> E_cell=-1/(6V)*Σ(φi⋅∇φi).
+ *      10. Electro-magnetic pushing of the particles (update velocity).
+ *          10.1. Update position.
+ *          10.2. Check is particle inside mesh. If no - particle = settled particle - stop tracking it (incrementing count of the settled particles on certain triangle on the mesh).
+ *      11. Gas collision statistical checking (HS/VHS/VSS). If colided - update velocity.
+ *          11.1-11.2. Repeat 10.1. and 10.2.
+ *      13. Check if particle settled. If so - incrementing count of the settled particles on certain triangle on the mesh.
+ *      14. Saving all the collected particles in triangles (surface mesh) to .hdf5 file.
+ *      15*. Saving all trajectories of the particles to make animation.
  */
 class ModelingMainDriver final
 {
