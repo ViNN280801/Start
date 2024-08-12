@@ -662,6 +662,21 @@ class ConfigTab(QWidget):
         if not config_content:
             return
 
+        time_step = float(self.time_step_input.text())
+        simtime = float(self.simulation_time_input.text())
+        
+        if time_step == 0:
+            QMessageBox.warning(self, "Time Step Error", "Writing zero time step does not make sense")
+            return
+        
+        if simtime == 0:
+            QMessageBox.warning(self, "Simulation Time Error", "Writing zero simulation time does not make sense")
+            return
+        
+        if simtime < time_step:
+            QMessageBox.warning(self, "Time Error", f"Time step = {time_step}\nSimulation time = {simtime}\nSimulation time can not be less than time step")
+            return
+
         if not self.config_file_path:
             options = QFileDialog.Options()
             options |= QFileDialog.DontUseNativeDialog
