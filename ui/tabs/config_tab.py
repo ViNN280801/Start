@@ -299,11 +299,7 @@ class ConfigTab(QWidget):
         self.solver_parameters[
             ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME] = self.create_solver_params_field(
                 additional_layout_left, "Convergence Tolerance:",
-                f"{DEFAULT_CONVERGENCE_TOLERANCE}")
-        self.solver_parameters[
-            ITERATIVE_SOLVER_OUTPUT_FREQUENCY_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_left, "Output Frequency:",
-                f"{DEFAULT_OUTPUT_FREQUENCY}")
+                f"{DEFAULT_CONVERGENCE_TOLERANCE}")        
         self.solver_parameters[
             ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME] = self.create_solver_params_field(
                 additional_layout_left, "Num Blocks:", f"{DEFAULT_NUM_BLOCKS}")
@@ -345,10 +341,6 @@ class ConfigTab(QWidget):
         self.solver_parameters[
             ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setValidator(
                 QRegExpValidator(exp_regexp))
-        self.solver_parameters[ITERATIVE_SOLVER_OUTPUT_FREQUENCY_FIELD_NAME][
-            0].setValidator(
-                CustomIntValidator(LIMIT_CONFIG_MIN_OUTPUT_FREQUENCY,
-                                   LIMIT_CONFIG_MAX_OUTPUT_FREQUENCY))
         self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][
             0].setValidator(
                 CustomIntValidator(LIMIT_CONFIG_MIN_NUM_BLOCKS,
@@ -368,8 +360,6 @@ class ConfigTab(QWidget):
         self.solver_parameters[
             ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setToolTip(
                 HINT_CONFIG_CONVERGENCE_TOLERANCE)
-        self.solver_parameters[ITERATIVE_SOLVER_OUTPUT_FREQUENCY_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_OUTPUT_FREQUENCY)
         self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][
             0].setToolTip(HINT_CONFIG_NUM_BLOCKS)
         self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][
@@ -439,6 +429,9 @@ class ConfigTab(QWidget):
         )
 
     def update_solver_parameters(self):
+        if not hasattr(self, "config_file_path") or not self.config_file_path:
+            return
+        
         solver = self.solvername_input.currentText()
 
         # Disable all fields initially and apply disabled style
@@ -457,24 +450,36 @@ class ConfigTab(QWidget):
                     param[1].setStyleSheet(DEFAULT_DISABLED_COMBOBOX_STYLE)
 
         if solver in ITERATIVE_SOLVER_VISIBLE_PARAMETERS:
+            missing_keys = []
             for param in ITERATIVE_SOLVER_VISIBLE_PARAMETERS[solver]:
-                self.solver_parameters[param][0].setEnabled(True)
-                if isinstance(self.solver_parameters[param][0], QLineEdit):
-                    self.solver_parameters[param][0].setStyleSheet(
-                        DEFAULT_QLINEEDIT_STYLE)
-                elif isinstance(self.solver_parameters[param][0], QComboBox):
-                    self.solver_parameters[param][0].setStyleSheet(
-                        DEFAULT_COMBOBOX_STYLE)
-
-                if self.solver_parameters[param][1] is not None:
-                    self.solver_parameters[param][1].setEnabled(True)
-                    if isinstance(self.solver_parameters[param][1], QLineEdit):
-                        self.solver_parameters[param][1].setStyleSheet(
+                if param not in self.solver_parameters:
+                    missing_keys.append(param)
+                else:
+                    self.solver_parameters[param][0].setEnabled(True)
+                    if isinstance(self.solver_parameters[param][0], QLineEdit):
+                        self.solver_parameters[param][0].setStyleSheet(
                             DEFAULT_QLINEEDIT_STYLE)
-                    elif isinstance(self.solver_parameters[param][1],
-                                    QComboBox):
-                        self.solver_parameters[param][1].setStyleSheet(
+                    elif isinstance(self.solver_parameters[param][0], QComboBox):
+                        self.solver_parameters[param][0].setStyleSheet(
                             DEFAULT_COMBOBOX_STYLE)
+
+                    if self.solver_parameters[param][1] is not None:
+                        self.solver_parameters[param][1].setEnabled(True)
+                        if isinstance(self.solver_parameters[param][1], QLineEdit):
+                            self.solver_parameters[param][1].setStyleSheet(
+                                DEFAULT_QLINEEDIT_STYLE)
+                        elif isinstance(self.solver_parameters[param][1],
+                                        QComboBox):
+                            self.solver_parameters[param][1].setStyleSheet(
+                                DEFAULT_COMBOBOX_STYLE)
+
+            # Print missing keys to the console
+            if missing_keys:
+                keys_str = ', '.join(missing_keys)
+                if len(missing_keys) == 1:
+                    print(f'There is no such key in the file "{self.config_file_path}": {keys_str}')
+                else:
+                    print(f'There are no such keys in the file "{self.config_file_path}": {keys_str}')
 
     def upload_config(self, config_file: str = None):
         if config_file:
@@ -845,7 +850,6 @@ class ConfigTab(QWidget):
         self.solvername_input.setCurrentIndex(2) # GMRES
         self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][0].setText(f"{DEFAULT_MAX_ITERATIONS}")
         self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setText(f"{DEFAULT_CONVERGENCE_TOLERANCE}")
-        self.solver_parameters[ITERATIVE_SOLVER_OUTPUT_FREQUENCY_FIELD_NAME][0].setText(f"{DEFAULT_OUTPUT_FREQUENCY}")
         self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][0].setText(f"{DEFAULT_NUM_BLOCKS}")
         self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][0].setText(f"{DEFAULT_BLOCK_SIZE}")
         self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][0].setText(f"{DEFAULT_MAX_RESTARTS}")
