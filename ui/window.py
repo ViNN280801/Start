@@ -121,9 +121,9 @@ class WindowApp(QMainWindow):
         # Optionally adjust the increment size as more data is received
         # For example, decrease the increment size as you approach 100
         if new_value < 90:
-            self.progress_increment += 0.5  # Increase the increment
+            self.progress_increment += 0.1  # Increase the increment
         else:
-            self.progress_increment = 0.1  # Smaller increments near the end
+            self.progress_increment = 0.075  # Smaller increments near the end
         
         segments = ansi_to_segments(out)
         for segment, color in segments:
