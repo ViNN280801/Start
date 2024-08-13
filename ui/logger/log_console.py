@@ -475,7 +475,7 @@ class LogConsole(QWidget):
         crash_filename = f"crash_log_{get_cur_datetime()}.txt"
         with open(crash_filename, "a") as f:
             f.write(f"Uncaught exception:\n")
-            print_exception(exc_type, exc_value, exc_traceback, file=f)
+            print_exception(exc_type, exc_value, exc_traceback, file=f, chain=True)
         
         print(f"Uncaught exception written to the file '{crash_filename}':", file=sys.stderr)
-        print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
+        print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr, chain=True)
