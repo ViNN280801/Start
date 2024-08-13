@@ -231,30 +231,30 @@ class ConfigTab(QWidget):
         picfem_group_box.setLayout(picfem_layout)
 
         # Add PIC and FEM fields
-        self.pic_input = QLineEdit()
-        self.pic_input.setText(f"{DEFAULT_CUBIC_GRID_SIZE}")
-        self.pic_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
-        self.pic_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
-        self.pic_input.setValidator(
+        self.cubic_grid_size_input = QLineEdit()
+        self.cubic_grid_size_input.setText(f"{DEFAULT_CUBIC_GRID_SIZE}")
+        self.cubic_grid_size_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
+        self.cubic_grid_size_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
+        self.cubic_grid_size_input.setValidator(
             CustomDoubleValidator(LIMIT_CONFIG_MIN_CUBIC_GRID_SIZE,
                                   LIMIT_CONFIG_MAX_CUBIC_GRID_SIZE, 3))
-        self.pic_input.setToolTip(HINT_CONFIG_CUBIC_GRID_SIZE)
+        self.cubic_grid_size_input.setToolTip(HINT_CONFIG_CUBIC_GRID_SIZE)
         h_layout = QHBoxLayout()
         h_layout.setContentsMargins(50, 0, 0, 0)
-        h_layout.addWidget(self.pic_input)
+        h_layout.addWidget(self.cubic_grid_size_input)
         pic_layout.addRow(QLabel("Cubic grid size:"), h_layout)
 
-        self.fem_input = QLineEdit()
-        self.fem_input.setText(f"{DEFAULT_FEM_ACCURACY}")
-        self.fem_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
-        self.fem_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
-        self.fem_input.setValidator(
+        self.fem_accuracy_input = QLineEdit()
+        self.fem_accuracy_input.setText(f"{DEFAULT_FEM_ACCURACY}")
+        self.fem_accuracy_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
+        self.fem_accuracy_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
+        self.fem_accuracy_input.setValidator(
             CustomIntValidator(LIMIT_CONFIG_MIN_FEM_ACCURACY,
                                LIMIT_CONFIG_MAX_FEM_ACCURACY))
-        self.fem_input.setToolTip(HINT_CONFIG_FEM_ACCURACY)
+        self.fem_accuracy_input.setToolTip(HINT_CONFIG_FEM_ACCURACY)
         h1_layout = QHBoxLayout()
         h1_layout.setContentsMargins(25, 0, 0, 0)
-        h1_layout.addWidget(self.fem_input)
+        h1_layout.addWidget(self.fem_accuracy_input)
         fem_layout.addRow(QLabel("FEM calculation accuracy:"), h1_layout)
 
         # Add Load Magnetic Induction button
@@ -394,6 +394,12 @@ class ConfigTab(QWidget):
         main_rightside_layout.addWidget(picfem_group_box)
         main_rightside_layout.addWidget(solver_group_box)
         main_layout.addLayout(main_rightside_layout)
+        
+        # Adding reset settings button
+        reset_button = QPushButton("Reset to Defaults")
+        reset_button.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
+        reset_button.clicked.connect(self.reset_solver_parameters_to_defaults)
+        main_rightside_layout.addWidget(reset_button)
 
         # Create a QWidget to hold the main_layout
         main_widget = QWidget()
@@ -552,8 +558,8 @@ class ConfigTab(QWidget):
             if model_index >= 0:
                 self.model_input.setCurrentIndex(model_index)
 
-            self.pic_input.setText(config.get('EdgeSize', ''))
-            self.fem_input.setText(config.get('DesiredAccuracy', ''))
+            self.cubic_grid_size_input.setText(config.get('EdgeSize', ''))
+            self.fem_accuracy_input.setText(config.get('DesiredAccuracy', ''))
 
             for key, (input_field,
                       units_combobox) in self.solver_parameters.items():
@@ -590,8 +596,8 @@ class ConfigTab(QWidget):
     def save_picfem_params_to_dict(self):
         picfem_params = {}
 
-        picfem_params["EdgeSize"] = self.pic_input.text()
-        picfem_params["DesiredAccuracy"] = self.fem_input.text()
+        picfem_params["EdgeSize"] = self.cubic_grid_size_input.text()
+        picfem_params["DesiredAccuracy"] = self.fem_accuracy_input.text()
         return picfem_params
 
     def save_boundary_conditions_to_dict(self, config_file_path: str):
@@ -820,7 +826,31 @@ class ConfigTab(QWidget):
     
     def emit_select_boundary_conditions_signal(self):
         self.selectBoundaryConditionsSignal.emit()
-
+        
+    def reset_to_defaults(self):
+        self.reset_cubic_grid_size_to_defaults()
+        self.reset_fem_accuracy_to_defaults()
+        self.reset_solver_parameters_to_defaults()
+    
+    def reset_cubic_grid_size_to_defaults(self):
+        self.cubic_grid_size_input.setText("5.0")
+        
+    def reset_fem_accuracy_to_defaults(self):
+        self.fem_accuracy_input.setText("3.0")
+    
+    def reset_solver_parameters_to_defaults(self):
+        self.solvername_input.setCurrentIndex(2) # GMRES
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][0].setText(f"{DEFAULT_MAX_ITERATIONS}")
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setText(f"{DEFAULT_CONVERGENCE_TOLERANCE}")
+        self.solver_parameters[ITERATIVE_SOLVER_OUTPUT_FREQUENCY_FIELD_NAME][0].setText(f"{DEFAULT_OUTPUT_FREQUENCY}")
+        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][0].setText(f"{DEFAULT_NUM_BLOCKS}")
+        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][0].setText(f"{DEFAULT_BLOCK_SIZE}")
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][0].setText(f"{DEFAULT_MAX_RESTARTS}")
+        self.solver_parameters[ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME][0].setCurrentIndex(0)  # "false"
+        self.solver_parameters[ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME][0].setCurrentIndex(0)  # "ICGS"
+        self.solver_parameters[ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME][0].setCurrentIndex(0)  # "false"
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME][0].setText("-1")
+        
     def sync_config_with_ui(self):
         if self.check_particle_sources(self.config_file_path) != 1:
             return
@@ -876,8 +906,8 @@ class ConfigTab(QWidget):
                                      self.pressure_units.currentText()))
         update_config("Gas", self.gas_input.currentText())
         update_config("Model", self.model_input.currentText())
-        update_config("EdgeSize", self.pic_input.text())
-        update_config("DesiredAccuracy", self.fem_input.text())
+        update_config("EdgeSize", self.cubic_grid_size_input.text())
+        update_config("DesiredAccuracy", self.fem_accuracy_input.text())
         update_config("solverName", self.solvername_input.currentText())
 
         # Update solver parameters
@@ -926,9 +956,9 @@ class ConfigTab(QWidget):
                 "Model":
                 self.model_input.currentText(),
                 "EdgeSize":
-                self.pic_input.text(),
+                self.cubic_grid_size_input.text(),
                 "DesiredAccuracy":
-                self.fem_input.text(),
+                self.fem_accuracy_input.text(),
                 "solverName":
                 self.solvername_input.currentText()
             }
