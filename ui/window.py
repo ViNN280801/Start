@@ -547,8 +547,6 @@ class WindowApp(QMainWindow):
             QMessageBox.critical(self, "Path check", f"Executable not found: {executable_path}")
             self.log_console.printError(f"Can't find path for the executable: {executable_path}")
             return
-        
-        self.process.start(executable_path, args.split())
 
     @pyqtSlot()
     def handle_select_boundary_conditions(self):
