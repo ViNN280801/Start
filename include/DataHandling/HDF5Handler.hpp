@@ -4,6 +4,7 @@
 #include <hdf5.h>
 #include <string_view>
 #include <unordered_map>
+#include <limits>
 
 #include "../Geometry/Mesh.hpp"
 
@@ -16,9 +17,9 @@
 class HDF5Handler final
 {
 private:
-    hid_t m_file_id;    // File id
-    size_t m_firstID{}, // ID of the first triangle in mesh
-        m_lastID{-1ul}; // ID of the last triangle in mesh
+    hid_t m_file_id;                                  // File id.
+    size_t m_firstID{},                               // ID of the first triangle in mesh.
+        m_lastID{std::numeric_limits<size_t>::max()}; // ID of the last triangle in mesh.
 
     /**
      * @brief Creates a new group in the HDF5 file.
