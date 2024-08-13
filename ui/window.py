@@ -110,6 +110,21 @@ class WindowApp(QMainWindow):
             out = str(self.process.readAllStandardOutput().data().decode())
         except UnicodeDecodeError:
             out = str(self.process.readAllStandardOutput().data())
+        
+        # Increment the progress bar
+        new_value = self.last_progress_value + self.progress_increment
+        if new_value > 100:
+            new_value = 100  # Cap it at 100
+        self.progress_bar.setValue(new_value)
+        self.last_progress_value = new_value
+        
+        # Optionally adjust the increment size as more data is received
+        # For example, decrease the increment size as you approach 100
+        if new_value < 90:
+            self.progress_increment += 0.5  # Increase the increment
+        else:
+            self.progress_increment = 0.1  # Smaller increments near the end
+        
         segments = ansi_to_segments(out)
         for segment, color in segments:
             self.insert_colored_text('', segment, color)
@@ -143,9 +158,10 @@ class WindowApp(QMainWindow):
         self.log_console.log_console.setCurrentCharFormat(QTextCharFormat())
 
     def on_process_finished(self, exitCode, exitStatus):
-        self.progress_bar.setHidden(True)
-        exec_time = time() - self.start_time
         self.progress_bar.setValue(100)
+        self.progress_bar.setHidden(True)
+        
+        exec_time = time() - self.start_time
 
         if exitStatus == QProcess.NormalExit and exitCode == 0:
             if not is_file_valid(self.hdf5_filename):
@@ -451,9 +467,14 @@ class WindowApp(QMainWindow):
                 '.vtk', '.hdf5')
         args = f"{self.config_tab.config_file_path}"
 
-        # Measure execution time
-        self.run_cpp(args)
         self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setHidden(False)
+        self.progress_increment = 0.5
+        self.last_progress_value = 0
+        self.start_time = time()
+
+        self.run_cpp(args)
 
     def stop_simulation(self):
         if self.process.state() == QProcess.Running:
@@ -531,9 +552,6 @@ class WindowApp(QMainWindow):
             return
 
     def run_cpp(self, args: str) -> None:
-        self.progress_bar.setHidden(False)
-        self.start_time = time()
-
         # Checking OS
         if os.name == 'nt':
             executable_path = f'{EXECUTABLE_NAME}.exe'
