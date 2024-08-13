@@ -539,6 +539,15 @@ class WindowApp(QMainWindow):
             executable_path = f'{EXECUTABLE_NAME}.exe'
         else:
             executable_path = f'./{EXECUTABLE_NAME}'
+            
+        # Check if the executable file exists and is a file
+        if os.path.isfile(executable_path):
+            self.process.start(executable_path, args.split())
+        else:
+            QMessageBox.critical(self, "Path check", f"Executable not found: {executable_path}")
+            self.log_console.printError(f"Can't find path for the executable: {executable_path}")
+            return
+        
         self.process.start(executable_path, args.split())
 
     @pyqtSlot()
