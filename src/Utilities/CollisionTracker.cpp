@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <execution>
 #include <ranges>
+#include <limits>
 
 #include "../include/Utilities/CollisionTracker.hpp"
 #include "../include/Utilities/Utilities.hpp"
@@ -55,7 +56,7 @@ void CollisionTracker::processSegment(size_t start_index, size_t end_index,
                                           // will be 100% successfull
                                           // Getting the ID
                                           size_t id{Mesh::isRayIntersectTriangle(ray, *matchedIt)};
-                                          if (id != -1ul)
+                                          if (id != std::numeric_limits<size_t>::max())
                                           {
                                               /* Critical section - map is shared object */
                                               std::lock_guard<std::mutex> lk(m_map_mutex);

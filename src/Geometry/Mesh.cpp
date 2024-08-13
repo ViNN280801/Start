@@ -1,4 +1,5 @@
 #include <gmsh.h>
+#include <limits>
 
 #include "../include/Geometry/MathVector.hpp"
 #include "../include/Geometry/Mesh.hpp"
@@ -88,7 +89,7 @@ size_t Mesh::isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const 
 {
     return (RayTriangleIntersection::isIntersectTriangle(ray, std::get<1>(triangle)))
                ? std::get<0>(triangle)
-               : -1ul;
+               : std::numeric_limits<size_t>::max();
 }
 
 std::optional<std::tuple<size_t, Point>>
