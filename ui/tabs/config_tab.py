@@ -398,7 +398,7 @@ class ConfigTab(QWidget):
         # Adding reset settings button
         reset_button = QPushButton("Reset to Defaults")
         reset_button.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
-        reset_button.clicked.connect(self.reset_solver_parameters_to_defaults)
+        reset_button.clicked.connect(self.reset_to_defaults)
         main_rightside_layout.addWidget(reset_button)
 
         # Create a QWidget to hold the main_layout
@@ -833,12 +833,15 @@ class ConfigTab(QWidget):
         self.reset_solver_parameters_to_defaults()
     
     def reset_cubic_grid_size_to_defaults(self):
-        self.cubic_grid_size_input.setText("5.0")
-        
+        self.log_console.printInfo(f"Resetting cubic grid size to: {DEFAULT_CUBIC_GRID_SIZE}")
+        self.cubic_grid_size_input.setText(f"{DEFAULT_CUBIC_GRID_SIZE}")
+    
     def reset_fem_accuracy_to_defaults(self):
-        self.fem_accuracy_input.setText("3.0")
+        self.log_console.printInfo(f"Resetting FEM accuracy to: {DEFAULT_FEM_ACCURACY}")
+        self.fem_accuracy_input.setText(f"{DEFAULT_FEM_ACCURACY}")
     
     def reset_solver_parameters_to_defaults(self):
+        self.log_console.printInfo(f"Resetting iterative solver settings")
         self.solvername_input.setCurrentIndex(2) # GMRES
         self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][0].setText(f"{DEFAULT_MAX_ITERATIONS}")
         self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setText(f"{DEFAULT_CONVERGENCE_TOLERANCE}")
