@@ -10,6 +10,8 @@
 #include <Intrepid2_HGRAD_TET_C2_FEM.hpp>
 #include <Intrepid2_HGRAD_TET_Cn_FEM.hpp>
 #include <Kokkos_Core.hpp>
+#include <MueLu_CreateTpetraPreconditioner.hpp>
+#include <MueLu_TpetraOperator.hpp>
 #include <Shards_CellTopology.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_ParameterList.hpp>

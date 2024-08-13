@@ -306,10 +306,16 @@ bool MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
 {
     try
     {
+        // Initializing the preconditioner.
+        Teuchos::RCP<MueLu::TpetraOperator<Scalar, LocalOrdinal, GlobalOrdinal, Node>> M;
+        M = MueLu::CreateTpetraPreconditioner<Scalar, LocalOrdinal, GlobalOrdinal, Node>(m_A);
+
         auto problem{Teuchos::rcp(new Belos::LinearProblem<Scalar, TpetraMultiVector, TpetraOperator>())};
         problem->setOperator(m_A);
         problem->setLHS(m_x);
         problem->setRHS(m_rhs);
+
+        problem->setLeftPrec(M);
 
         if (!problem->setProblem())
             return false;
