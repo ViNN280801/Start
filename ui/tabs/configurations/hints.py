@@ -59,18 +59,106 @@ HINT_CONFIG_CUBIC_GRID_SIZE = (
     f"- Setting the grid size too low (closer to {LIMIT_CONFIG_MIN_CUBIC_GRID_SIZE}) will result in a very fine grid, which may consume a significant amount of memory and can lead to performance issues.\n"
     f"- Setting the grid size too high (closer to {LIMIT_CONFIG_MAX_CUBIC_GRID_SIZE}) may result in an overly coarse grid, potentially causing incorrect determination of particle locations within the tetrahedrons."
 )
-HINT_CONFIG_FEM_ACCURACY = (
-    "FEM Calculation Accuracy: This parameter determines the number of quadrature points used in the Finite Element Method (FEM) calculations, based on the desired accuracy. "
-    "A higher accuracy typically requires more quadrature points, which increases both the computational cost and the memory usage of the program. "
-    "However, it also improves the approximation of the integral.\n\n"
-    "Purpose: The quadrature points are used to approximate integrals within the FEM. The more points used, the closer the numerical integration is to the actual value.\n\n"
-    f"If not specified - default value is {DEFAULT_FEM_ACCURACY}\n"
-    f"Range: from {LIMIT_CONFIG_MIN_FEM_ACCURACY} to {LIMIT_CONFIG_MAX_FEM_ACCURACY}\n"
-    "Note: The specific number of quadrature points for a given accuracy is determined by an external library, Intrepid2.\n\n"
-    "Warning: \n"
-    f"- Lower accuracy settings (closer to {LIMIT_CONFIG_MIN_FEM_ACCURACY}) will reduce computational costs and memory usage, but may result in less accurate integral approximations."
-    f"- Higher accuracy settings (closer to {LIMIT_CONFIG_MAX_FEM_ACCURACY}) will lead to increased computational costs and memory usage, but will provide better integral approximation.\n"
-)
+HINT_CONFIG_FEM_ACCURACY = """
+<p><strong>FEM Calculation Accuracy:</strong> This parameter determines the number of quadrature points used in the Finite Element Method (FEM) calculations, based on the desired accuracy. A higher accuracy typically requires more quadrature points, which increases both the computational cost and the memory usage of the program. However, it also improves the approximation of the integral.</p>
+
+<p><strong>Purpose:</strong> The quadrature points are used to approximate integrals within the FEM. The more points used, the closer the numerical integration is to the actual value.</p>
+
+<p>If not specified - default value is {DEFAULT_FEM_ACCURACY}<br>
+Range: from {LIMIT_CONFIG_MIN_FEM_ACCURACY} to {LIMIT_CONFIG_MAX_FEM_ACCURACY}<br>
+Note: The specific number of quadrature points for a given accuracy is determined by an external library, Intrepid2.</p>
+
+<p><strong>Warning:</strong><br>
+- Lower accuracy settings (closer to {LIMIT_CONFIG_MIN_FEM_ACCURACY}) will reduce computational costs and memory usage, but may result in less accurate integral approximations.<br>
+- Higher accuracy settings (closer to {LIMIT_CONFIG_MAX_FEM_ACCURACY}) will lead to increased computational costs and memory usage, but will provide better integral approximation.</p>
+
+<table border="1" cellpadding="3" cellspacing="0">
+  <tr>
+    <th>FEM accuracy</th>
+    <th>Count of cubature points</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>4</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>5</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>11</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>14</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>24</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>31</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>43</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>126</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>126</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>126</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>210</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>210</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>330</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>330</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>495</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>495</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>715</td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>715</td>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>1001</td>
+  </tr>
+</table>
+""".format(DEFAULT_FEM_ACCURACY=DEFAULT_FEM_ACCURACY, LIMIT_CONFIG_MIN_FEM_ACCURACY=LIMIT_CONFIG_MIN_FEM_ACCURACY, LIMIT_CONFIG_MAX_FEM_ACCURACY=LIMIT_CONFIG_MAX_FEM_ACCURACY)
 
 HINT_CONFIG_LOAD_MAGNETIC_INDUCTION = "Load Magnetic Induction: Load and parse the generated magnetic induction file from Ansys."
 HINT_CONFIG_SELECT_BOUNDARY_CONDITIONS = "Select Boundary Conditions: Define the boundary conditions for the simulation."
