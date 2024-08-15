@@ -9,7 +9,6 @@ from constants import (
     DEFAULT_TEMP_VTK_FILE
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from logger.log_console import LogConsole
 from json import dump, load
 
 
@@ -17,7 +16,7 @@ class ProjectManager:
     
     @staticmethod
     def save_scene(renderer: vtkRenderer, 
-                logConsole: LogConsole, 
+                logConsole, 
                 fontColor, 
                 colorbar_manager = None, 
                 actors_file='scene_actors.vtk', 
@@ -88,7 +87,7 @@ class ProjectManager:
     @staticmethod
     def load_scene(vtkWidget: QVTKRenderWindowInteractor, 
                 renderer: vtkRenderer, 
-                logConsole: LogConsole, 
+                logConsole, 
                 fontColor, 
                 colorbar_manager = None, 
                 actors_file='scene_actors.vtk', 
@@ -174,7 +173,7 @@ class ProjectManager:
         ProjectManager.remove_temp_files_helper(DEFAULT_TEMP_HDF5_FILE)
     
     @staticmethod
-    def save_colorbar_manager(colorbar_manager, logConsole: LogConsole, colorbar_file='scene_colorbar.json'):
+    def save_colorbar_manager(colorbar_manager, logConsole, colorbar_file='scene_colorbar.json'):
         try:
             properties = colorbar_manager.get_properties()
             with open(colorbar_file, 'w') as f:
@@ -186,7 +185,7 @@ class ProjectManager:
             return None
 
     @staticmethod
-    def load_colorbar_manager(vtkWidget, renderer, logConsole: LogConsole, colorbar_file='scene_colorbar.json'):
+    def load_colorbar_manager(vtkWidget, renderer, logConsole, colorbar_file='scene_colorbar.json'):
         from tabs import ColorbarManager
         
         try:

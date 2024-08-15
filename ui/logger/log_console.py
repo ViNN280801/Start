@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QTextCharFormat, QTextCursor, QColor, QTextDocument
-from util.path_file_chekers import is_file_valid
+from util.path_file_checkers import is_file_valid
 from util.util import get_cur_datetime
 from .cli_history import CommandLineHistory
 from vtk import vtkLogger
@@ -413,26 +413,28 @@ class LogConsole(QWidget):
         import gmsh
         from psutil import Process
         from sys import exit
-            
-        signals = {v: k for k, v in signal.__dict__.items() if k.startswith('SIG') and not k.startswith('SIG_')}
+        import signal
+
+        # Mapping signal numbers to signal names
+        signals = {v: k for k, v in signal.__dict__.items() if isinstance(v, int) and k.startswith('SIG') and not k.startswith('SIG_')}
         signal_name = signals.get(signum, "UNKNOWN")
         process = Process(getpid())
         process_name = " ".join(process.cmdline())
         msg = (f"Caught signal {signum} ({signal_name})\n"
-               f"Process ID: {getpid()}\n"
-               f"Process Name: {process_name}\n"
-               f"Frame: {frame}")
+            f"Process ID: {getpid()}\n"
+            f"Process Name: {process_name}\n"
+            f"Frame: {frame}")
         print(msg)
-            
+
         with open(f"crash_log_{get_cur_datetime()}.txt", "a") as f:
             f.write(msg)
-            
+
         # Correctly finalize the gmsh
         if gmsh.isInitialized():
             gmsh.finalize()
-            
+
         exit(1)
-    
+        
     @staticmethod
     def setup_signal_handlers():
         # Define a list of signals to ignore on Unix-like systems
