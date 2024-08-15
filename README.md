@@ -150,3 +150,30 @@ class CustomSignedDoubleValidator(QDoubleValidator):
 ```
 
 This snippet shows how to create a custom validator for a signed double input in PyQt5.
+
+### Parameter `FEM Accuracy`
+
+FEM accuracy is the parameter that manages count of cubature points for the more accurate integration. The following table shows relationship beetween parameters `FEM accuracy` and `Count of cubature points`.
+
+| FEM accuracy | Count of cubature points |
+| :----------: | :----------------------: |
+|      1       |            1             |
+|      2       |            4             |
+|      3       |            5             |
+|      4       |            11            |
+|      5       |            14            |
+|      6       |            24            |
+|      7       |            31            |
+|      8       |            43            |
+|      9       |           126            |
+|      10      |           126            |
+|      11      |           126            |
+|      12      |           210            |
+|      13      |           210            |
+|      14      |           330            |
+|      15      |           330            |
+|      16      |           495            |
+|      17      |           495            |
+|      18      |           715            |
+|      19      |           715            |
+|      20      |           1001           |

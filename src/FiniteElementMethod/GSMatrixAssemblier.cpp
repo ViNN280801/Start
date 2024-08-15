@@ -53,6 +53,29 @@ void GSMatrixAssemblier::_initializeCubature()
         auto cubature{cubFactory.create<DeviceType>(cellTopology, m_desiredAccuracy)}; // Generating cubature function.
         _countCubPoints = cubature->getNumPoints();                                    // Getting number of cubature points.
 
+        // | FEM accuracy | Count of cubature points |
+        // | :----------: | :----------------------: |
+        // |      1       |            1             |
+        // |      2       |            4             |
+        // |      3       |            5             |
+        // |      4       |            11            |
+        // |      5       |            14            |
+        // |      6       |            24            |
+        // |      7       |            31            |
+        // |      8       |            43            |
+        // |      9       |           126            |
+        // |      10      |           126            |
+        // |      11      |           126            |
+        // |      12      |           210            |
+        // |      13      |           210            |
+        // |      14      |           330            |
+        // |      15      |           330            |
+        // |      16      |           495            |
+        // |      17      |           495            |
+        // |      18      |           715            |
+        // |      19      |           715            |
+        // |      20      |           1001           |
+
         // 1. Allocating memory for cubature points and weights.
         _cubPoints = DynRankView("cubPoints", _countCubPoints, kdefault_space_dim); // Matrix: _countCubPoints x Dimensions.
         _cubWeights = DynRankView("cubWeights", _countCubPoints);                   // Vector: _countCubPoints.
