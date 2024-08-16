@@ -1,6 +1,8 @@
 from os.path import dirname
 from json import load, dump, JSONDecodeError
-from util import *
+from util.path_file_checkers import *
+from util.physical_measurement_units_converter import PhysicalMeasurementUnitsConverter
+from util.util import get_os_info
 from field_validators import CustomIntValidator, CustomDoubleValidator
 from styles import *
 from .configurations import *
@@ -504,7 +506,7 @@ class ConfigTab(QWidget):
             if self.read_config_file(self.config_file_path) == 1:
                 return
 
-            if not is_path_accessable(self.mesh_file):
+            if not is_path_accessible(self.mesh_file):
                 QMessageBox.warning(
                     self, "File Error",
                     f"Your file {self.mesh_file} is unaccessible. Check the path or permissions to this path: {dirname(self.config_file_path)}"
@@ -705,7 +707,7 @@ class ConfigTab(QWidget):
             if not self.config_file_path.endswith('.json'):
                 self.config_file_path += '.json'
 
-        if not is_file_valid(self.mesh_file) or not is_path_accessable(
+        if not is_file_valid(self.mesh_file) or not is_path_accessible(
                 self.mesh_file):
             QMessageBox.warning(
                 self, "File Error",

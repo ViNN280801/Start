@@ -1,19 +1,4 @@
-import os
 import sys
-
-from util.inst_deps import check_and_install_packages
-check_and_install_packages(["numpy", "h5py", "gmsh", "matplotlib", "PyQt5", "vtk", "nlohmann-json", "psutil"])
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "constants")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "data")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "dialogs")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "field_validators")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "logger")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "styles")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "tabs")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "tests")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "util")))
-
 from PyQt5.QtWidgets import QApplication
 from window import WindowApp
 from util.gmsh_helpers import gmsh_init, gmsh_finalize
