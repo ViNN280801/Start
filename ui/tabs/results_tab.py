@@ -5,11 +5,11 @@ from vtk import (
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QSpacerItem,
     QSizePolicy, QMenu, QAction, QFontDialog, QDialog, QLabel,
-    QLineEdit, QMessageBox, QColorDialog, QFileDialog
+    QLineEdit, QMessageBox, QColorDialog, QFileDialog, QCheckBox
 )
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon
-from tabs import MeshVisualizer, ColorbarManager
+from tabs import MeshVisualizer, ParticlesColorbarManager
 from data import HDF5Handler
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
@@ -18,6 +18,7 @@ from styles import DEFAULT_QLINEEDIT_STYLE
 from field_validators import CustomIntValidator, CustomDoubleValidator
 from .results import ParticleAnimator
 from util.project_manager import ProjectManager
+from .results.electric_field_manager import ElectricFieldManager
 
 
 class ResultsTab(QWidget):
@@ -26,12 +27,13 @@ class ResultsTab(QWidget):
         self.layout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
         self.log_console = log_console
-        
-        self.colorbar_manger = None
 
         self.setup_ui()
         self.setup_axes()
         self.setup_particle_animator()
+
+        self.particles_colorbar_manager = None
+        self.EF_manager = ElectricFieldManager(self)
 
     def setup_ui(self):
         self.setup_toolbar()
@@ -115,6 +117,10 @@ class ResultsTab(QWidget):
             40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.toolbarLayout.addSpacerItem(self.spacer)
         
+        self.posFileCheckbox = QCheckBox("Load .pos file")
+        self.posFileCheckbox.stateChanged.connect(self.on_state_changed)
+        self.toolbarLayout.addWidget(self.posFileCheckbox)
+        
     def show_animation(self):
         self.particle_animator.show_animation()
         
@@ -135,8 +141,8 @@ class ResultsTab(QWidget):
             self.mesh_visualizer = MeshVisualizer(self.renderer, self.mesh_data)
             colored_actor = self.mesh_visualizer.render_mesh()
             
-            self.colorbar_manger = ColorbarManager(self.vtkWidget, self.renderer, self.mesh_data, colored_actor)
-            self.colorbar_manger.add_colorbar('Particle Count')
+            self.particles_colorbar_manager = ParticlesColorbarManager(self, self.mesh_data, colored_actor)
+            self.particles_colorbar_manager.add_colorbar('Particle Count')
             
         except Exception as e:
             QMessageBox.warning(self, "HDF5 Error", f"Something went wrong while hdf5 processing. Error: {e}")
@@ -212,7 +218,7 @@ class ResultsTab(QWidget):
             width = float(width_str)
             height = float(height_str)
             if 0 <= width <= 1 and 0 <= height <= 1:
-                self.colorbar_manger.apply_scale(width, height)
+                self.particles_colorbar_manager.apply_scale(width, height)
                 self.vtkWidget.GetRenderWindow().Render()
             else:
                 QMessageBox.warning(self, "Invalid Scale", "Width and height must be between 0 and 1")
@@ -230,7 +236,7 @@ class ResultsTab(QWidget):
                 # Convert QColor to a normalized RGB tuple that VTK expects (range 0 to 1)
                 color_rgb = (color.red() / 255, color.green() / 255, color.blue() / 255)
 
-                self.colorbar_manger.change_font(font, color_rgb)
+                self.particles_colorbar_manager.change_font(font, color_rgb)
                 self.vtkWidget.GetRenderWindow().Render()
 
     def change_division_number(self):
@@ -260,7 +266,7 @@ class ResultsTab(QWidget):
     def apply_divs(self, divs_str):
         try:
             divs = int(divs_str)
-            self.colorbar_manger.change_divs(divs)
+            self.particles_colorbar_manager.change_divs(divs)
             self.vtkWidget.GetRenderWindow().Render()
         except ValueError:
             QMessageBox.warning(self, "Invalid Input",
@@ -270,7 +276,7 @@ class ResultsTab(QWidget):
         if not hasattr(self, 'colorbar_manger'):
             return
         
-        self.colorbar_manger.reset_to_default()
+        self.particles_colorbar_manager.reset_to_default()
         self.apply_divs(str(self.default_num_labels))
         self.vtkWidget.GetRenderWindow().Render()
 
@@ -315,16 +321,21 @@ class ResultsTab(QWidget):
                 self, "Error", f"Failed to save screenshot: {e}")
     
     def save_scene(self, logConsole, fontColor, actors_file='scene_actors_resultsTab.vtk', camera_file='scene_camera_resultsTab.json', colorbar_file='scene_colorbar_resultsTab.json'):
-        ProjectManager.save_scene(self.renderer, logConsole, fontColor, self.colorbar_manger, actors_file, camera_file, colorbar_file)
-        ProjectManager.save_colorbar_manager(self.colorbar_manger, logConsole, colorbar_file)
+        ProjectManager.save_scene(self.renderer, logConsole, fontColor, self.particles_colorbar_manager, actors_file, camera_file, colorbar_file)
+        ProjectManager.save_colorbar_manager(self.particles_colorbar_manager, logConsole, colorbar_file)
 
     def load_scene(self, logConsole, fontColor, actors_file='scene_actors_resultsTab.vtk', camera_file='scene_camera_resultsTab.json', colorbar_file='scene_colorbar_resultsTab.json'):
         ProjectManager.load_scene(self.vtkWidget, self.renderer, logConsole, fontColor, actors_file, camera_file)
-        self.colorbar_manger = ProjectManager.load_colorbar_manager(self.vtkWidget, self.renderer, logConsole, colorbar_file)
+        self.particles_colorbar_manager = ProjectManager.load_colorbar_manager(self.vtkWidget, self.renderer, logConsole, colorbar_file)
         self.add_colorbar_and_color_objects()
 
     def add_colorbar_and_color_objects(self):
-        if self.colorbar_manger:
-            self.colorbar_manger.add_colorbar('Particle Count')
-            self.colorbar_manger.apply_color_to_actor(self.actor)
+        if self.particles_colorbar_manager:
+            self.particles_colorbar_manager.add_colorbar('Particle Count')
+            self.particles_colorbar_manager.apply_color_to_actor(self.actor)
 
+    def on_state_changed(self, state):
+        if state == Qt.Checked:
+            self.EF_manager.load_pos_file()
+        elif state == Qt.Unchecked:
+            self.EF_manager.cleanup()

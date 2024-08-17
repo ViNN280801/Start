@@ -1,3 +1,5 @@
-from .colorbar_manager import *
+from .electric_field_colorbar_manager import ElectricFieldColorBarManager
+from .electric_field_manager import ElectricFieldManager
 from .mesh_visualizer import MeshVisualizer
 from .particle_animator import ParticleAnimator
+from .particles_colorbar_manager import ParticlesColorbarManager

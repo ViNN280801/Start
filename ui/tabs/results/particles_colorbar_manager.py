@@ -1,14 +1,16 @@
-from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from vtk import vtkRenderer, vtkScalarBarActor, vtkLookupTable, vtkFloatArray, vtkStringArray, vtkActor
+from vtk import vtkScalarBarActor, vtkLookupTable, vtkFloatArray, vtkStringArray, vtkActor
 from json import dump, load
 
 
-class ColorbarManager:
-    def __init__(self, vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, mesh_data, actor: vtkActor):
+class ParticlesColorbarManager:
+    def __init__(self, parent, mesh_data=None, actor: vtkActor=None):
+        self.results_tab = parent
+        
         self.scalarBar = vtkScalarBarActor()
         self.mesh_data = mesh_data
         self.actor = actor
-        self.renderer = renderer
+        self.renderer = parent.renderer
+        self.vtkWidget = parent.vtkWidget
         self.default_num_labels = 5  # Default labels count
         self.setup_colormap()
 
@@ -18,6 +20,8 @@ class ColorbarManager:
     def setup_default_scalarbar_properties(self):
         self.scalarBar.SetWidth(0.1)
         self.scalarBar.SetHeight(0.75)
+        self.scalarBar.SetDragable(True)
+        self.scalarBar.SetLabelFormat("%.0f") # Count of particles is natural number
         text_property = self.scalarBar.GetLabelTextProperty()
         text_property.SetFontSize(12)
         text_property.SetFontFamilyAsString("Noto Sans SemiBold")
@@ -179,4 +183,4 @@ class ColorbarManager:
     @staticmethod
     def from_properties(vtkWidget, renderer, properties):
         actor = properties['actor']
-        return ColorbarManager(vtkWidget, renderer, properties['mesh_data'], actor)
+        return ParticlesColorbarManager(vtkWidget, renderer, properties['mesh_data'], actor)
