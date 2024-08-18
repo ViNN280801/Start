@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMessageBox
 from vtk import (
-    vtkActor, vtkRenderer, vtkPolyDataNormals, vtkMath,
-    vtkArrowSource, vtkTransform, vtkTransformPolyDataFilter,
+    vtkActor, vtkRenderer, vtkPolyDataNormals, vtkPoints,
+    vtkArrowSource, vtkPolyData, vtkGlyph3D, vtkFloatArray,
     vtkPolyDataMapper
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
@@ -63,33 +63,27 @@ class SurfaceArrowManager:
             self.log_console.printError(f"Error setting particle source. {e}")
             QMessageBox.warning(self.geditor, "Particle Source", f"Error setting particle source. {e}")
             return None
-
-    def add_arrows(self, arrows):
-        for arrow_actor, _, _ in arrows:
-            self.renderer.AddActor(arrow_actor)
-        self.render_editor_window()
-
-    def remove_arrows(self, arrows):
-        for arrow_actor, _, _ in arrows:
-            self.renderer.RemoveActor(arrow_actor)
-        self.render_editor_window()
-
+    
     def update_arrow_sizes(self, size):
-        for arrow_actor, cell_center, normal in self.arrows_outside:
-            self.renderer.RemoveActor(arrow_actor)
-        for arrow_actor, cell_center, normal in self.arrows_inside:
-            self.renderer.RemoveActor(arrow_actor)
+        self.arrow_size = size
 
-        self.arrows_outside = [
-            (self.create_arrow_actor(cell_center, normal, size), cell_center, normal)
-            for _, cell_center, normal in self.arrows_outside
-        ]
-        self.arrows_inside = [
-            (self.create_arrow_actor(cell_center, normal, size), cell_center, normal)
-            for _, cell_center, normal in self.arrows_inside
-        ]
+        # Update only the inside glyph if it's active
+        if hasattr(self, 'glyph_actor_inside'):
+            positions_inside = self.original_positions_inside
+            directions_inside = self.original_directions_inside
+            
+            self.renderer.RemoveActor(self.glyph_actor_inside)
+            self.glyph_actor_inside = self.create_glyphs(positions_inside, directions_inside, self.arrow_size)
+            self.renderer.AddActor(self.glyph_actor_inside)
 
-        self.add_arrows(self.arrows_outside)
+        # Update only the outside glyph if it's active
+        if hasattr(self, 'glyph_actor_outside'):
+            positions_outside = self.original_positions_outside
+            directions_outside = self.original_directions_outside
+
+            self.renderer.RemoveActor(self.glyph_actor_outside)
+            self.glyph_actor_outside = self.create_glyphs(positions_outside, directions_outside, self.arrow_size)
+            self.renderer.AddActor(self.glyph_actor_outside)
 
     def populate_data(self, arrows, data):
         for arrow_actor, cell_center, normal in arrows:
@@ -102,64 +96,105 @@ class SurfaceArrowManager:
         normals = self.calculate_normals(poly_data)
 
         if not normals:
-            self.log_console.printWarning(
-                "No normals found for the selected surface")
-            QMessageBox.warning(self.geditor, "Normals Calculation",
-                                "No normals found for the selected surface")
+            self.log_console.printWarning("No normals found for the selected surface")
+            QMessageBox.warning(self.geditor, "Normals Calculation", "No normals found for the selected surface")
             return
 
         self.num_cells = poly_data.GetNumberOfCells()
-        self.arrows_outside = []
-        self.arrows_inside = []
+        self.positions_outside = []
+        self.directions_outside = []
+        self.positions_inside = []
+        self.directions_inside = []
         self.data = {}
 
         for i in range(self.num_cells):
             normal = normals.GetTuple(i)
-            rev_normal = tuple(-n if n != 0 else 0.0 for n in normal)
+            rev_normal = tuple(-n for n in normal)
             cell = poly_data.GetCell(i)
             cell_center = self.calculate_cell_center(cell)
 
-            arrow_outside = self.create_arrow_actor(
-                cell_center, normal, self.arrow_size)
-            arrow_inside = self.create_arrow_actor(
-                cell_center, rev_normal, self.arrow_size)
+            self.positions_outside.append(cell_center)
+            self.directions_outside.append(normal)
+            self.positions_inside.append(cell_center)
+            self.directions_inside.append(rev_normal)
 
-            self.arrows_outside.append((arrow_outside, cell_center, normal))
-            self.arrows_inside.append((arrow_inside, cell_center, rev_normal))
-        self.add_arrows(self.arrows_outside)
+            self.data[hex(id(cell))] = {"cell_center": cell_center, "normal": normal}
+
+        self.original_positions_outside = list(self.positions_outside)
+        self.original_directions_outside = list(self.directions_outside)
+        self.original_positions_inside = list(self.positions_inside)
+        self.original_directions_inside = list(self.directions_inside)
+
+        self.glyph_actor_outside = self.create_glyphs(self.positions_outside, self.directions_outside, self.arrow_size)
+        self.renderer.AddActor(self.glyph_actor_outside)
+        self.render_editor_window()
 
         self.normal_orientation_dialog = NormalOrientationDialog(self.arrow_size, self.geditor)
         self.normal_orientation_dialog.orientation_accepted.connect(self.handle_outside_confirmation)
-        self.normal_orientation_dialog.size_changed.connect(self.update_arrow_sizes)  # Connect the size change signal
+        self.normal_orientation_dialog.size_changed.connect(self.update_arrow_sizes)
+        self.normal_orientation_dialog.rejected.connect(self.cleanup)
         self.normal_orientation_dialog.show()
 
     def handle_outside_confirmation(self, confirmed, size):
         self.arrow_size = size
         if confirmed:
-            self.populate_data(self.arrows_outside, self.data)
             self.finalize_surface_selection()
             self.particle_source_dialog.show()
         else:
-            self.remove_arrows(self.arrows_outside)
-            self.add_arrows(self.arrows_inside)
+            # Remove the outside glyph
+            if hasattr(self, 'glyph_actor_outside'):
+                self.renderer.RemoveActor(self.glyph_actor_outside)
+                del self.glyph_actor_outside
+
+            # Recreate inside glyph
+            positions = self.positions_inside
+            directions = self.directions_inside
+
+            if hasattr(self, 'glyph_actor_inside'):
+                self.renderer.RemoveActor(self.glyph_actor_inside)
+            
+            self.glyph_actor_inside = self.create_glyphs(positions, directions, self.arrow_size)
+            self.renderer.AddActor(self.glyph_actor_inside)
+
             self.normal_orientation_dialog = NormalOrientationDialog(self.arrow_size, self.geditor)
             self.normal_orientation_dialog.msg_label.setText("Do you want to set normals inside?")
             self.normal_orientation_dialog.orientation_accepted.connect(self.handle_inside_confirmation)
-            self.normal_orientation_dialog.size_changed.connect(self.update_arrow_sizes)  # Connect the size change signal
+            self.normal_orientation_dialog.size_changed.connect(self.update_arrow_sizes)
+            self.normal_orientation_dialog.rejected.connect(self.cleanup)
             self.normal_orientation_dialog.show()
 
     def handle_inside_confirmation(self, confirmed, size):
         self.arrow_size = size
         if confirmed:
-            self.populate_data(self.arrows_inside, self.data)
+            positions_inside = [data['cell_center'] for data in self.data.values()]
+            directions_inside = [(-normal[0], -normal[1], -normal[2]) for normal in self.directions_outside]
+
+            if hasattr(self, 'glyph_actor_inside'):
+                self.renderer.RemoveActor(self.glyph_actor_inside)
+
+            self.glyph_actor_inside = self.create_glyphs(positions_inside, directions_inside, self.arrow_size)
+            self.renderer.AddActor(self.glyph_actor_inside)
+
             self.finalize_surface_selection()
             self.particle_source_dialog.show()
         else:
-            self.remove_arrows(self.arrows_inside)
+            self.cleanup()
+
+    def cleanup(self):
+        # Remove the outside glyph if it exists
+        if hasattr(self, 'glyph_actor_outside'):
+            self.renderer.RemoveActor(self.glyph_actor_outside)
+            del self.glyph_actor_outside
+
+        # Remove the inside glyph if it exists
+        if hasattr(self, 'glyph_actor_inside'):
+            self.renderer.RemoveActor(self.glyph_actor_inside)
+            del self.glyph_actor_inside
+
+        self.render_editor_window()
 
     def finalize_surface_selection(self):
-        self.remove_arrows(self.arrows_outside)
-        self.remove_arrows(self.arrows_inside)
+        self.cleanup()
 
         if not self.data:
             return
@@ -170,7 +205,6 @@ class SurfaceArrowManager:
             cellCentre = values['cell_center']
             normal = values['normal']
             self.log_console.printInfo(f"<{surface_address}> | <{arrow_address}>: [{cellCentre[0]:.2f}, {cellCentre[1]:.2f}, {cellCentre[2]:.2f}] - ({normal[0]:.2f}, {normal[1]:.2f}, {normal[2]:.2f})")
-            surface_address = next(iter(self.data))
 
         self.geditor.deselect()
 
@@ -205,43 +239,38 @@ class SurfaceArrowManager:
             cell_center[2] += point[2]
         return [coord / num_points for coord in cell_center]
 
-    def create_arrow_actor(self, position, direction, arrow_size):
+    def create_glyphs(self, positions, directions, arrow_size):
         arrow_source = vtkArrowSource()
         arrow_source.SetTipLength(0.2)
         arrow_source.SetShaftRadius(0.02)
         arrow_source.SetTipResolution(100)
 
-        transform = vtkTransform()
-        transform.Translate(position)
-        transform.Scale(arrow_size, arrow_size, arrow_size)
+        points = vtkPoints()
+        vectors = vtkFloatArray()
+        vectors.SetNumberOfComponents(3)
+        vectors.SetName("Normals")
 
-        direction_list = list(direction)
-        norm = vtkMath.Norm(direction_list)
-        if norm > 0:
-            vtkMath.Normalize(direction_list)
-            x_axis = [1, 0, 0]
-            angle = vtkMath.AngleBetweenVectors(x_axis, direction_list)
+        for pos, dir in zip(positions, directions):
+            points.InsertNextPoint(pos)
+            vectors.InsertNextTuple(dir)
 
-            if direction == [-1.0, 0.0, 0.0] or direction == [1.0, 0.0, 0.0]:
-                rotation_axis = [0.0, 1.0, 0.0]
-            else:
-                rotation_axis = [0.0, 0.0, 0.0]
-                vtkMath.Cross(x_axis, direction_list, rotation_axis)
-                if vtkMath.Norm(rotation_axis) == 0:
-                    rotation_axis = [0.0, 1.0, 0.0]
-            transform.RotateWXYZ(
-                vtkMath.DegreesFromRadians(angle), *rotation_axis)
+        poly_data = vtkPolyData()
+        poly_data.SetPoints(points)
+        poly_data.GetPointData().SetVectors(vectors)
 
-        transform_filter = vtkTransformPolyDataFilter()
-        transform_filter.SetInputConnection(arrow_source.GetOutputPort())
-        transform_filter.SetTransform(transform)
-        transform_filter.Update()
+        glyph3D = vtkGlyph3D()
+        glyph3D.SetSourceConnection(arrow_source.GetOutputPort())
+        glyph3D.SetInputData(poly_data)
+        glyph3D.SetVectorModeToUseVector()
+        glyph3D.SetScaleModeToScaleByVector()
+        glyph3D.SetScaleFactor(arrow_size)
+        glyph3D.Update()
 
         mapper = vtkPolyDataMapper()
-        mapper.SetInputConnection(transform_filter.GetOutputPort())
+        mapper.SetInputConnection(glyph3D.GetOutputPort())
 
-        arrow_actor = vtkActor()
-        arrow_actor.SetMapper(mapper)
-        arrow_actor.GetProperty().SetColor(DEFAULT_ARROW_ACTOR_COLOR)
+        glyph_actor = vtkActor()
+        glyph_actor.SetMapper(mapper)
+        glyph_actor.GetProperty().SetColor(DEFAULT_ARROW_ACTOR_COLOR)
 
-        return arrow_actor
+        return glyph_actor

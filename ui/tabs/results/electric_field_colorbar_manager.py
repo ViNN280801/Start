@@ -44,12 +44,19 @@ class ElectricFieldColorBarManager:
         title_text_property.SetItalic(False)
         title_text_property.SetColor(0, 0, 0)
         
+        # Set the position of the scalar bar (shift to the left)
+        current_position = self.scalarBar.GetPosition()
+        new_position_x = current_position[0] - 0.1  # Shift left
+        new_position_y = current_position[1]
+        self.scalarBar.SetPosition(new_position_x, new_position_y)
+        
     def _setup_lookup_table(self):
         self.lookup_table = vtkLookupTable()
         self.lookup_table.SetNumberOfTableValues(256)
-        self.lookup_table.SetRange(self.max_magnitude, self.max_magnitude)
+        self.lookup_table.SetRange(self.min_magnitude, self.max_magnitude)
         for i in range(256):
             ratio = i / 255.0
             self.lookup_table.SetTableValue(i, ratio, 0, 1 - ratio)
         self.lookup_table.Build()
         self.scalarBar.SetLookupTable(self.lookup_table)
+
