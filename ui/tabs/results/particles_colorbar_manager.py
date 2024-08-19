@@ -11,7 +11,11 @@ class ParticlesColorbarManager:
         self.actor = actor
         self.renderer = parent.renderer
         self.vtkWidget = parent.vtkWidget
-        self.default_num_labels = 5  # Default labels count
+        
+        self.default_num_labels = 5
+        self.default_width = 0.1
+        self.default_height = 0.75
+        
         self.setup_colormap()
 
         # Setting default style of the scalar bar
@@ -24,8 +28,8 @@ class ParticlesColorbarManager:
         self.scalarBar.SetVisibility(True)
         
     def setup_default_scalarbar_properties(self):
-        self.scalarBar.SetWidth(0.1)
-        self.scalarBar.SetHeight(0.75)
+        self.scalarBar.SetWidth(self.default_width)
+        self.scalarBar.SetHeight(self.default_height)
         self.scalarBar.SetDragable(True)
         self.scalarBar.SetLabelFormat("%.0f") # Count of particles is natural number
         text_property = self.scalarBar.GetLabelTextProperty()
@@ -41,6 +45,8 @@ class ParticlesColorbarManager:
         title_text_property.SetBold(True)
         title_text_property.SetItalic(False)
         title_text_property.SetColor(0, 0, 0)
+        
+        self.change_divs(self.default_num_labels)
 
     def setup_colormap(self):
         self.max_count = max(triangle[5] for triangle in self.mesh_data)

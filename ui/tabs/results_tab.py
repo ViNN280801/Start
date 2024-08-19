@@ -195,7 +195,7 @@ class ResultsTab(QWidget):
         context_menu.exec_(self.mapToGlobal(self.scalarBarSettingsButton.pos()))
 
     def change_scale(self):
-        if not hasattr(self, 'colorbar_manger'):
+        if not hasattr(self, 'particles_colorbar_manager'):
             return
         
         dialog = QDialog(self)
@@ -238,7 +238,7 @@ class ResultsTab(QWidget):
             QMessageBox.warning(self, "Invalid Input", f"Width and height must be numeric: {e}")
 
     def change_font(self):
-        if not hasattr(self, 'colorbar_manger'):
+        if not hasattr(self, 'particles_colorbar_manager'):
             return
         
         font, ok = QFontDialog.getFont()
@@ -252,7 +252,7 @@ class ResultsTab(QWidget):
                 self.vtkWidget.GetRenderWindow().Render()
 
     def change_division_number(self):
-        if not hasattr(self, 'colorbar_manger'):
+        if not hasattr(self, 'particles_colorbar_manager'):
             return
         
         dialog = QDialog(self)
@@ -285,11 +285,10 @@ class ResultsTab(QWidget):
                                 "Division number must be numeric")
 
     def reset_to_default(self):
-        if not hasattr(self, 'colorbar_manger'):
+        if not hasattr(self, 'particles_colorbar_manager'):
             return
         
         self.particles_colorbar_manager.reset_to_default()
-        self.apply_divs(str(self.default_num_labels))
         self.vtkWidget.GetRenderWindow().Render()
 
     def save_screenshot(self):
