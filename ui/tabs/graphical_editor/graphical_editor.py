@@ -461,9 +461,10 @@ class GraphicalEditor(QFrame):
     def create_point(self):
         dialog = PointDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            point = dialog.getPoint()
             try:
+                point = dialog.getPoint()
                 point_actor = GeometryManager.create_point(point)
+            
                 if point_actor:
                     add_actor(self.vtkWidget, self.renderer, point_actor)
                     
@@ -476,10 +477,10 @@ class GraphicalEditor(QFrame):
     def create_line(self):
         dialog = LineDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            line = dialog.getLine()
-
             try:
+                line = dialog.getLine()
                 line_actor = GeometryManager.create_line(line)
+
                 if line_actor:
                     add_actor(self.vtkWidget, self.renderer, line_actor)
                     
@@ -492,9 +493,10 @@ class GraphicalEditor(QFrame):
     def create_surface(self):
         dialog = SurfaceDialog(self)
         if dialog.exec_() == QDialog.Accepted:
-            surface = dialog.getSurface()
             try:
+                surface = dialog.getSurface()
                 surface_actor = GeometryManager.create_surface(surface)
+                
                 if surface_actor:
                     add_actor(self.vtkWidget, self.renderer, surface_actor)
                     
@@ -507,10 +509,10 @@ class GraphicalEditor(QFrame):
     def create_sphere(self):
         dialog = SphereDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            sphere = dialog.getSphere()
-
             try:
+                sphere = dialog.getSphere()
                 sphere_actor = GeometryManager.create_sphere(sphere)
+                
                 if sphere_actor:
                     add_actor(self.vtkWidget, self.renderer, sphere_actor)
                     
@@ -523,10 +525,10 @@ class GraphicalEditor(QFrame):
     def create_box(self):
         dialog = BoxDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            box = dialog.getBox()
-            
             try:
+                box = dialog.getBox()
                 box_actor = GeometryManager.create_box(box)
+                
                 if box_actor:
                     add_actor(self.vtkWidget, self.renderer, box_actor)
                     
@@ -539,10 +541,10 @@ class GraphicalEditor(QFrame):
     def create_cone(self):        
         dialog = ConeDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            cone = dialog.getCone()
-
             try:
+                cone = dialog.getCone()
                 cone_actor = GeometryManager.create_cone(cone)
+
                 if cone_actor:
                     add_actor(self.vtkWidget, self.renderer, cone_actor)
                     
@@ -555,10 +557,10 @@ class GraphicalEditor(QFrame):
     def create_cylinder(self):
         dialog = CylinderDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
-            cylinder = dialog.getCylinder()
-
             try:
+                cylinder = dialog.getCylinder()
                 cylinder_actor = GeometryManager.create_cylinder(cylinder)
+
                 if cylinder_actor:
                     add_actor(self.vtkWidget, self.renderer, cylinder_actor)
                     
