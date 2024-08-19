@@ -71,7 +71,7 @@ class GMSHGeometryCreator:
             surface_tag = -1
             
             for idx, (x, y, z) in enumerate(surface.points, start=1):
-                tag = model.occ.addPoint(x, y, z, tag=idx)
+                tag = model.occ.addPoint(x, y, z)
                 check_tag(tag)
             for i in range(len(surface.points)):
                 tag = model.occ.addLine(i + 1, ((i + 1) % len(surface.points)) + 1)
