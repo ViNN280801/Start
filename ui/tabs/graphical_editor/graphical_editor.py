@@ -495,6 +495,9 @@ class GraphicalEditor(QFrame):
         if dialog.exec_() == QDialog.Accepted:
             try:
                 surface = dialog.getSurface()
+                if not surface:
+                    return
+                
                 surface_actor = GeometryManager.create_surface(surface)
                 
                 if surface_actor:

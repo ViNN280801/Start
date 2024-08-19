@@ -114,7 +114,11 @@ class SurfaceDialog(QDialog):
         return values
 
     def getSurface(self):
-        values = self.getValues()
-        if values is not None and len(values) >= 9:
-            points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
-        return Surface(points)
+        try:
+            values = self.getValues()
+            if values is not None and len(values) >= 9:
+                points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
+            return Surface(points)
+        except Exception as e:
+            QMessageBox.warning(self, "Points Error", f"Can't create surface with specified points: {points}")
+            return None
