@@ -32,6 +32,7 @@ class ResultsTab(QWidget):
         self.setup_axes()
         self.setup_particle_animator()
 
+        self.mesh_actor = None
         self.particles_colorbar_manager = None
         self.EF_manager = ElectricFieldManager(self)
 
@@ -117,8 +118,13 @@ class ResultsTab(QWidget):
             40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.toolbarLayout.addSpacerItem(self.spacer)
         
+        self.viewMeshCheckBox = QCheckBox("Hide mesh")
+        self.viewMeshCheckBox.stateChanged.connect(self.on_viewMeshCheckBox_state_changed)
+        self.viewMeshCheckBox.setVisible(False)
+        self.toolbarLayout.addWidget(self.viewMeshCheckBox)
+        
         self.posFileCheckbox = QCheckBox("Load .pos file")
-        self.posFileCheckbox.stateChanged.connect(self.on_state_changed)
+        self.posFileCheckbox.stateChanged.connect(self.on_posFileCheckbox_state_changed)
         self.toolbarLayout.addWidget(self.posFileCheckbox)
         
     def show_animation(self):
@@ -139,9 +145,12 @@ class ResultsTab(QWidget):
             self.handler = HDF5Handler(hdf5_filename)
             self.mesh_data = self.handler.read_mesh_from_hdf5()
             self.mesh_visualizer = MeshVisualizer(self.renderer, self.mesh_data)
-            colored_actor = self.mesh_visualizer.render_mesh()
+            self.mesh_actor = self.mesh_visualizer.create_colored_mesh_actor()
             
-            self.particles_colorbar_manager = ParticlesColorbarManager(self, self.mesh_data, colored_actor)
+            if self.mesh_actor is not None:
+                self.viewMeshCheckBox.setVisible(True)                
+            
+            self.particles_colorbar_manager = ParticlesColorbarManager(self, self.mesh_data, self.mesh_actor)
             self.particles_colorbar_manager.add_colorbar('Particle Count')
             
         except Exception as e:
@@ -154,6 +163,9 @@ class ResultsTab(QWidget):
         self.vtkWidget.GetRenderWindow().Render()
 
     def clear_plot(self):
+        self.mesh_actor = None
+        self.viewMeshCheckBox.setVisible(False)
+        
         self.renderer.RemoveAllViewProps()
         self.vtkWidget.GetRenderWindow().Render()
 
@@ -319,22 +331,17 @@ class ResultsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(
                 self, "Error", f"Failed to save screenshot: {e}")
-    
-    def save_scene(self, logConsole, fontColor, actors_file='scene_actors_resultsTab.vtk', camera_file='scene_camera_resultsTab.json', colorbar_file='scene_colorbar_resultsTab.json'):
-        ProjectManager.save_scene(self.renderer, logConsole, fontColor, self.particles_colorbar_manager, actors_file, camera_file, colorbar_file)
-        ProjectManager.save_colorbar_manager(self.particles_colorbar_manager, logConsole, colorbar_file)
+            
+    def on_viewMeshCheckBox_state_changed(self, state):
+        if state == Qt.Checked:
+            self.mesh_actor.SetVisibility(False)
+            self.particles_colorbar_manager.hide()
+        elif state == Qt.Unchecked:
+            self.mesh_actor.SetVisibility(True)
+            self.particles_colorbar_manager.show()
+        self.vtkWidget.GetRenderWindow().Render()
 
-    def load_scene(self, logConsole, fontColor, actors_file='scene_actors_resultsTab.vtk', camera_file='scene_camera_resultsTab.json', colorbar_file='scene_colorbar_resultsTab.json'):
-        ProjectManager.load_scene(self.vtkWidget, self.renderer, logConsole, fontColor, actors_file, camera_file)
-        self.particles_colorbar_manager = ProjectManager.load_colorbar_manager(self.vtkWidget, self.renderer, logConsole, colorbar_file)
-        self.add_colorbar_and_color_objects()
-
-    def add_colorbar_and_color_objects(self):
-        if self.particles_colorbar_manager:
-            self.particles_colorbar_manager.add_colorbar('Particle Count')
-            self.particles_colorbar_manager.apply_color_to_actor(self.actor)
-
-    def on_state_changed(self, state):
+    def on_posFileCheckbox_state_changed(self, state):
         if state == Qt.Checked:
             self.EF_manager.load_pos_file()
         elif state == Qt.Unchecked:

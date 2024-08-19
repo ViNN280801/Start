@@ -33,7 +33,7 @@ class MeshVisualizer:
             self.lookup_table.SetTableValue(i, ratio, 0, 1 - ratio)
         self.lookup_table.Build()
     
-    def render_mesh(self):
+    def create_colored_mesh_actor(self):
         points = vtkPoints()
         cells = vtkCellArray()
         scalars = vtkFloatArray()

@@ -17,6 +17,12 @@ class ParticlesColorbarManager:
         # Setting default style of the scalar bar
         self.setup_default_scalarbar_properties()
         
+    def hide(self):
+        self.scalarBar.SetVisibility(False)
+    
+    def show(self):
+        self.scalarBar.SetVisibility(True)
+        
     def setup_default_scalarbar_properties(self):
         self.scalarBar.SetWidth(0.1)
         self.scalarBar.SetHeight(0.75)
