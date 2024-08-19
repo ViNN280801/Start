@@ -1,3 +1,4 @@
+import stat
 from vtk import vtkActor
 
 from tabs.graphical_editor.geometry.point import Point
@@ -355,6 +356,22 @@ class GeometryManager:
         GeometryManager.add(out_data_part2, out_actor2, out_dimtags2)
         
         return out_actor1, out_actor2
+    
+    @staticmethod
+    def process_surfaces():
+        """
+        Process all surfaces and add them to a physical group in Gmsh.
+        This method is called within the `mesh` method to ensure that all surfaces
+        are properly prepared for meshing.
+        """
+        from gmsh import model
+        
+        surface_tags = []
+        for _, actor, dimtags in GeometryManager.geometries:
+            surface_tags.extend([tag for dim, tag in dimtags if dim == 2])
+
+        if surface_tags:
+            model.addPhysicalGroup(2, surface_tags, tag=1)
 
     @staticmethod
     def mesh(filename: str, mesh_dim: int, mesh_size: float) -> bool:
@@ -364,8 +381,11 @@ class GeometryManager:
         check_mesh_dim(mesh_dim)
         check_mesh_size(mesh_size)
         
-        created_objects = [obj for obj, actor, dimtags in GeometryManager.geometries]        
-        try:            
+        created_objects = [obj for obj, actor, dimtags in GeometryManager.geometries]
+        try:
+            # 0. Extending physical group for surface before meshing
+            GeometryManager.process_surfaces()
+            
             # 1. Meshing all obejcts from the internal storage with specified mesh parameters
             # * Methods `create_<obj>` creates geometries in one gmsh session, so we just need to write the meshes down to the file .msh
             option.setNumber("Mesh.MeshSizeMin", mesh_size)
