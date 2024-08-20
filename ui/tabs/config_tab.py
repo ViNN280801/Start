@@ -3,7 +3,7 @@ from json import load, dump, JSONDecodeError
 from util.path_file_checkers import *
 from util.physical_measurement_units_converter import PhysicalMeasurementUnitsConverter
 from util.util import get_os_info
-from field_validators import CustomIntValidator, CustomDoubleValidator
+from field_validators import CustomIntValidator, CustomDoubleValidator, CustomSignedDoubleValidator
 from styles import *
 from .configurations import *
 from dialogs import MeshDialog
@@ -205,9 +205,9 @@ class ConfigTab(QWidget):
             str(DEFAULT_TEMPERATURE))
         self.temperature_input.setToolTip(HINT_CONFIG_TEMPERATURE)
         self.temperature_input.setValidator(
-            CustomDoubleValidator(LIMIT_CONFIG_MIN_TEMPERATURE,
-                                  LIMIT_CONFIG_MAX_TEMPERATURE,
-                                  SIM_PARAMS_PRECISION_TEMPERATURE))
+            CustomSignedDoubleValidator(LIMIT_CONFIG_MIN_TEMPERATURE,
+                                         LIMIT_CONFIG_MAX_TEMPERATURE,
+                                    SIM_PARAMS_PRECISION_TEMPERATURE))
 
         # Pressure with units
         self.pressure_input, self.pressure_units, self.pressure_converted = self.create_simulation_field(
