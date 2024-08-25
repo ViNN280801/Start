@@ -98,6 +98,50 @@ double MathVector::calculateTriangleArea(MathVector &&A,
            2.0;
 }
 
+double &MathVector::operator[](int k)
+{
+    switch (k)
+    {
+    case 0:
+        return x;
+    case 1:
+        return y;
+    case 2:
+        return z;
+    default:
+        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+    }
+}
+
+double const &MathVector::operator[](int k) const
+{
+    switch (k)
+    {
+    case 0:
+        return x;
+    case 1:
+        return y;
+    case 2:
+        return z;
+    default:
+        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+    }
+}
+
+double &MathVector::at(int k)
+{
+    if (k < 0 || k > 2)
+        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+    return (*this)[k];
+}
+
+double const &MathVector::at(int k) const
+{
+    if (k < 0 || k > 2)
+        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+    return (*this)[k];
+}
+
 MathVector MathVector::operator-() { return MathVector(-x, -y, -z); }
 
 MathVector MathVector::operator-(MathVector const &other) const { return MathVector(x - other.x, y - other.y, z - other.z); }
