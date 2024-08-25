@@ -6,7 +6,7 @@
 
 #include "../include/ParticleTracker/Grid3D.hpp"
 
-Grid3D::Grid3D(VolumetricMeshData const &meshData, double edgeSize)
+Grid3D::Grid3D(TetrahedronMeshManager const &meshData, double edgeSize)
     : m_cubeEdgeSize(edgeSize), m_meshData(meshData)
 {
     if (m_meshData.empty())
@@ -81,9 +81,9 @@ bool Grid3D::isInsideTetrahedronMesh(Point const &point) const
     return checks.any();
 }
 
-std::vector<VolumetricMeshData::TetrahedronData> Grid3D::getTetrahedronsByGridIndex(GridIndex const &index) const
+std::vector<TetrahedronMeshManager::TetrahedronData> Grid3D::getTetrahedronsByGridIndex(GridIndex const &index) const
 {
-    std::vector<VolumetricMeshData::TetrahedronData> meshParams;
+    std::vector<TetrahedronMeshManager::TetrahedronData> meshParams;
     for (auto const &[tetrId, cells] : m_tetrahedronCells)
         if (std::ranges::find(cells.begin(), cells.end(), index) != cells.end())
             meshParams.push_back(m_meshData.getMeshDataByTetrahedronId(tetrId).value());

@@ -3,7 +3,7 @@
 
 /* ATTENTION: Works well only for the polynom order = 1. */
 
-#include "TrilinosTypes.hpp"
+#include "FEMTypes.hpp"
 
 class SolutionVector
 {

@@ -1,7 +1,7 @@
 #ifndef RAYTRIANGLEINTERSECTION_HPP
 #define RAYTRIANGLEINTERSECTION_HPP
 
-#include "CGALTypes.hpp"
+#include "GeometryTypes.hpp"
 
 class RayTriangleIntersection
 {
