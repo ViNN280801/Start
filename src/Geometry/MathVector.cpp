@@ -128,6 +128,20 @@ double const &MathVector::operator[](int k) const
     }
 }
 
+double &MathVector::operator()(int k)
+{
+    if (k < 0 || k > 2)
+        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+    return (*this)[k];
+}
+
+double const &MathVector::operator()(int k) const
+{
+    if (k < 0 || k > 2)
+        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+    return (*this)[k];
+}
+
 double &MathVector::at(int k)
 {
     if (k < 0 || k > 2)

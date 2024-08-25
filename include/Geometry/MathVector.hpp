@@ -127,6 +127,8 @@ public:
 
     double &operator[](int k);
     double const &operator[](int k) const;
+    double &operator()(int k);
+    double const &operator()(int k) const;
     double &at(int k);
     double const &at(int k) const;
 
