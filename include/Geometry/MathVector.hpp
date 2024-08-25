@@ -125,6 +125,13 @@ public:
                                         MathVector &&B,
                                         MathVector &&C);
 
+    double &operator[](int k);
+    double const &operator[](int k) const;
+    double &operator()(int k);
+    double const &operator()(int k) const;
+    double &at(int k);
+    double const &at(int k) const;
+
     /// @brief Overload of unary minus. Negates all components of vector.
     MathVector operator-();
 
