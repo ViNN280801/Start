@@ -1,4 +1,4 @@
-#include "../include/ModelingMainDriver.hpp"
+#include "ModelingMainDriver.hpp"
 
 int main(int argc, char *argv[])
 {

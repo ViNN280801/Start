@@ -5,8 +5,8 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include "../include/DataHandling/HDF5Handler.hpp"
-#include "../include/ModelingMainDriver.hpp"
+#include "DataHandling/HDF5Handler.hpp"
+#include "ModelingMainDriver.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;

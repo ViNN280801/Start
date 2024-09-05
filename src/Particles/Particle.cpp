@@ -1,7 +1,7 @@
 #include <numbers>
 
-#include "../include/Generators/RealNumberGenerator.hpp"
-#include "../include/Particles/Particle.hpp"
+#include "Generators/RealNumberGenerator.hpp"
+#include "Particles/Particle.hpp"
 
 std::atomic<size_t> Particle::m_nextId{0ul};
 

@@ -1,4 +1,4 @@
-#include "../include/Geometry/RayTriangleIntersection.hpp"
+#include "Geometry/RayTriangleIntersection.hpp"
 
 bool RayTriangleIntersection::isIntersectTriangleImpl(Ray const &ray, Triangle const &triangle)
 {

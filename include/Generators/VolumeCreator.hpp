@@ -4,8 +4,8 @@
 #include <concepts>
 #include <numbers>
 
-#include "../Geometry/MathVector.hpp"
-#include "../Geometry/Mesh.hpp"
+#include "Geometry/MathVector.hpp"
+#include "Geometry/Mesh.hpp"
 
 enum VolumeType
 {

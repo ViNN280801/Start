@@ -149,7 +149,18 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include/DataHandling
+    ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod
+    ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/BoundaryConditions
+    ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/Cell
+    ${CMAKE_SOURCE_DIR}/include/Generators
+    ${CMAKE_SOURCE_DIR}/include/Geometry
+    ${CMAKE_SOURCE_DIR}/include/Particles
+    ${CMAKE_SOURCE_DIR}/include/ParticleTracker
+    ${CMAKE_SOURCE_DIR}/include/Utilities
+)
 
 add_subdirectory(src)
 

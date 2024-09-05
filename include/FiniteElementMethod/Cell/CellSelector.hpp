@@ -2,8 +2,8 @@
 #include <exception>
 #include <string>
 
-#include "../../Utilities/Utilities.hpp"
-#include "../FEMTypes.hpp"
+#include "Utilities/Utilities.hpp"
+#include "FEMTypes.hpp"
 #include "CellSelectorException.hpp"
 #include "CellType.hpp"
 

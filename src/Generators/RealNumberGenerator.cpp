@@ -5,7 +5,7 @@
 #include <iostream>
 #include <ranges>
 
-#include "../include/Generators/RealNumberGenerator.hpp"
+#include "Generators/RealNumberGenerator.hpp"
 
 // `.entropy()` returns 0.0 if random device using a software-based pseudorandom generator
 RealNumberGenerator::RealNumberGenerator() : m_engine(m_rdm_dev.entropy() ? m_rdm_dev() : time(nullptr)) {}

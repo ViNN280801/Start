@@ -4,10 +4,10 @@
 #include <CGAL/Bbox_3.h>
 #include <atomic>
 
-#include "../Geometry/GeometryTypes.hpp"
-#include "../Geometry/MathVector.hpp"
-#include "../Utilities/ConfigParser.hpp"
-#include "../Utilities/Constants.hpp"
+#include "Geometry/GeometryTypes.hpp"
+#include "Geometry/MathVector.hpp"
+#include "Utilities/ConfigParser.hpp"
+#include "Utilities/Constants.hpp"
 
 using namespace constants;
 using namespace particle_types;

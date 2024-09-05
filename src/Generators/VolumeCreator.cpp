@@ -1,6 +1,6 @@
 #include <gmsh.h>
 
-#include "../include/Generators/VolumeCreator.hpp"
+#include "Generators/VolumeCreator.hpp"
 
 Box::Box(double x_, double y_, double z_,
          double dx_, double dy_, double dz_) : x(x_), y(y_), z(z_),

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "../include/ParticleTracker/Grid3D.hpp"
+#include "ParticleTracker/Grid3D.hpp"
 
 Grid3D::Grid3D(TetrahedronMeshManager const &meshData, double edgeSize)
     : m_cubeEdgeSize(edgeSize), m_meshData(meshData)

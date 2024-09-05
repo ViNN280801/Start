@@ -1,4 +1,4 @@
-#include "../include/Geometry/MathVector.hpp"
+#include "Geometry/MathVector.hpp"
 
 void MathVector::rotate_y(double beta)
 {

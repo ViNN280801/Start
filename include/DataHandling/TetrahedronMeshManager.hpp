@@ -4,8 +4,8 @@
 #include <array>
 #include <optional>
 
-#include "../Geometry/GeometryTypes.hpp"
-#include "../Utilities/Utilities.hpp"
+#include "Geometry/GeometryTypes.hpp"
+#include "Utilities/Utilities.hpp"
 
 /**
  * @brief Class representing volumetric mesh data for a tetrahedron.

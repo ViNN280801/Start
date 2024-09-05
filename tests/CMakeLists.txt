@@ -175,7 +175,6 @@ target_link_libraries(
 include(CTest)
 enable_testing()
 
-# Adding tests
 add_test(
     NAME all_tests
     COMMAND all_tests

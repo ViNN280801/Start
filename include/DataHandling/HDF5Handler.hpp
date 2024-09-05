@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <limits>
 
-#include "../Geometry/Mesh.hpp"
+#include "Geometry/Mesh.hpp"
 
 /**
  * @brief Handles operations related to HDF5 files for storing and managing mesh data.

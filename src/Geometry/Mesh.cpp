@@ -1,9 +1,9 @@
 #include <gmsh.h>
 #include <limits>
 
-#include "../include/Geometry/MathVector.hpp"
-#include "../include/Geometry/Mesh.hpp"
-#include "../include/Utilities/Utilities.hpp"
+#include "Geometry/MathVector.hpp"
+#include "Geometry/Mesh.hpp"
+#include "Utilities/Utilities.hpp"
 
 std::ostream &operator<<(std::ostream &os, MeshTriangleParam const &meshParam)
 {

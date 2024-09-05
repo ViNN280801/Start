@@ -2,7 +2,7 @@
 #include <memory>
 #include <mutex>
 
-#include "../include/DataHandling/TetrahedronMeshManager.hpp"
+#include "DataHandling/TetrahedronMeshManager.hpp"
 
 std::unique_ptr<TetrahedronMeshManager> TetrahedronMeshManager::instance;
 std::mutex TetrahedronMeshManager::instanceMutex;

@@ -1,5 +1,6 @@
-#include "../include/FiniteElementMethod/SolutionVector.hpp"
-#include "../include/Utilities/Utilities.hpp"
+#include "FiniteElementMethod/SolutionVector.hpp"
+#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
+#include "Utilities/Utilities.hpp"
 
 SolutionVector::SolutionVector(size_t size, short polynomOrder)
     : m_comm(Tpetra::getDefaultComm()),
@@ -14,41 +15,7 @@ SolutionVector::SolutionVector(size_t size, short polynomOrder)
     }
 }
 
-void SolutionVector::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions)
-{
-    if (boundaryConditions.empty())
-    {
-        WARNINGMSG("Boundary conditions are empty, check them, maybe you forgot to fill them");
-        return;
-    }
-
-    try
-    {
-        // Setting boundary conditions to solution vector:
-        for (auto const &[nodeInGmsh, value] : boundaryConditions)
-            for (int j{}; j < m_polynomOrder; ++j)
-            {
-                // -1 because indexing in GMSH is on 1 bigger than in the program.
-                GlobalOrdinal nodeID{(nodeInGmsh - 1) * m_polynomOrder + j};
-
-                if (nodeID >= static_cast<GlobalOrdinal>(size()))
-                    throw std::runtime_error(util::stringify("Boundary condition refers to node index ",
-                                                             nodeID,
-                                                             ", which exceeds the maximum row index of ",
-                                                             size() - 1, "."));
-
-                m_solution_vector->replaceGlobalValue(nodeID, value); // Modifying the RHS vector is necessary to solve the equation Ax=b.
-            }
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(ex.what());
-    }
-    catch (...)
-    {
-        ERRMSG("Unknown error was occured while trying to apply boundary conditions on solution vector (`b`) in equation Ax=b");
-    }
-}
+void SolutionVector::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions) { BoundaryConditionsManager::set(m_solution_vector, m_polynomOrder, boundaryConditions); }
 
 size_t SolutionVector::size() const { return m_solution_vector->getGlobalLength(); }
 

@@ -1,6 +1,7 @@
-#include "../include/FiniteElementMethod/GSMatrixAssemblier.hpp"
-#include "../include/FiniteElementMethod/Cell/CellSelector.hpp"
-#include "../include/Generators/RealNumberGenerator.hpp"
+#include "FiniteElementMethod/GSMatrixAssemblier.hpp"
+#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
+#include "FiniteElementMethod/Cell/CellSelector.hpp"
+#include "Generators/RealNumberGenerator.hpp"
 
 void printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
 {
@@ -253,24 +254,6 @@ std::vector<GSMatrixAssemblier::MatrixEntry> GSMatrixAssemblier::_getMatrixEntri
     return matrixEntries;
 }
 
-void GSMatrixAssemblier::_setBoundaryConditionForNode(LocalOrdinal nodeID, Scalar value)
-{
-    size_t numEntries{m_gsmatrix->getNumEntriesInGlobalRow(nodeID)};
-    TpetraMatrixType::nonconst_global_inds_host_view_type indices("ind", numEntries);
-    TpetraMatrixType::nonconst_values_host_view_type values("val", numEntries);
-    size_t checkNumEntries{};
-
-    // 1. Fetch the current row's structure.
-    m_gsmatrix->getGlobalRowCopy(nodeID, indices, values, checkNumEntries);
-
-    // 2. Modify the values array to set the diagonal to 'value' and others to 0
-    for (size_t i{}; i < numEntries; i++)
-        values[i] = (indices[i] == nodeID) ? value : 0.0; // Set diagonal value to the value = 1, other - to 0 to correctly solve matrix equation Ax=b.
-
-    // 3. Replace the modified row back into the matrix.
-    m_gsmatrix->replaceGlobalValues(nodeID, indices, values);
-}
-
 void GSMatrixAssemblier::_assembleGlobalStiffnessMatrix()
 {
     try
@@ -340,54 +323,7 @@ GSMatrixAssemblier::GSMatrixAssemblier(std::string_view mesh_filename, short des
 
 bool GSMatrixAssemblier::empty() const { return m_gsmatrix->getGlobalNumEntries() == 0; }
 
-void GSMatrixAssemblier::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions)
-{
-    if (boundaryConditions.empty())
-    {
-        WARNINGMSG("Boundary conditions are empty, check them, maybe you forgot to fill them");
-        return;
-    }
-
-    if (empty())
-    {
-        ERRMSG("Can't set boundary conditions. Matrix is uninitialized/empty, there are no any entries");
-        return;
-    }
-
-    try
-    {
-        // 1. Ensure the matrix is in a state that allows adding or replacing entries.
-        m_gsmatrix->resumeFill();
-
-        // 2. Setting boundary conditions to global stiffness matrix:
-        for (auto const &[nodeInGmsh, value] : boundaryConditions)
-        {
-            for (int j{}; j < kdefault_polynom_order; ++j)
-            {
-                GlobalOrdinal nodeID{(nodeInGmsh - 1) * kdefault_polynom_order + j};
-
-                if (nodeID >= static_cast<GlobalOrdinal>(rows()))
-                    throw std::runtime_error(util::stringify("Boundary condition refers to node index ",
-                                                             nodeID,
-                                                             ", which exceeds the maximum row index of ",
-                                                             rows() - 1, "."));
-
-                _setBoundaryConditionForNode(nodeID, 1); // Maybe there is need to be 1, to have value = `value` in `x` vector, while solve Ax=b.
-            }
-        }
-
-        // 4. Finilizing filling of the global stiffness matrix.
-        m_gsmatrix->fillComplete();
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(ex.what());
-    }
-    catch (...)
-    {
-        ERRMSG("Unknown error was occured while trying to apply boundary conditions on global stiffness matrix");
-    }
-}
+void GSMatrixAssemblier::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions) { BoundaryConditionsManager::set(m_gsmatrix, kdefault_polynom_order, boundaryConditions); }
 
 void GSMatrixAssemblier::print() const
 {

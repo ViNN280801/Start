@@ -8,10 +8,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../DataHandling/HDF5Handler.hpp"
-#include "../Generators/VolumeCreator.hpp"
-#include "../Geometry/Mesh.hpp"
-#include "../Particles/Particle.hpp"
+#include "DataHandling/HDF5Handler.hpp"
+#include "Generators/VolumeCreator.hpp"
+#include "Geometry/Mesh.hpp"
+#include "Particles/Particle.hpp"
 #include "ConfigParser.hpp"
 
 /**

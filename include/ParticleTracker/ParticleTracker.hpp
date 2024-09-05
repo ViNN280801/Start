@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "../Particles/Particle.hpp"
+#include "Particles/Particle.hpp"
 #include "Grid3D.hpp"
 
 /**

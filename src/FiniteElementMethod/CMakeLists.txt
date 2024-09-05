@@ -10,11 +10,14 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flarge-source-files -Wmisleading-indentation")
 endif()
 
+add_subdirectory(BoundaryConditions)
 add_library(FiniteElementMethod ${FEM_SOURCES})
 
 target_link_libraries(FiniteElementMethod PRIVATE
+    FiniteElementMethod_BoundaryConditions
     ${Trilinos_LIBRARIES}
 )
 
 target_include_directories(FiniteElementMethod PRIVATE
-    ${Trilinos_INCLUDE_DIRS})
+    ${Trilinos_INCLUDE_DIRS}
+)

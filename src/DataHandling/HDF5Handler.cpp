@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <stdexcept>
 
-#include "../include/DataHandling/HDF5Handler.hpp"
+#include "DataHandling/HDF5Handler.hpp"
 
 HDF5Handler::HDF5Handler(std::string_view filename)
 {

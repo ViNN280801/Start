@@ -3,8 +3,8 @@
 
 /* ATTENTION: Works well only for the polynom order = 1. */
 
-#include "../DataHandling/TetrahedronMeshManager.hpp"
-#include "../Geometry/Mesh.hpp"
+#include "DataHandling/TetrahedronMeshManager.hpp"
+#include "Geometry/Mesh.hpp"
 #include "FEMTypes.hpp"
 
 /// @brief This class works only with `TetrahedronMeshManager` singleton object.
@@ -71,14 +71,6 @@ private:
      * @return A vector of matrix entries, each containing global row, column, and value.
      */
     std::vector<GSMatrixAssemblier::MatrixEntry> _getMatrixEntries();
-
-    /**
-     * @brief Sets boundary conditions for the node with specified node ID.
-     * @details Sets diagonal element to the specified value, other elements in the row sets to 0.
-     * @param nodeID Node ID (row|col).
-     * @param value Value to assign.
-     */
-    void _setBoundaryConditionForNode(LocalOrdinal nodeID, Scalar value);
 
     /**
      * @brief Assemlies global stiffness matrix from the GMSH mesh file (.msh).

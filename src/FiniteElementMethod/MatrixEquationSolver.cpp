@@ -1,8 +1,8 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include "../include/FiniteElementMethod/MatrixEquationSolver.hpp"
-#include "../include/Utilities/Utilities.hpp"
+#include "FiniteElementMethod/MatrixEquationSolver.hpp"
+#include "Utilities/Utilities.hpp"
 
 void MatrixEquationSolver::initialize()
 {

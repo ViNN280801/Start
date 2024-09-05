@@ -2,7 +2,7 @@
 #include <execution>
 #include <future>
 
-#include "../include/ParticleTracker/ParticleTracker.hpp"
+#include "ParticleTracker/ParticleTracker.hpp"
 
 std::mutex ParticleTracker::m_trackerMutex;
 std::mutex ParticleTracker::m_PICMutex;
