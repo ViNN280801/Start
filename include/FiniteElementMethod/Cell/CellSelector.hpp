@@ -45,9 +45,9 @@ public:
         case CellType::Hexahedron:
             return shards::getCellTopologyData<shards::Hexahedron<8>>();
         default:
-            static_assert(std::is_same_v<decltype(cellType), CellType>, CELLSELECTOR_INVALID_ENUM_TYPE_ERR);
-
             THROW_CELL_SELECTOR_EXCEPTION();
+
+            static_assert(std::is_same_v<decltype(cellType), CellType>, CELLSELECTOR_INVALID_ENUM_TYPE_ERR);
         }
     }
 };

@@ -134,7 +134,6 @@ else()
     message(WARNING "Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
-# Define custom options for Start Debug and Start Release
 option(START_DEBUG "Compile the project in Start Debug mode" OFF)
 option(START_RELEASE "Compile the project in Start Release mode" OFF)
 if(START_DEBUG)
