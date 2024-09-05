@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "Geometry/CGALTypes.hpp"
+#include "Geometry/GeometryTypes.hpp"
 #include "Geometry/RayTriangleIntersection.hpp"
 
 TEST(RayTriangleIntersectionTest, isIntersectTriangle)

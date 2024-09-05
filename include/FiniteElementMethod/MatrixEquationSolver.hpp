@@ -5,7 +5,7 @@
 
 #include "GSMatrixAssemblier.hpp"
 #include "SolutionVector.hpp"
-#include "TrilinosTypes.hpp"
+#include "FEMTypes.hpp"
 
 class MatrixEquationSolver
 {

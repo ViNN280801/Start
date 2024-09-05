@@ -1,13 +1,13 @@
-#ifndef GSMatrixAssemblier_HPP
-#define GSMatrixAssemblier_HPP
+#ifndef GSMATRIXASSEMBLIER_HPP
+#define GSMATRIXASSEMBLIER_HPP
 
 /* ATTENTION: Works well only for the polynom order = 1. */
 
-#include "../DataHandling/VolumetricMeshData.hpp"
+#include "../DataHandling/TetrahedronMeshManager.hpp"
 #include "../Geometry/Mesh.hpp"
-#include "TrilinosTypes.hpp"
+#include "FEMTypes.hpp"
 
-/// @brief This class works only with `VolumetricMeshData` singleton object.
+/// @brief This class works only with `TetrahedronMeshManager` singleton object.
 class GSMatrixAssemblier final
 {
 private:
@@ -94,8 +94,8 @@ public:
     constexpr Teuchos::RCP<TpetraMatrixType> const &getGlobalStiffnessMatrix() const { return m_gsmatrix; }
     size_t rows() const { return m_gsmatrix->getGlobalNumRows(); }
     size_t cols() const { return m_gsmatrix->getGlobalNumCols(); }
-    auto &getMeshComponents() { return VolumetricMeshData::getInstance(m_mesh_filename.data()); }
-    auto const &getMeshComponents() const { return VolumetricMeshData::getInstance(m_mesh_filename.data()); }
+    auto &getMeshComponents() { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
+    auto const &getMeshComponents() const { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
 
     /// @brief Checks is the global stiffness matrix empty or not.
     bool empty() const;
@@ -110,4 +110,4 @@ public:
     void print() const;
 };
 
-#endif // !GSMatrixAssemblier_HPP
+#endif // !GSMATRIXASSEMBLIER_HPP

@@ -81,11 +81,11 @@ add_executable(
     RayTriangleIntersectionTests.cpp
     RealNumberGeneratorTests.cpp
     VolumeCreatorTests.cpp
-    VolumetricMeshDataTests.cpp
+    TetrahedronMeshManagerTests.cpp
 
     ../src/Utilities/ConfigParser.cpp
     ../src/DataHandling/HDF5Handler.cpp
-    ../src/DataHandling/VolumetricMeshData.cpp
+    ../src/DataHandling/TetrahedronMeshManager.cpp
     ../src/Geometry/MathVector.cpp
     ../src/Geometry/Mesh.cpp
     ../src/Particles/Particle.cpp

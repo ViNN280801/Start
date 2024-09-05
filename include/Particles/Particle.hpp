@@ -4,7 +4,7 @@
 #include <CGAL/Bbox_3.h>
 #include <atomic>
 
-#include "../Geometry/CGALTypes.hpp"
+#include "../Geometry/GeometryTypes.hpp"
 #include "../Geometry/MathVector.hpp"
 #include "../Utilities/ConfigParser.hpp"
 #include "../Utilities/Constants.hpp"

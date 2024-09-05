@@ -1,6 +1,6 @@
 set(DATA_HANDLING_SOURCES
     HDF5Handler.cpp
-    VolumetricMeshData.cpp
+    TetrahedronMeshManager.cpp
 )
 
 add_library(DataHandling ${DATA_HANDLING_SOURCES})

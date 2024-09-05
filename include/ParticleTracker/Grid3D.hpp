@@ -3,7 +3,7 @@
 
 #include <CGAL/Bbox_3.h>
 
-#include "../DataHandling/VolumetricMeshData.hpp"
+#include "../DataHandling/TetrahedronMeshManager.hpp"
 #include "../Geometry/Mesh.hpp"
 
 #define MAX_GRID_SIZE 0x7A1200 ///< Maximum allowed grid size to prevent memory overflow (default: 8'000'000).
@@ -27,15 +27,15 @@ private:
     double m_cubeEdgeSize{};                                     ///< Edge size of the cell.
     short m_divisionsX{}, m_divisionsY{}, m_divisionsZ{};        ///< Count of divisions by each axis.
     CGAL::Bbox_3 m_commonBbox;                                   ///< Common boundary box.
-    VolumetricMeshData const &m_meshData;                        ///< Reference to VolumetricMeshData.
+    TetrahedronMeshManager const &m_meshData;                    ///< Reference to TetrahedronMeshManager.
 
 public:
     /**
      * @brief Ctor with params.
-     * @param meshData Reference to VolumetricMeshData.
+     * @param meshData Reference to TetrahedronMeshManager.
      * @param edgeSize Size of the cube edge.
      */
-    Grid3D(VolumetricMeshData const &meshData, double edgeSize);
+    Grid3D(TetrahedronMeshManager const &meshData, double edgeSize);
 
     /**
      * @brief Getter for grid index by spatial position of some object.
@@ -70,7 +70,7 @@ public:
      * @param index The index of the grid cell.
      * @return A vector of tetrahedrons that intersect with the specified cell.
      */
-    std::vector<VolumetricMeshData::TetrahedronData> getTetrahedronsByGridIndex(GridIndex const &index) const;
+    std::vector<TetrahedronMeshManager::TetrahedronData> getTetrahedronsByGridIndex(GridIndex const &index) const;
 
     /// @return The total number of cells.
     constexpr size_t size() const { return static_cast<size_t>(m_divisionsX * m_divisionsY * m_divisionsZ); }
