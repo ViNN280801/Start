@@ -34,21 +34,29 @@ using namespace particle_types;
                                                        std::source_location::current().line(),      \
                                                        COMMON_PRETTY_FUNC, desc);
 #define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
-#define ERRMSG(desc) std::cerr << std::format("\033[1;31mError:\033[0m\033[1m {}: {}({} line): {}: \033[1;31m{}\033[0m\033[1m\n", \
-                                              util::getCurTime(),                                                                 \
-                                              EXTRACT_FILE_NAME(std::source_location::current().file_name()),                     \
-                                              std::source_location::current().line(),                                             \
-                                              COMMON_PRETTY_FUNC, desc);
-#define LOGMSG(desc) std::clog << std::format("Log: {}: {}({} line): {}: {}\n",                               \
-                                              util::getCurTime(),                                             \
-                                              EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                              std::source_location::current().line(),                         \
-                                              COMMON_PRETTY_FUNC, desc);
-#define WARNINGMSG(desc) std::cerr << std::format("\033[1;33mWarning:\033[0m\033[1m {}: {}({} line): {}: {}\n",   \
-                                                  util::getCurTime(),                                             \
-                                                  EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                                  std::source_location::current().line(),                         \
-                                                  COMMON_PRETTY_FUNC, desc);
+#define ERRMSGSTR(desc) std::format("\033[1;31mError:\033[0m\033[1m {}: {}({} line): {}: \033[1;31m{}\033[0m\033[1m\n", \
+                                    util::getCurTime(),                                                                 \
+                                    EXTRACT_FILE_NAME(std::source_location::current().file_name()),                     \
+                                    std::source_location::current().line(),                                             \
+                                    COMMON_PRETTY_FUNC, desc);
+#define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
+#define LOGMSGSTR(desc) std::format("Log: {}: {}({} line): {}: {}\n",                               \
+                                    util::getCurTime(),                                             \
+                                    EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
+                                    std::source_location::current().line(),                         \
+                                    COMMON_PRETTY_FUNC, desc);
+#define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
+#define WARNINGMSGSTR(desc) std::format("\033[1;33mWarning:\033[0m\033[1m {}: {}({} line): {}: {}\n",   \
+                                        util::getCurTime(),                                             \
+                                        EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
+                                        std::source_location::current().line(),                         \
+                                        COMMON_PRETTY_FUNC, desc);
+#define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
+
+#define UNKNOWN_BUILD_CONFIGURATION "Unknown build configuration"
+#define DEVELOPER_MAIL "vladislav_semykin01@mail.ru"
+#define CONTACT_SUPPORT_MSG(desc) std::format("Internal Error: {}. Contact support: {}\n", desc, DEVELOPER_MAIL);
+#define CONTACT_SUPPORT_MSG_TO_CERR(desc) std::cerr << CONTACT_SUPPORT_MSG(desc);
 
 namespace util
 {

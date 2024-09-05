@@ -1,7 +1,7 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: $0 [-r|--rebuild] [-j <NUM_THREADS>] [-h|--help] [-i|--intermediate <FILE_PATH>]"
+    echo "Usage: $0 [-r|--rebuild] [-j <NUM_THREADS>] [-h|--help] [-i|--intermediate <FILE_PATH>] [-debug] [-release] [-sdebug] [-srelease]"
     echo "  -r, --rebuild                  Clean and rebuild the project from scratch."
     echo "  -j <NUM_THREADS>               Specify the number of threads to run simultaneously."
     echo "                                 If not specified, use all available cores."
@@ -9,15 +9,21 @@ usage() {
     echo "  -i, --intermediate <FILE_PATH> Compile only the specified intermediate result file."
     echo "  -ir, --irebuild    <FILE_PATH> Clean and rebuild the intermediate results from scratch."
     echo "  --tests                        Compiles and runs tests."
+    echo "  -debug                         Compile the project in CMake Debug mode (default)."
+    echo "  -release                       Compile the project in CMake Release mode."
+    echo "  -sdebug                        Compile the project with custom Start Debug flags (default)."
+    echo "  -srelease                      Compile the project with custom Start Release flags."
     exit 1
 }
 
-REBUILD=false              # Default behavior does not clean build
-NUM_THREADS=$(nproc)       # Default to all available cores
-INTERMEDIATE=false         # Default behavior does not compile intermediate results
-INTERMEDIATE_FILE=""       # No intermediate file by default
-INTERMEDIATE_REBUILD=false # No need to recompile from scratch intermediate results
-COMPILE_TESTS=false        # No need to compile all the tests
+BUILD_TYPE="Debug"             # Default build type
+START_BUILD_TYPE="START_DEBUG" # Default to custom Start Debug build type
+REBUILD=false                  # Default behavior does not clean build
+NUM_THREADS=$(nproc)           # Default to all available cores
+INTERMEDIATE=false             # Default behavior does not compile intermediate results
+INTERMEDIATE_FILE=""           # No intermediate file by default
+INTERMEDIATE_REBUILD=false     # No need to recompile from scratch intermediate results
+COMPILE_TESTS=false            # No need to compile all the tests
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -54,6 +60,18 @@ while [[ "$#" -gt 0 ]]; do
             usage
         fi
         ;;
+    -debug)
+        BUILD_TYPE="Debug"
+        ;;
+    -release)
+        BUILD_TYPE="Release"
+        ;;
+    -sdebug)
+        START_BUILD_TYPE="START_DEBUG"
+        ;;
+    -srelease)
+        START_BUILD_TYPE="START_RELEASE"
+        ;;
     -h | --help)
         usage
         ;;
@@ -78,10 +96,10 @@ fi
 
 if [ "$COMPILE_TESTS" = true ]; then
     TESTS_DIR="tests"
-    
+
     mkdir -pv "$TESTS_DIR/build" && cd "$TESTS_DIR/build"
     echo "Compiling tests with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake .. && make -j"$NUM_THREADS"
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D$START_BUILD_TYPE=ON .. && make -j"$NUM_THREADS"
 
     if [ $? -ne 0 ]; then
         echo "Compilation failed, exiting..."
@@ -102,7 +120,7 @@ if [ "$INTERMEDIATE" = true ] && [ -n "$INTERMEDIATE_FILE" ]; then
     mkdir -pv intermediateResults/build && cd intermediateResults/build
     echo "Compiling specified intermediate result file: $INTERMEDIATE_FILE"
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DINTERMEDIATE_FILE="$FILENAME" .. && make -j$NUM_THREADS
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D$START_BUILD_TYPE=ON -DINTERMEDIATE_FILE="$FILENAME" .. && make -j$NUM_THREADS
 
     if [ $? -eq 0 ]; then
         echo -e "\e[32;1mFile '$FILENAME' successfully compiled and ran\e[0m"
@@ -122,5 +140,5 @@ if [ "$INTERMEDIATE" = true ] && [ -n "$INTERMEDIATE_FILE" ]; then
 else
     mkdir -pv build && cd build
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake .. && make -j$NUM_THREADS
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D$START_BUILD_TYPE=ON .. && make -j$NUM_THREADS
 fi

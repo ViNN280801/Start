@@ -124,6 +124,29 @@ else()
     message(WARNING "Unsupported compiler. You may need to manually set the appropriate flags for strict floating-point rounding.")
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG)
+    message(STATUS "*** Compiling in DEBUG mode ***")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_definitions(RELEASE)
+    message(STATUS "*** Compiling in RELEASE mode ***")
+else()
+    message(WARNING "Unknown build type: ${CMAKE_BUILD_TYPE}")
+endif()
+
+# Define custom options for Start Debug and Start Release
+option(START_DEBUG "Compile the project in Start Debug mode" OFF)
+option(START_RELEASE "Compile the project in Start Release mode" OFF)
+if(START_DEBUG)
+    add_compile_definitions(START_DEBUG)
+    message(STATUS "*** Compiling in START_DEBUG mode ***")
+elseif(START_RELEASE)
+    add_compile_definitions(START_RELEASE)
+    message(STATUS "*** Compiling in START_RELEASE mode ***")
+else()
+    message(WARNING "Neither START_DEBUG nor START_RELEASE is defined.")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -135,6 +158,12 @@ set(SOURCES
     src/main.cpp
     src/ModelingMainDriver.cpp
 )
+
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+else ()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flarge-source-files -Wmisleading-indentation")
+endif()
 
 set(EXECUTABLE_NAME nia_start_core)
 add_executable(${EXECUTABLE_NAME} ${SOURCES})

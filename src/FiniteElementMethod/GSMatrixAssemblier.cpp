@@ -1,4 +1,5 @@
 #include "../include/FiniteElementMethod/GSMatrixAssemblier.hpp"
+#include "../include/FiniteElementMethod/Cell/CellSelector.hpp"
 #include "../include/Generators/RealNumberGenerator.hpp"
 
 void printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
@@ -35,7 +36,7 @@ void printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
     }
 }
 
-shards::CellTopology GSMatrixAssemblier::_getTetrahedronCellTopology() const { return shards::getCellTopologyData<shards::Tetrahedron<>>(); }
+shards::CellTopology GSMatrixAssemblier::_getTetrahedronCellTopology() const { return CellSelector::getCellType(CellType::Tetrahedron); }
 
 auto GSMatrixAssemblier::_getBasis() const { return Intrepid2::Basis_HGRAD_TET_C1_FEM<DeviceType>(); }
 
