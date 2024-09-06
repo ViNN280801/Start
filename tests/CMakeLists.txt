@@ -140,10 +140,18 @@ set(TARGET_NAME all_tests)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -O3 -Wall -Wextra -Werror -Wno-maybe-uninitialized")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -O3 -Wall -Wextra -Werror -Wno-maybe-uninitialized -Wmisleading-indentation -flarge-source-files")
 
 set(DATA_HANDLING_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/DataHandling)
 set(DATA_HANDLING_INC_PATH ${CMAKE_SOURCE_DIR}/../include/DataHandling)
+set(FINITE_ELEMENT_METHOD_SRC_PATH 
+    ${CMAKE_SOURCE_DIR}/../src/FiniteElementMethod
+)
+set(FINITE_ELEMENT_METHOD_INC_PATH
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/BoundaryConditions
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cell
+)
 set(GENERATORS_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Generators)
 set(GENERATORS_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Generators)
 set(GEOMETRY_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Geometry)
@@ -156,6 +164,15 @@ set(UTILITIES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Utilities)
 set(DATA_HANDLING_SOURCES
     ${DATA_HANDLING_SRC_PATH}/HDF5Handler.cpp
     ${DATA_HANDLING_SRC_PATH}/TetrahedronMeshManager.cpp
+)
+set(FINITE_ELEMENT_METHOD_SOURCES
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/BoundaryConditionsManager.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/MatrixBoundaryConditionsManager.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/VectorBoundaryConditionsManager.cpp
+
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMatrixAssemblier.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/SolutionVector.cpp
 )
 set(GENERATORS_SOURCES
     ${GENERATORS_SRC_PATH}/RealNumberGenerator.cpp
@@ -175,6 +192,7 @@ set(UTILITIES_SOURCES
 )
 set(SOURCES
     ${DATA_HANDLING_SOURCES}
+    ${FINITE_ELEMENT_METHOD_SOURCES}
     ${GENERATORS_SOURCES}
     ${GEOMETRY_SOURCES}
     ${PARTICLES_SOURCES}
@@ -184,6 +202,12 @@ set(SOURCES
 set(DATA_HANDLING_TEST_SOURCES
     DataHandling/HDF5HandlerTests.cpp
     DataHandling/TetrahedronMeshManagerTests.cpp
+)
+set(FINITE_ELEMENT_METHOD_TEST_SOURCES
+    FiniteElementMethod/BoundaryConditions/MatrixBoundaryConditionsTests.cpp
+    FiniteElementMethod/BoundaryConditions/VectorBoundaryConditionsTests.cpp
+
+    FiniteElementMethod/Cell/CellSelectorTests.cpp
 )
 set(GENERATORS_TEST_SOURCES
     Generators/RealNumberGeneratorTests.cpp
@@ -202,6 +226,7 @@ set(UTILITIES_TEST_SOURCES
 )
 set(TEST_SOURCES
     ${DATA_HANDLING_TEST_SOURCES}
+    ${FINITE_ELEMENT_METHOD_TEST_SOURCES}
     ${GENERATORS_TEST_SOURCES}
     ${GEOMETRY_TEST_SOURCES}
     ${PARTICLES_TEST_SOURCES}
