@@ -3,8 +3,8 @@
 #include <ranges>
 #include <limits>
 
-#include "../include/Utilities/CollisionTracker.hpp"
-#include "../include/Utilities/Utilities.hpp"
+#include "Utilities/CollisionTracker.hpp"
+#include "Utilities/Utilities.hpp"
 
 std::mutex CollisionTracker::m_map_mutex;
 std::atomic<size_t> CollisionTracker::m_counter = 0ul;

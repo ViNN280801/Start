@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "Geometry/GeometryTypes.hpp"
-#include "Geometry/RayTriangleIntersection.hpp"
+#include "GeometryTypes.hpp"
+#include "RayTriangleIntersection.hpp"
 
 TEST(RayTriangleIntersectionTest, isIntersectTriangle)
 {

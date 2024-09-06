@@ -1,8 +1,8 @@
 #include <gmsh.h>
 #include <gtest/gtest.h>
 
-#include "../include/Generators/RealNumberGenerator.hpp"
-#include "../include/Generators/VolumeCreator.hpp"
+#include "RealNumberGenerator.hpp"
+#include "VolumeCreator.hpp"
 
 SphereVector generateRandomSpheres(int count)
 {

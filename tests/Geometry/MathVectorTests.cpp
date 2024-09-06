@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../include/Geometry/MathVector.hpp"
+#include "MathVector.hpp"
 
 class MathVectorTest : public ::testing::Test
 {

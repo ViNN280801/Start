@@ -1,9 +1,9 @@
 #include <gmsh.h>
 #include <gtest/gtest.h>
 
-#include "../include/Geometry/MathVector.hpp"
-#include "../include/Geometry/Mesh.hpp"
-#include "../include/Utilities/Utilities.hpp"
+#include "MathVector.hpp"
+#include "Mesh.hpp"
+#include "Utilities.hpp"
 
 class MeshTest : public ::testing::Test
 {

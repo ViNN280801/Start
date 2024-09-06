@@ -7,7 +7,7 @@
 #include <mutex>
 #include <optional>
 
-#include "../include/DataHandling/TetrahedronMeshManager.hpp"
+#include "TetrahedronMeshManager.hpp"
 
 void createTemporaryBoxMeshFile(std::string const &filename,
                                 double meshSize = 10, int dims = 3,

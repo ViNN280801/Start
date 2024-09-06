@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-#include "../include/Utilities/ConfigParser.hpp"
+#include "Utilities/ConfigParser.hpp"
 
 using json = nlohmann::json;
 

@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <gtest/gtest.h>
 
-#include "../include/DataHandling/HDF5Handler.hpp"
+#include "HDF5Handler.hpp"
 
 class HDF5HandlerTest : public ::testing::Test
 {

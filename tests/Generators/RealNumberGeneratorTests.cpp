@@ -1,14 +1,12 @@
 #include <gtest/gtest.h>
 
-#include "../include/Generators/RealNumberGenerator.hpp"
+#include "RealNumberGenerator.hpp"
 
 class RealNumberGeneratorTest : public ::testing::Test
 {
 protected:
     RealNumberGenerator rng;
     RealNumberGenerator rng_range{0.0, 1.0};
-
-    // Additional setup can go here if needed
 };
 
 TEST_F(RealNumberGeneratorTest, DefaultConstructor) { EXPECT_NO_THROW(RealNumberGenerator rng); }

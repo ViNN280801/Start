@@ -3,9 +3,9 @@
 #include <sstream>
 #include <sys/stat.h>
 
-#include "../include/Generators/RealNumberGenerator.hpp"
-#include "../include/Utilities/ConfigParser.hpp"
-#include "../include/Utilities/Utilities.hpp"
+#include "Generators/RealNumberGenerator.hpp"
+#include "Utilities/ConfigParser.hpp"
+#include "Utilities/Utilities.hpp"
 
 using json = nlohmann::json;
 
