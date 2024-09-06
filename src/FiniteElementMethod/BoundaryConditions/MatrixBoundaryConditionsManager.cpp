@@ -68,9 +68,11 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
     catch (std::exception const &ex)
     {
         ERRMSG(ex.what());
+        throw;
     }
     catch (...)
     {
         ERRMSG("Unknown error was occured while trying to apply boundary conditions on global stiffness matrix");
+        throw;
     }
 }

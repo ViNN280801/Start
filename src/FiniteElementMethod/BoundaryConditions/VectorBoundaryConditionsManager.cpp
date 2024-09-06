@@ -11,7 +11,7 @@ void VectorBoundaryConditionsManager::set(Teuchos::RCP<TpetraVectorType> vector,
     // Check if vector is valid and initialized.
     if (!vector || vector->getGlobalLength() == 0)
     {
-        ERRMSG("Solution vector is uninitialized or empty.");
+        ERRMSG("Vector is uninitialized or empty.");
         return;
     }
 
@@ -24,7 +24,7 @@ void VectorBoundaryConditionsManager::set(Teuchos::RCP<TpetraVectorType> vector,
 
     try
     {
-        // Setting boundary conditions to solution vector:
+        // Setting boundary conditions to vector:
         for (auto const &[nodeInGmsh, value] : boundary_conditions)
             for (int j{}; j < polynom_order; ++j)
             {
@@ -43,9 +43,11 @@ void VectorBoundaryConditionsManager::set(Teuchos::RCP<TpetraVectorType> vector,
     catch (std::exception const &ex)
     {
         ERRMSG(ex.what());
+        throw;
     }
     catch (...)
     {
-        ERRMSG("Unknown error was occured while trying to apply boundary conditions on solution vector (`b`) in equation Ax=b");
+        ERRMSG("Unknown error was occured while trying to apply boundary conditions on vector (`b`) in equation Ax=b");
+        throw;
     }
 }
