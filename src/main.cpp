@@ -4,7 +4,9 @@ int main(int argc, char *argv[])
 {
     // Initializing global MPI session and Kokkos.
     Teuchos::GlobalMPISession mpiSession(std::addressof(argc), std::addressof(argv));
-    Kokkos::initialize(argc, argv);
+
+    if (!Kokkos::is_initialized())
+        Kokkos::initialize(argc, argv);
 
     if (argc != 2)
     {
@@ -14,6 +16,8 @@ int main(int argc, char *argv[])
     ModelingMainDriver modeling(argv[1]);
     modeling.startModeling();
 
-    Kokkos::finalize();
+    if (Kokkos::is_initialized())
+        Kokkos::finalize();
+
     return EXIT_SUCCESS;
 }
