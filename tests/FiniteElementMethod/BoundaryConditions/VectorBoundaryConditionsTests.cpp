@@ -84,7 +84,7 @@ TEST(VectorBoundaryConditionsManagerTest, OutOfBoundsNodeID)
     execute_without_output([&]()
                            {
     VectorBoundaryConditionsManager manager;
-    EXPECT_THROW(manager.set(vector, 1, boundary_conditions), std::runtime_error); }, std::cerr);
+    EXPECT_THROW(manager.set(vector, 1, boundary_conditions), std::out_of_range); }, std::cerr);
 }
 
 // Dirty test: boundary conditions with a polynomial of order 2

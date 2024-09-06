@@ -53,10 +53,10 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
                 GlobalOrdinal nodeID{(nodeInGmsh - 1) * polynom_order + j};
 
                 if (nodeID >= static_cast<GlobalOrdinal>(matrix->getGlobalNumRows()))
-                    throw std::runtime_error(util::stringify("Boundary condition refers to node index ",
-                                                             nodeID,
-                                                             ", which exceeds the maximum row index of ",
-                                                             matrix->getGlobalNumRows() - 1, "."));
+                    throw std::out_of_range(util::stringify("Boundary condition refers to node index ",
+                                                            nodeID,
+                                                            ", which exceeds the maximum row index of ",
+                                                            matrix->getGlobalNumRows() - 1, "."));
 
                 _setBoundaryConditionForNode(matrix, nodeID, 1); // There is need to be 1, to have value = `value` in `x` vector, while solve Ax=b.
             }

@@ -32,10 +32,10 @@ void VectorBoundaryConditionsManager::set(Teuchos::RCP<TpetraVectorType> vector,
                 GlobalOrdinal nodeID{(nodeInGmsh - 1) * polynom_order + j};
 
                 if (nodeID >= static_cast<GlobalOrdinal>(vector->getGlobalLength()))
-                    throw std::runtime_error(util::stringify("Boundary condition refers to node index ",
-                                                             nodeID,
-                                                             ", which exceeds the maximum row index of ",
-                                                             vector->getGlobalLength() - 1, "."));
+                    throw std::out_of_range(util::stringify("Boundary condition refers to node index ",
+                                                            nodeID,
+                                                            ", which exceeds the maximum row index of ",
+                                                            vector->getGlobalLength() - 1, "."));
 
                 vector->replaceGlobalValue(nodeID, value); // Modifying the RHS vector is necessary to solve the equation Ax=b.
             }
