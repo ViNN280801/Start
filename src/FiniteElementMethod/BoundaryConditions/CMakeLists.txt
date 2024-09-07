@@ -1,3 +1,5 @@
+# src/FiniteElementMethod/BoundaryConditions
+
 set(BOUNDARY_CONDITIONS_SOURCES
     VectorBoundaryConditionsManager.cpp
     MatrixBoundaryConditionsManager.cpp

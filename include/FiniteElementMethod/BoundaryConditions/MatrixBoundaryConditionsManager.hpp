@@ -1,3 +1,6 @@
+#ifndef MATRIXBOUNDARYCONDITIONSMANAGER_HPP
+#define MATRIXBOUNDARYCONDITIONSMANAGER_HPP
+
 #include <map>
 
 #include "FEMTypes.hpp"
@@ -17,3 +20,5 @@ public:
      */
     static void set(Teuchos::RCP<TpetraMatrixType> matrix, short polynom_order, std::map<GlobalOrdinal, Scalar> const &boundary_conditions);
 };
+
+#endif // !MATRIXBOUNDARYCONDITIONSMANAGER_HPP

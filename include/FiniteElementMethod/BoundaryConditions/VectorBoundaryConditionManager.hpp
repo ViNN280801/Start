@@ -1,3 +1,6 @@
+#ifndef VECTORBOUNDARYCONDITIONSMANAGER_HPP
+#define VECTORBOUNDARYCONDITIONSMANAGER_HPP
+
 #include <map>
 
 #include "FEMTypes.hpp"
@@ -25,3 +28,5 @@ public:
      */
     static void set(Teuchos::RCP<TpetraVectorType> vector, short polynom_order, std::map<GlobalOrdinal, Scalar> const &boundary_conditions);
 };
+
+#endif // !VECTORBOUNDARYCONDITIONSMANAGER_HPP
