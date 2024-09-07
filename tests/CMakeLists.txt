@@ -151,6 +151,7 @@ set(FINITE_ELEMENT_METHOD_INC_PATH
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/BoundaryConditions
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cell
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cubature
 )
 set(GENERATORS_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Generators)
 set(GENERATORS_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Generators)
@@ -169,6 +170,11 @@ set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/BoundaryConditionsManager.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/MatrixBoundaryConditionsManager.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/VectorBoundaryConditionsManager.cpp
+
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelector.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelectorException.cpp
+
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cubature/CubatureSelector.cpp
 
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMatrixAssemblier.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
@@ -240,6 +246,7 @@ set(INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/BoundaryConditions
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cell
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cubature
     ${GENERATORS_INC_PATH}
     ${GEOMETRY_INC_PATH}
     ${PARTICLES_INC_PATH}
