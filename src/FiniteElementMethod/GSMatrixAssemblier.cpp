@@ -1,5 +1,6 @@
 #include "FiniteElementMethod/GSMatrixAssemblier.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
+#include "FiniteElementMethod/Cubature/BasisSelector.hpp"
 #include "FiniteElementMethod/Cell/CellSelector.hpp"
 #include "Generators/RealNumberGenerator.hpp"
 
@@ -37,9 +38,9 @@ void printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
     }
 }
 
-shards::CellTopology GSMatrixAssemblier::_getTetrahedronCellTopology() const { return CellSelector::getCellType(CellType::Tetrahedron); }
+shards::CellTopology GSMatrixAssemblier::_getTetrahedronCellTopology() const { return CellSelector::get(CellType::Tetrahedron); }
 
-auto GSMatrixAssemblier::_getBasis() const { return Intrepid2::Basis_HGRAD_TET_C1_FEM<DeviceType>(); }
+auto GSMatrixAssemblier::_getBasis() const { return BasisSelector::template get<DeviceType>(CellType::Tetrahedron, kdefault_polynom_order); }
 
 void GSMatrixAssemblier::_initializeCubature()
 {
@@ -47,8 +48,8 @@ void GSMatrixAssemblier::_initializeCubature()
     {
         // 1. Defining cell topology as tetrahedron.
         auto cellTopology{_getTetrahedronCellTopology()};
-        auto basis{Intrepid2::Basis_HGRAD_TET_C1_FEM<DeviceType>()};
-        _countBasisFunctions = basis.getCardinality(); // For linear tetrahedrons (polynom order = 1) count of basis functions = 4 (4 verteces, 4 basis functions).
+        auto basis{_getBasis()};
+        _countBasisFunctions = basis->getCardinality(); // For linear tetrahedrons (polynom order = 1) count of basis functions = 4 (4 verteces, 4 basis functions).
 
         // 2. Using cubature factory to create cubature function.
         Intrepid2::DefaultCubatureFactory cubFactory;
@@ -139,7 +140,7 @@ DynRankView GSMatrixAssemblier::_computeLocalStiffnessMatrices()
         DynRankView referenceBasisGrads("referenceBasisGrads", _countBasisFunctions, _countCubPoints, kdefault_space_dim);
         Kokkos::deep_copy(referenceBasisGrads, 0.0);
         auto basis{_getBasis()};
-        basis.getValues(referenceBasisGrads, _cubPoints, Intrepid2::OPERATOR_GRAD);
+        basis->getValues(referenceBasisGrads, _cubPoints, Intrepid2::OPERATOR_GRAD);
 
         // 2. Computing cell jacobians, inversed jacobians and jacobian determinants to get cell measure.
         DynRankView jacobians("jacobians", getMeshComponents().size(), _countCubPoints, kdefault_space_dim, kdefault_space_dim);
