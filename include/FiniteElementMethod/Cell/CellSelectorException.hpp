@@ -1,3 +1,6 @@
+#ifndef CELLSELECTOREXCEPTION_HPP
+#define CELLSELECTOREXCEPTION_HPP
+
 #include <exception>
 #include <string>
 
@@ -35,16 +38,8 @@ public:
      * This constructor initializes the exception with a custom error message, which can
      * later be retrieved by the `what()` method.
      */
-    explicit CellSelectorException(std::string const &message = CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR) : m_message(message) {}
-    explicit CellSelectorException(bool contact_support, std::string const &message = CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR)
-    {
-        if (contact_support)
-        {
-            m_message = CONTACT_SUPPORT_MSG(message);
-        }
-        else
-            m_message = message;
-    }
+    explicit CellSelectorException(std::string const &message = CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR);
+    explicit CellSelectorException(bool contact_support, std::string const &message = CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR);
 
     /**
      * @brief Retrieves the error message associated with the exception.
@@ -54,5 +49,7 @@ public:
      * It overrides the `what()` method from the base `std::exception` class, ensuring that
      * the error message can be easily accessed when the exception is caught.
      */
-    const char *what() const noexcept override { return m_message.c_str(); }
+    const char *what() const noexcept override;
 };
+
+#endif // !CELLSELECTOREXCEPTION_HPP

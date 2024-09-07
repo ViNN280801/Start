@@ -1,3 +1,6 @@
+#ifndef CELLTYPE_HPP
+#define CELLTYPE_HPP
+
 /**
  * @enum CellType
  * @brief Enumeration of all supported cell types, including both 2D and 3D mesh cells.
@@ -17,3 +20,5 @@ enum class CellType
     Wedge,       ///< 3D Wedge with 6 nodes.
     Hexahedron,  ///< 3D Hexahedron with 8 nodes.
 };
+
+#endif // !CELLTYPE_HPP
