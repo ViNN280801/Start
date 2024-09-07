@@ -56,6 +56,7 @@ class NormalOrientationDialog(QDialog):
         size = value / 100.0
         self.size_input.setText(f"{size:.2f}")
         self.size_changed.emit(size)
+        self.geditor.vtkWidget.GetRenderWindow().Render()
 
     def update_size_slider(self):
         try:
@@ -63,15 +64,18 @@ class NormalOrientationDialog(QDialog):
             if 0.01 <= size <= 100:
                 self.size_slider.setValue(int(size * 100))
                 self.size_changed.emit(size)
+                self.geditor.vtkWidget.GetRenderWindow().Render()
         except ValueError:
             pass
 
     def accepted_yes(self):
         size = float(self.size_input.text())
         self.orientation_accepted.emit(True, size)
+        self.geditor.vtkWidget.GetRenderWindow().Render()
         self.accept()
 
     def accepted_no(self):
         size = float(self.size_input.text())
         self.orientation_accepted.emit(False, size)
+        self.geditor.vtkWidget.GetRenderWindow().Render()
         self.accept()
