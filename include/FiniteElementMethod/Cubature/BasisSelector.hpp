@@ -7,6 +7,8 @@
 #include "CellType.hpp"
 #include "FEMTypes.hpp"
 
+#define MAX_POLYNOMIAL_ORDER 20
+
 /**
  * @class BasisSelector
  * @brief This class provides a static method to select the appropriate basis for different cell types.
@@ -38,6 +40,8 @@ public:
             throw std::runtime_error("Polynom order can't be negative");
         if (polynom_order == 0)
             throw std::runtime_error("Polynom order can't be equal to 0");
+        if (polynom_order > MAX_POLYNOMIAL_ORDER)
+            throw std::runtime_error("Polynom order exceeds the maximum allowed value");
 
         switch (cellType)
         {
@@ -46,7 +50,8 @@ public:
         case CellType::Tetrahedron:
             return std::make_unique<Intrepid2::Basis_HGRAD_TET_Cn_FEM<DeviceType>>(polynom_order);
         case CellType::Pyramid:
-            WARNINGMSG("Pyramid cells supports only 1st polynom order");
+            if (polynom_order != 1)
+                throw std::runtime_error("Pyramid cells only support 1st polynomial order.");
             return std::make_unique<Intrepid2::Basis_HGRAD_PYR_C1_FEM<DeviceType>>();
         case CellType::Wedge:
             WARNINGMSG("Wedge cells supports only 1st and 2nd polynom order, using 1st by default");
