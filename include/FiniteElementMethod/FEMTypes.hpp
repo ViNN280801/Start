@@ -41,4 +41,21 @@ using TetrahedronIndices = std::array<LocalOrdinal, 4ul>;
 using TetrahedronIndicesVector = std::vector<TetrahedronIndices>;
 using Commutator = Teuchos::RCP<Teuchos::Comm<int> const>;
 
+// ***** *****   Concepts for types    ***** ***** //
+template <typename T>
+concept ExecutionSpaceConcept = Kokkos::is_execution_space_v<T>;
+
+template <typename T>
+concept MemorySpaceConcept = Kokkos::is_memory_space_v<T>;
+
+template <typename T>
+concept DeviceTypeConcept = requires {
+    typename T::execution_space;
+    typename T::memory_space;
+
+    Kokkos::is_execution_space_v<typename T::execution_space>;
+    Kokkos::is_memory_space_v<typename T::memory_space>;
+};
+// *********************************************** //
+
 #endif // !FEM_TYPES_HPP
