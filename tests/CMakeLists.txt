@@ -174,8 +174,6 @@ set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelector.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelectorException.cpp
 
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cubature/CubatureSelector.cpp
-
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMatrixAssemblier.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/SolutionVector.cpp
@@ -214,6 +212,8 @@ set(FINITE_ELEMENT_METHOD_TEST_SOURCES
     FiniteElementMethod/BoundaryConditions/VectorBoundaryConditionsTests.cpp
 
     FiniteElementMethod/Cell/CellSelectorTests.cpp
+
+    FiniteElementMethod/Cubature/BasisSelectorTests.cpp
 )
 set(GENERATORS_TEST_SOURCES
     Generators/RealNumberGeneratorTests.cpp

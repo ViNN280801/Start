@@ -11,37 +11,37 @@ class CellSelectorTest : public ::testing::Test
 TEST_F(CellSelectorTest, ValidCellTypeSelection)
 {
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Triangle);
+        shards::CellTopology topo = CellSelector::get(CellType::Triangle);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Triangle<3>>()->key);
     });
 
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Pentagon);
+        shards::CellTopology topo = CellSelector::get(CellType::Pentagon);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Pentagon<5>>()->key);
     });
 
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Hexagon);
+        shards::CellTopology topo = CellSelector::get(CellType::Hexagon);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Hexagon<6>>()->key);
     });
 
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Tetrahedron);
+        shards::CellTopology topo = CellSelector::get(CellType::Tetrahedron);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Tetrahedron<4>>()->key);
     });
 
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Pyramid);
+        shards::CellTopology topo = CellSelector::get(CellType::Pyramid);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Pyramid<5>>()->key);
     });
 
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Wedge);
+        shards::CellTopology topo = CellSelector::get(CellType::Wedge);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Wedge<6>>()->key);
     });
 
     EXPECT_NO_THROW({
-        shards::CellTopology topo = CellSelector::getCellType(CellType::Hexahedron);
+        shards::CellTopology topo = CellSelector::get(CellType::Hexahedron);
         EXPECT_EQ(topo.getKey(), shards::getCellTopologyData<shards::Hexahedron<8>>()->key);
     });
 }
@@ -51,7 +51,7 @@ TEST_F(CellSelectorTest, UnsupportedCellType)
 {
     try
     {
-        CellSelector::getCellType(static_cast<CellType>(-1));
+        CellSelector::get(static_cast<CellType>(-1));
         FAIL() << "Expected CellSelectorException";
     }
     catch (CellSelectorException const &e)
@@ -69,7 +69,7 @@ TEST_F(CellSelectorTest, InvalidNumericValue)
 {
     try
     {
-        CellSelector::getCellType(static_cast<CellType>(1000)); // Out of bounds enum value
+        CellSelector::get(static_cast<CellType>(1000)); // Out of bounds enum value
         FAIL() << "Expected CellSelectorException";
     }
     catch (CellSelectorException const &e)
@@ -87,7 +87,7 @@ TEST_F(CellSelectorTest, EnumUnderflow)
 {
     try
     {
-        CellSelector::getCellType(static_cast<CellType>(-100)); // Underflowing enum value
+        CellSelector::get(static_cast<CellType>(-100)); // Underflowing enum value
         FAIL() << "Expected CellSelectorException";
     }
     catch (CellSelectorException const &e)
@@ -105,7 +105,7 @@ TEST_F(CellSelectorTest, EnumOverflow)
 {
     try
     {
-        CellSelector::getCellType(static_cast<CellType>(std::numeric_limits<int>::max())); // Overflow enum value
+        CellSelector::get(static_cast<CellType>(std::numeric_limits<int>::max())); // Overflow enum value
         FAIL() << "Expected CellSelectorException";
     }
     catch (CellSelectorException const &e)
@@ -123,7 +123,7 @@ TEST_F(CellSelectorTest, ExtremeNegativeEnumValue)
 {
     try
     {
-        CellSelector::getCellType(static_cast<CellType>(std::numeric_limits<int>::min())); // Extremely negative value
+        CellSelector::get(static_cast<CellType>(std::numeric_limits<int>::min())); // Extremely negative value
         FAIL() << "Expected CellSelectorException";
     }
     catch (CellSelectorException const &e)
@@ -142,7 +142,7 @@ TEST_F(CellSelectorTest, CustomEnumValue)
     try
     {
         CellType customCellType = static_cast<CellType>(999); // Custom, unsupported enum value
-        CellSelector::getCellType(customCellType);
+        CellSelector::get(customCellType);
         FAIL() << "Expected CellSelectorException";
     }
     catch (CellSelectorException const &e)
