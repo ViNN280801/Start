@@ -155,6 +155,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod
     ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/BoundaryConditions
     ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/Cell
+    ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/Cubature
     ${CMAKE_SOURCE_DIR}/include/Generators
     ${CMAKE_SOURCE_DIR}/include/Geometry
     ${CMAKE_SOURCE_DIR}/include/Particles
