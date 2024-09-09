@@ -64,15 +64,15 @@ TEST_F(BasisSelectorTest, ZeroPolynomOrder)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(CellType::Triangle, 0);
-        FAIL() << "Expected std::runtime_error";
+        FAIL() << "Expected std::invalid_argument";
     }
-    catch (const std::runtime_error &e)
+    catch (const std::invalid_argument &e)
     {
         SUCCEED();
     }
     catch (const std::exception &e)
     {
-        FAIL() << "Expected std::runtime_error, but got: " << typeid(e).name();
+        FAIL() << "Expected std::invalid_argument, but got: " << typeid(e).name();
     }
 }
 
@@ -82,15 +82,19 @@ TEST_F(BasisSelectorTest, LargePolynomOrder)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(CellType::Triangle, 1000);
-        FAIL() << "Expected std::runtime_error due to large polynomial order";
+        FAIL() << "Expected std::overflow_error due to large polynomial order";
     }
-    catch (const std::runtime_error &e)
+    catch (const std::overflow_error &e)
     {
-        EXPECT_STREQ(e.what(), "Polynom order exceeds the maximum allowed value");
+        EXPECT_STREQ(e.what(),
+                     std::string(std::format("Desired calculation accuracy can't be greater than {}. Required range: [{}; {}]",
+                                             FEM_LIMITS_MAX_POLYNOMIAL_ORDER,
+                                             FEM_LIMITS_MIN_POLYNOMIAL_ORDER, FEM_LIMITS_MAX_POLYNOMIAL_ORDER))
+                         .data());
     }
     catch (...)
     {
-        FAIL() << "Expected std::runtime_error due to large polynomial order";
+        FAIL() << "Expected std::overflow_error due to large polynomial order";
     }
 }
 
