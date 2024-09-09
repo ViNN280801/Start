@@ -6,6 +6,14 @@ project(Tests)
 ################# Adding third-party libs #################
 find_package(Threads REQUIRED)
 
+# Gtests
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
+)
+FetchContent_MakeAvailable(googletest)
+
 # HDF5
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 if(HDF5_FOUND)
@@ -174,6 +182,8 @@ set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelector.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelectorException.cpp
 
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMCheckers.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMPrinter.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMatrixAssemblier.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/SolutionVector.cpp
@@ -278,9 +288,16 @@ add_executable(${TARGET_NAME}
     ${TEST_SOURCES}
 )
 
+# Disable -Werror for GoogleTest
+target_compile_options(gtest PRIVATE -Wno-error)
+target_compile_options(gmock PRIVATE -Wno-error)
+
 target_link_libraries(${TARGET_NAME} PRIVATE
     gtest
     gtest_main
+    gmock
+    gmock_main
+    Threads::Threads
     ${CGAL_NAMESPACE}
     ${CGAL_LIBRARIES}
     ${GMSH_LIBRARIES}
@@ -294,3 +311,6 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE ${INCLUDE_DIRECTORIES})
+
+include(CTest)
+enable_testing()
