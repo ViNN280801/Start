@@ -3,7 +3,7 @@
 
 #include <map>
 
-#include "FEMTypes.hpp"
+#include "FiniteElementMethod/FEMTypes.hpp"
 
 class MatrixBoundaryConditionsManager
 {

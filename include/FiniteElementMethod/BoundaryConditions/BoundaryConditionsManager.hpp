@@ -1,7 +1,7 @@
 #ifndef BOUNDARYCONDITIONSMANAGER_HPP
 #define BOUNDARYCONDITIONSMANAGER_HPP
 
-#include "FEMTypes.hpp"
+#include "FiniteElementMethod/FEMTypes.hpp"
 
 /**
  * @class BoundaryConditionsManager

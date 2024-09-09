@@ -3,7 +3,7 @@
 
 #include "CellSelectorException.hpp"
 #include "CellType.hpp"
-#include "FEMTypes.hpp"
+#include "FiniteElementMethod/FEMTypes.hpp"
 
 /**
  * @class CellSelector
