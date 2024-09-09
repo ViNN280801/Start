@@ -1,42 +1,11 @@
 #include "FiniteElementMethod/GSMatrixAssemblier.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
-#include "FiniteElementMethod/Cubature/BasisSelector.hpp"
 #include "FiniteElementMethod/Cell/CellSelector.hpp"
+#include "FiniteElementMethod/Cubature/BasisSelector.hpp"
+#include "FiniteElementMethod/FEMCheckers.hpp"
+#include "FiniteElementMethod/FEMLimits.hpp"
+#include "FiniteElementMethod/FEMPrinter.hpp"
 #include "Generators/RealNumberGenerator.hpp"
-
-void printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
-{
-    try
-    {
-        std::cout << "\n\nGraph data:\n";
-        Teuchos::RCP<MapType const> rowMap{graph->getRowMap()};
-        size_t numLocalRows{rowMap->getGlobalNumElements()};
-
-        for (size_t i{}; i < numLocalRows; ++i)
-        {
-            GlobalOrdinal globalRow{rowMap->getGlobalElement(i)};
-            size_t numEntries{graph->getNumEntriesInGlobalRow(globalRow)};
-            TpetraMatrixType::nonconst_global_inds_host_view_type indices("ind", numEntries);
-
-            size_t numIndices;
-            graph->getGlobalRowCopy(globalRow, indices, numIndices);
-
-            // Print row and its connections
-            std::cout << "Row " << globalRow << ": ";
-            for (size_t j{}; j < numIndices; ++j)
-                std::cout << indices[j] << " ";
-            std::cout << std::endl;
-        }
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(ex.what());
-    }
-    catch (...)
-    {
-        ERRMSG("Unknown error");
-    }
-}
 
 shards::CellTopology GSMatrixAssemblier::_getTetrahedronCellTopology() const { return CellSelector::get(CellType::Tetrahedron); }
 
@@ -53,7 +22,7 @@ void GSMatrixAssemblier::_initializeCubature()
 
         // 2. Using cubature factory to create cubature function.
         Intrepid2::DefaultCubatureFactory cubFactory;
-        auto cubature{cubFactory.create<DeviceType>(cellTopology, m_desiredAccuracy)}; // Generating cubature function.
+        auto cubature{cubFactory.create<DeviceType>(cellTopology, m_desired_accuracy)}; // Generating cubature function.
         _countCubPoints = cubature->getNumPoints();                                    // Getting number of cubature points.
 
         // | FEM accuracy | Count of cubature points |
@@ -272,7 +241,7 @@ void GSMatrixAssemblier::_assembleGlobalStiffnessMatrix()
         auto countGlobalNodes{graphEntries.size()};
 
         // 4. Initializing tpetra map.
-        m_map = Teuchos::rcp(new MapType(countGlobalNodes, indexBase, m_comm));
+        m_map = Teuchos::rcp(new MapType(countGlobalNodes, indexBase, Tpetra::getDefaultComm()));
 
         // 5. Initializing tpetra graph.
         std::vector<size_t> numEntriesPerRow(countGlobalNodes);
@@ -312,11 +281,12 @@ void GSMatrixAssemblier::_assembleGlobalStiffnessMatrix()
     }
 }
 
-GSMatrixAssemblier::GSMatrixAssemblier(std::string_view mesh_filename, short desiredCalculationAccuracy)
-    : m_mesh_filename(mesh_filename.data()), m_comm(Tpetra::getDefaultComm()), m_desiredAccuracy(desiredCalculationAccuracy)
+GSMatrixAssemblier::GSMatrixAssemblier(std::string_view mesh_filename, short polynom_order, short desired_calc_accuracy)
+    : m_mesh_filename(mesh_filename.data()), m_polynom_order(polynom_order), m_desired_accuracy(desired_calc_accuracy)
 {
-    if (desiredCalculationAccuracy <= 0)
-        throw std::runtime_error("Desired calculation accuracy can't be negative or equals to 0");
+    FEMCheckers::checkMeshFile(mesh_filename);
+    FEMCheckers::checkPolynomOrder(polynom_order);
+    FEMCheckers::checkDesiredAccuracy(desired_calc_accuracy);
 
     _initializeCubature();
     _assembleGlobalStiffnessMatrix();
@@ -326,57 +296,4 @@ bool GSMatrixAssemblier::empty() const { return m_gsmatrix->getGlobalNumEntries(
 
 void GSMatrixAssemblier::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions) { BoundaryConditionsManager::set(m_gsmatrix, kdefault_polynom_order, boundaryConditions); }
 
-void GSMatrixAssemblier::print() const
-{
-    if (empty())
-    {
-        WARNINGMSG("Matrix is empty, nothing to print");
-        return;
-    }
-
-    try
-    {
-        auto myRank{m_comm->getRank()};
-        auto numProcs{m_comm->getSize()};
-
-        // Loop over all processes in sequential order.
-        m_comm->barrier();
-        for (int proc{}; proc < numProcs; ++proc)
-        {
-            if (myRank == proc)
-            {
-                // Print the matrix entries for the current process.
-                auto rowMap{m_gsmatrix->getRowMap()};
-                size_t localNumRows{rowMap->getLocalNumElements()};
-
-                for (size_t i{}; i < localNumRows; ++i)
-                {
-                    GlobalOrdinal globalRow{rowMap->getGlobalElement(i)};
-                    size_t numEntries{m_gsmatrix->getNumEntriesInGlobalRow(globalRow)};
-
-                    TpetraMatrixType::nonconst_global_inds_host_view_type indices("ind", numEntries);
-                    TpetraMatrixType::nonconst_values_host_view_type values("val", numEntries);
-                    size_t checkNumEntries{};
-
-                    m_gsmatrix->getGlobalRowCopy(globalRow, indices, values, checkNumEntries);
-
-                    std::cout << std::format("Row {}: ", globalRow);
-                    for (size_t k{}; k < checkNumEntries; ++k)
-                        std::cout << "(" << indices[k] << ", " << values[k] << ") ";
-                    std::endl(std::cout);
-                }
-            }
-            // Synchronize all processes.
-            m_comm->barrier();
-        }
-        m_comm->barrier();
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(ex.what());
-    }
-    catch (...)
-    {
-        ERRMSG("Unknown error was occured while printing global stiffness matrix");
-    }
-}
+void GSMatrixAssemblier::print() const { FEMPrinter::printMatrix(m_gsmatrix); }

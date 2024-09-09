@@ -4,8 +4,9 @@
 /* ATTENTION: Works well only for the polynom order = 1. */
 
 #include "DataHandling/TetrahedronMeshManager.hpp"
-#include "Geometry/Mesh.hpp"
+#include "FEMLimits.hpp"
 #include "FEMTypes.hpp"
+#include "Geometry/Mesh.hpp"
 
 /// @brief This class works only with `TetrahedronMeshManager` singleton object.
 class GSMatrixAssemblier final
@@ -17,11 +18,10 @@ private:
 
     std::string m_mesh_filename; ///< Filename of the mesh.
 
-    Commutator m_comm;                         ///< Handles inter-process communication within a parallel computing environment. MPI communicator.
     Teuchos::RCP<MapType> m_map;               ///< A smart pointer managing the lifetime of a Map object, which defines the layout of distributed data across the processes in a parallel computation.
     Teuchos::RCP<TpetraMatrixType> m_gsmatrix; ///< Smart pointer on the global stiffness matrix.
 
-    short m_desiredAccuracy{};                       ///< Polynom order and desired accuracy of calculations.
+    short m_polynom_order, m_desired_accuracy{};      ///< Polynom order and desired accuracy of calculations.
     short _countCubPoints{}, _countBasisFunctions{}; ///< Private data members to store count of cubature points/cubature weights and count of basis functions.
     DynRankView _cubPoints, _cubWeights;             ///< Storing cubature points and cubature weights in static data members because theay are initialized in ctor.
 
@@ -79,7 +79,9 @@ private:
     void _assembleGlobalStiffnessMatrix();
 
 public:
-    GSMatrixAssemblier(std::string_view mesh_filename, short desiredCalculationAccuracy);
+    GSMatrixAssemblier(std::string_view mesh_filename,
+                       short desired_calc_accuracy = FEM_LIMITS_DEFAULT_DESIRED_CALCULATION_ACCURACY,
+                       short polynom_order = FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
     ~GSMatrixAssemblier() {}
 
     /* === Getters for matrix params. === */

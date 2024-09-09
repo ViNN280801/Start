@@ -5,9 +5,8 @@
 
 #include "CellSelectorException.hpp"
 #include "CellType.hpp"
+#include "FEMCheckers.hpp"
 #include "FEMTypes.hpp"
-
-#define MAX_POLYNOMIAL_ORDER 20
 
 /**
  * @class BasisSelector
@@ -34,14 +33,7 @@ public:
     template <DeviceTypeConcept DeviceType>
     static std::unique_ptr<Intrepid2::Basis<DeviceType>> get(CellType cellType, int polynom_order)
     {
-        static_assert(std::is_enum_v<CellType>, "CELLSELECTOR_INVALID_ENUM_TYPE_ERR: cellType must be an enum");
-
-        if (polynom_order < 0)
-            throw std::runtime_error("Polynom order can't be negative");
-        if (polynom_order == 0)
-            throw std::runtime_error("Polynom order can't be equal to 0");
-        if (polynom_order > MAX_POLYNOMIAL_ORDER)
-            throw std::runtime_error("Polynom order exceeds the maximum allowed value");
+        FEMCheckers::checkPolynomOrder(polynom_order);
 
         switch (cellType)
         {

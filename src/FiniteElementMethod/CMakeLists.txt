@@ -1,6 +1,8 @@
 # src/FiniteElementMethod
 
 set(FEM_SOURCES
+    FEMCheckers.cpp
+    FEMPrinter.cpp
     GSMatrixAssemblier.cpp
     MatrixEquationSolver.cpp
     SolutionVector.cpp
