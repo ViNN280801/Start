@@ -1,9 +1,9 @@
 #ifndef FEMCHECKERS_HPP
 #define FEMCHECKERS_HPP
 
-#include "Cell/CellSelectorException.hpp"
-#include "Cell/CellType.hpp"
-#include "FEMLimits.hpp"
+#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/Cell/CellType.hpp"
+#include "FiniteElementMethod/FEMLimits.hpp"
 #include "Utilities/Utilities.hpp"
 
 /**
@@ -82,7 +82,7 @@ public:
      * @param cellType The type of the cell to be validated.
      * @throws CellSelectorException If the provided cell type is not supported.
      */
-    static void checkCell(CellType cellType);
+    static void checkCellType(CellType cellType);
 };
 
 #endif // !FEMCHECKERS_HPP
