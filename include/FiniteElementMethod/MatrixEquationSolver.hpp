@@ -116,13 +116,6 @@ public:
      * @return true if the solver converged to a solution, false otherwise.
      */
     bool solve(std::string_view solverName, Teuchos::RCP<Teuchos::ParameterList> solverParams);
-
-    /// @brief Solves the equation Ax=b and prints results to the terminal. Solves with default params and as default uses GMRES iterative solver.
-    void solveDefaultAndPrint();
-
-    /// @brief Prints the vectors to the terminal.
-    void printLHS() const;
-    void printRHS() const;
 };
 
 #endif // !MATRIX_EQUATION_SOLVER_HPP

@@ -3,8 +3,9 @@
 
 /* ATTENTION: Works well only for the polynom order = 1. */
 
+#include "Cell/CellType.hpp"
+#include "Cubature/CubatureManager.hpp"
 #include "DataHandling/TetrahedronMeshManager.hpp"
-#include "FEMLimits.hpp"
 #include "FEMTypes.hpp"
 #include "Geometry/Mesh.hpp"
 
@@ -12,18 +13,15 @@
 class GSMatrixAssemblier final
 {
 private:
-    static constexpr short const kdefault_polynom_order{1};
-    static constexpr short const kdefault_tetrahedron_vertices_count{4};
-    static constexpr short const kdefault_space_dim{3};
+    std::string m_mesh_filename;        ///< Filename of the mesh.
+    CubatureManager m_cubature_manager; ///< Cubature manager (manages cubature points and weights based on cell type).
 
-    std::string m_mesh_filename; ///< Filename of the mesh.
+    CellType m_cell_type;              ///< Type of the mesh cell (for example: tetrahedron, hexahedron, etc.).
+    unsigned short m_desired_accuracy; ///< Desired accuracy for cubature calculation, defining the number of cubature points. Higher values increase precision.
+    unsigned short m_polynom_order;    ///< Polynomial order used in the basis functions for the finite element method. Determines the degree of approximation.
 
     Teuchos::RCP<MapType> m_map;               ///< A smart pointer managing the lifetime of a Map object, which defines the layout of distributed data across the processes in a parallel computation.
     Teuchos::RCP<TpetraMatrixType> m_gsmatrix; ///< Smart pointer on the global stiffness matrix.
-
-    short m_polynom_order, m_desired_accuracy{};     ///< Polynom order and desired accuracy of calculations.
-    short _countCubPoints{}, _countBasisFunctions{}; ///< Private data members to store count of cubature points/cubature weights and count of basis functions.
-    DynRankView _cubPoints, _cubWeights;             ///< Storing cubature points and cubature weights in static data members because theay are initialized in ctor.
 
     struct MatrixEntry
     {
@@ -31,9 +29,6 @@ private:
         GlobalOrdinal col; ///< Global column index for the matrix entry.
         Scalar value;      ///< Value to be inserted at (row, col) in the global matrix.
     };
-
-    /// @brief Initializes cubature points and weights according to the mesh and polynomial order.
-    void _initializeCubature();
 
     /**
      * @brief Retrieves the vertices of all tetrahedrons in the mesh.
@@ -67,9 +62,7 @@ private:
     void _assembleGlobalStiffnessMatrix();
 
 public:
-    GSMatrixAssemblier(std::string_view mesh_filename,
-                       short desired_calc_accuracy = FEM_LIMITS_DEFAULT_DESIRED_CALCULATION_ACCURACY,
-                       short polynom_order = FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
+    GSMatrixAssemblier(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order);
     ~GSMatrixAssemblier() {}
 
     /* === Getters for matrix params. === */
@@ -82,14 +75,10 @@ public:
     /// @brief Checks is the global stiffness matrix empty or not.
     bool empty() const;
 
-    /**
-     * @brief Sets the boundary conditions to the global stiffness matrix. Changes specified values from map.
-     * @param boundaryConditions Map for the boundary conditions. Key - ID of diagonal element (row and col). Value - value to be assigned.
-     */
-    void setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions);
-
-    /// @brief Prints the entries of a Tpetra CRS matrix.
-    void print() const;
+    /// &&& Getters. &&& ///
+    constexpr CellType getCellType() const { return m_cell_type; }
+    constexpr unsigned short getDesiredCalculationAccuracy() const { return m_desired_accuracy; }
+    constexpr unsigned short getPolynomOrder() const { return m_polynom_order; }
 };
 
 #endif // !GSMATRIXASSEMBLIER_HPP

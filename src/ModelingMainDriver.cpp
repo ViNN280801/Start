@@ -1,4 +1,3 @@
-#include "FEMLimits.hpp"
 #include <algorithm>
 #include <atomic>
 #include <execution>
@@ -7,6 +6,8 @@
 using json = nlohmann::json;
 
 #include "DataHandling/HDF5Handler.hpp"
+#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
+#include "FiniteElementMethod/FEMLimits.hpp"
 #include "ModelingMainDriver.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
@@ -78,7 +79,7 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &asse
                                        std::shared_ptr<SolutionVector> &solutionVector)
 {
     // Assembling global stiffness matrix from the mesh file.
-    assemblier = std::make_shared<GSMatrixAssemblier>(m_config.getMeshFilename(), m_config.getDesiredCalculationAccuracy());
+    assemblier = std::make_shared<GSMatrixAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
 
     // Creating cubic grid for the tetrahedron mesh.
     cubicGrid = std::make_shared<Grid3D>(assemblier->getMeshComponents(), m_config.getEdgeSize());
@@ -87,7 +88,7 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &asse
     for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
         for (GlobalOrdinal nodeId : nodeIds)
             boundaryConditions[nodeId] = value;
-    assemblier->setBoundaryConditions(boundaryConditions);
+    BoundaryConditionsManager::set(assemblier->getGlobalStiffnessMatrix(), assemblier->getPolynomOrder(), boundaryConditions);
 
     // Initializing the solution vector.
     solutionVector = std::make_shared<SolutionVector>(assemblier->rows(), kdefault_polynomOrder);
@@ -308,7 +309,7 @@ void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChar
         for (auto const &[nodeId, nodeChargeDensity] : nodeChargeDensityMap)
             if (std::ranges::find(nonChangebleNodes, nodeId) == nonChangebleNodes.cend())
                 boundaryConditions[nodeId] = nodeChargeDensity;
-        solutionVector->setBoundaryConditions(boundaryConditions);
+        BoundaryConditionsManager::set(solutionVector->getSolutionVector(), solutionVector->getPolynomOrder(), boundaryConditions);
 
         MatrixEquationSolver solver(assemblier, solutionVector);
         auto solverParams{solver.createSolverParams(m_config.getSolverName(), m_config.getMaxIterations(), m_config.getConvergenceTolerance(),

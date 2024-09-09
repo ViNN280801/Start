@@ -18,12 +18,6 @@ public:
     ~SolutionVector() {}
 
     /**
-     * @brief Sets the boundary conditions to the solution vector. Changes specified values from map.
-     * @param boundaryConditions Map for the boundary conditions. Key - ID of diagonal element (row and col). Value - value to be assigned.
-     */
-    void setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions);
-
-    /**
      * @brief Getter for size of the vector.
      * @return Size of the vector.
      */
@@ -34,9 +28,6 @@ public:
 
     /// @brief Zeros out all the elements in the vector.
     void clear();
-
-    /// @brief Prints the contents of a Tpetra vector.
-    void print() const;
 
     /// @brief Getter for the solution vector.
     constexpr Teuchos::RCP<TpetraVectorType> const &getSolutionVector() const { return m_solution_vector; }

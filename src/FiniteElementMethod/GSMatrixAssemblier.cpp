@@ -4,78 +4,20 @@
 #include "FiniteElementMethod/Cubature/BasisSelector.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
-#include "FiniteElementMethod/FEMPrinter.hpp"
 #include "Generators/RealNumberGenerator.hpp"
-
-void GSMatrixAssemblier::_initializeCubature()
-{
-    try
-    {
-        // 1. Defining cell topology as tetrahedron.
-        auto cellTopology{CellSelector::get(CellType::Tetrahedron)};
-        auto basis{BasisSelector::template get<DeviceType>(CellType::Tetrahedron, kdefault_polynom_order)};
-        _countBasisFunctions = basis->getCardinality(); // For linear tetrahedrons (polynom order = 1) count of basis functions = 4 (4 verteces, 4 basis functions).
-
-        // 2. Using cubature factory to create cubature function.
-        Intrepid2::DefaultCubatureFactory cubFactory;
-        auto cubature{cubFactory.create<DeviceType>(cellTopology, m_desired_accuracy)}; // Generating cubature function.
-        _countCubPoints = cubature->getNumPoints();                                     // Getting number of cubature points.
-
-        // | FEM accuracy | Count of cubature points |
-        // | :----------: | :----------------------: |
-        // |      1       |            1             |
-        // |      2       |            4             |
-        // |      3       |            5             |
-        // |      4       |            11            |
-        // |      5       |            14            |
-        // |      6       |            24            |
-        // |      7       |            31            |
-        // |      8       |            43            |
-        // |      9       |           126            |
-        // |      10      |           126            |
-        // |      11      |           126            |
-        // |      12      |           210            |
-        // |      13      |           210            |
-        // |      14      |           330            |
-        // |      15      |           330            |
-        // |      16      |           495            |
-        // |      17      |           495            |
-        // |      18      |           715            |
-        // |      19      |           715            |
-        // |      20      |           1001           |
-
-        // 1. Allocating memory for cubature points and weights.
-        _cubPoints = DynRankView("cubPoints", _countCubPoints, kdefault_space_dim); // Matrix: _countCubPoints x Dimensions.
-        _cubWeights = DynRankView("cubWeights", _countCubPoints);                   // Vector: _countCubPoints.
-
-        Kokkos::deep_copy(_cubPoints, 0.0);
-        Kokkos::deep_copy(_cubWeights, 0.0);
-
-        // 2. Getting cubature points and weights.
-        cubature->getCubature(_cubPoints, _cubWeights);
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(ex.what());
-    }
-    catch (...)
-    {
-        ERRMSG("Unknown error");
-    }
-}
 
 DynRankView GSMatrixAssemblier::_getTetrahedronVertices()
 {
     try
     {
-        DynRankView vertices("vertices", getMeshComponents().size(), kdefault_tetrahedron_vertices_count, kdefault_space_dim);
+        DynRankView vertices("vertices", getMeshComponents().size(), FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Kokkos::deep_copy(vertices, 0.0);
 
         size_t i{};
         for (auto const &meshParam : getMeshComponents().getMeshComponents())
         {
             auto tetrahedron{meshParam.tetrahedron};
-            for (short node{}; node < kdefault_tetrahedron_vertices_count; ++node)
+            for (short node{}; node < FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT; ++node)
             {
                 vertices(i, node, 0) = CGAL_TO_DOUBLE(tetrahedron.vertex(node).x());
                 vertices(i, node, 1) = CGAL_TO_DOUBLE(tetrahedron.vertex(node).y());
@@ -102,39 +44,39 @@ DynRankView GSMatrixAssemblier::_computeLocalStiffnessMatrices()
     try
     {
         // 1. Calculating basis gradients.
-        DynRankView referenceBasisGrads("referenceBasisGrads", _countBasisFunctions, _countCubPoints, kdefault_space_dim);
+        DynRankView referenceBasisGrads("referenceBasisGrads", m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Kokkos::deep_copy(referenceBasisGrads, 0.0);
-        auto basis{BasisSelector::template get<DeviceType>(CellType::Tetrahedron, kdefault_polynom_order)};
-        basis->getValues(referenceBasisGrads, _cubPoints, Intrepid2::OPERATOR_GRAD);
+        auto basis{BasisSelector::template get<DeviceType>(CellType::Tetrahedron, m_polynom_order)};
+        basis->getValues(referenceBasisGrads, m_cubature_manager.getCubaturePoints(), Intrepid2::OPERATOR_GRAD);
 
         // 2. Computing cell jacobians, inversed jacobians and jacobian determinants to get cell measure.
-        DynRankView jacobians("jacobians", getMeshComponents().size(), _countCubPoints, kdefault_space_dim, kdefault_space_dim);
+        DynRankView jacobians("jacobians", getMeshComponents().size(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Kokkos::deep_copy(jacobians, 0.0);
-        Intrepid2::CellTools<DeviceType>::setJacobian(jacobians, _cubPoints, _getTetrahedronVertices(), CellSelector::get(CellType::Tetrahedron));
+        Intrepid2::CellTools<DeviceType>::setJacobian(jacobians, m_cubature_manager.getCubaturePoints(), _getTetrahedronVertices(), CellSelector::get(CellType::Tetrahedron));
 
-        DynRankView invJacobians("invJacobians", getMeshComponents().size(), _countCubPoints, kdefault_space_dim, kdefault_space_dim);
+        DynRankView invJacobians("invJacobians", getMeshComponents().size(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Kokkos::deep_copy(invJacobians, 0.0);
         Intrepid2::CellTools<DeviceType>::setJacobianInv(invJacobians, jacobians);
 
-        DynRankView jacobiansDet("jacobiansDet", getMeshComponents().size(), _countCubPoints);
+        DynRankView jacobiansDet("jacobiansDet", getMeshComponents().size(), m_cubature_manager.getCountCubaturePoints());
         Kokkos::deep_copy(jacobiansDet, 0.0);
         Intrepid2::CellTools<DeviceType>::setJacobianDet(jacobiansDet, jacobians);
-        DynRankView cellMeasures("cellMeasures", getMeshComponents().size(), _countCubPoints);
+        DynRankView cellMeasures("cellMeasures", getMeshComponents().size(), m_cubature_manager.getCountCubaturePoints());
         Kokkos::deep_copy(cellMeasures, 0.0);
-        Intrepid2::FunctionSpaceTools<DeviceType>::computeCellMeasure(cellMeasures, jacobiansDet, _cubWeights);
+        Intrepid2::FunctionSpaceTools<DeviceType>::computeCellMeasure(cellMeasures, jacobiansDet, m_cubature_manager.getCubatureWeights());
 
         // 3. Transforming reference basis gradients to physical frame.
-        DynRankView transformedBasisGradients("transformedBasisGradients", getMeshComponents().size(), _countBasisFunctions, _countCubPoints, kdefault_space_dim);
+        DynRankView transformedBasisGradients("transformedBasisGradients", getMeshComponents().size(), m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Kokkos::deep_copy(transformedBasisGradients, 0.0);
         Intrepid2::FunctionSpaceTools<DeviceType>::HGRADtransformGRAD(transformedBasisGradients, invJacobians, referenceBasisGrads);
 
         // 4. Multiply transformed basis gradients by cell measures to get weighted gradients.
-        DynRankView weightedBasisGrads("weightedBasisGrads", getMeshComponents().size(), _countBasisFunctions, _countCubPoints, kdefault_space_dim);
+        DynRankView weightedBasisGrads("weightedBasisGrads", getMeshComponents().size(), m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Kokkos::deep_copy(weightedBasisGrads, 0.0);
         Intrepid2::FunctionSpaceTools<DeviceType>::multiplyMeasure(weightedBasisGrads, cellMeasures, transformedBasisGradients);
 
         // 5. Integrate to get local stiffness matrices for workset cells.
-        DynRankView localStiffnessMatrices("localStiffnessMatrices", getMeshComponents().size(), _countBasisFunctions, _countBasisFunctions);
+        DynRankView localStiffnessMatrices("localStiffnessMatrices", getMeshComponents().size(), m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountBasisFunctions());
         Kokkos::deep_copy(localStiffnessMatrices, 0.0);
         Intrepid2::FunctionSpaceTools<DeviceType>::integrate(localStiffnessMatrices, weightedBasisGrads, transformedBasisGradients);
 
@@ -142,7 +84,14 @@ DynRankView GSMatrixAssemblier::_computeLocalStiffnessMatrices()
         for (size_t localTetraId{}; localTetraId < getMeshComponents().size(); ++localTetraId)
         {
             auto globalTetraId{getMeshComponents().getMeshComponents().at(localTetraId).globalTetraId};
-            for (short localNodeId{}; localNodeId < _countBasisFunctions; ++localNodeId)
+
+            auto const &nodes = getMeshComponents().getMeshComponents().at(localTetraId).nodes;
+            if (m_cubature_manager.getCountBasisFunctions() > nodes.size())
+            {
+                ERRMSG("Basis function count exceeds the number of nodes.");
+            }
+
+            for (short localNodeId{}; localNodeId < m_cubature_manager.getCountBasisFunctions(); ++localNodeId)
             {
                 auto globalNodeId{getMeshComponents().getMeshComponents().at(localTetraId).nodes.at(localNodeId).globalNodeId};
                 Point grad(weightedBasisGrads(localTetraId, localNodeId, 0, 0),
@@ -177,7 +126,7 @@ std::vector<GSMatrixAssemblier::MatrixEntry> GSMatrixAssemblier::_getMatrixEntri
     for (auto const &tetrahedronData : getMeshComponents().getMeshComponents())
     {
         std::array<LocalOrdinal, 4ul> nodes;
-        for (short i{}; i < kdefault_tetrahedron_vertices_count; ++i)
+        for (short i{}; i < FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT; ++i)
             nodes[i] = tetrahedronData.nodes[i].globalNodeId - 1;
         globalNodeIndicesPerElement.emplace_back(nodes);
     }
@@ -192,9 +141,9 @@ std::vector<GSMatrixAssemblier::MatrixEntry> GSMatrixAssemblier::_getMatrixEntri
         for (size_t tetraId{}; tetraId < globalNodeIndicesPerElement.size(); ++tetraId)
         {
             auto const &nodeIndices{globalNodeIndicesPerElement.at(tetraId)};
-            for (size_t localNodeI{}; localNodeI < kdefault_tetrahedron_vertices_count; ++localNodeI)
+            for (size_t localNodeI{}; localNodeI < FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT; ++localNodeI)
             {
-                for (size_t localNodeJ{}; localNodeJ < kdefault_tetrahedron_vertices_count; ++localNodeJ)
+                for (size_t localNodeJ{}; localNodeJ < FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT; ++localNodeJ)
                 {
                     Scalar value{localStiffnessMatrices(tetraId, localNodeI, localNodeJ)};
                     GlobalOrdinal globalRow{nodeIndices[localNodeI]},
@@ -277,19 +226,18 @@ void GSMatrixAssemblier::_assembleGlobalStiffnessMatrix()
     }
 }
 
-GSMatrixAssemblier::GSMatrixAssemblier(std::string_view mesh_filename, short polynom_order, short desired_calc_accuracy)
-    : m_mesh_filename(mesh_filename.data()), m_polynom_order(polynom_order), m_desired_accuracy(desired_calc_accuracy)
+GSMatrixAssemblier::GSMatrixAssemblier(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order)
+    : m_mesh_filename(mesh_filename.data()),
+      m_cubature_manager(cell_type, desired_calc_accuracy, polynom_order),
+      m_cell_type(cell_type),
+      m_desired_accuracy(desired_calc_accuracy),
+      m_polynom_order(polynom_order)
 {
     FEMCheckers::checkMeshFile(mesh_filename);
     FEMCheckers::checkPolynomOrder(polynom_order);
     FEMCheckers::checkDesiredAccuracy(desired_calc_accuracy);
 
-    _initializeCubature();
     _assembleGlobalStiffnessMatrix();
 }
 
 bool GSMatrixAssemblier::empty() const { return m_gsmatrix->getGlobalNumEntries() == 0; }
-
-void GSMatrixAssemblier::setBoundaryConditions(std::map<GlobalOrdinal, Scalar> const &boundaryConditions) { BoundaryConditionsManager::set(m_gsmatrix, kdefault_polynom_order, boundaryConditions); }
-
-void GSMatrixAssemblier::print() const { FEMPrinter::printMatrix(m_gsmatrix); }
