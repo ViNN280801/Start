@@ -21,7 +21,7 @@ private:
     Teuchos::RCP<MapType> m_map;               ///< A smart pointer managing the lifetime of a Map object, which defines the layout of distributed data across the processes in a parallel computation.
     Teuchos::RCP<TpetraMatrixType> m_gsmatrix; ///< Smart pointer on the global stiffness matrix.
 
-    short m_polynom_order, m_desired_accuracy{};      ///< Polynom order and desired accuracy of calculations.
+    short m_polynom_order, m_desired_accuracy{};     ///< Polynom order and desired accuracy of calculations.
     short _countCubPoints{}, _countBasisFunctions{}; ///< Private data members to store count of cubature points/cubature weights and count of basis functions.
     DynRankView _cubPoints, _cubWeights;             ///< Storing cubature points and cubature weights in static data members because theay are initialized in ctor.
 
@@ -31,18 +31,6 @@ private:
         GlobalOrdinal col; ///< Global column index for the matrix entry.
         Scalar value;      ///< Value to be inserted at (row, col) in the global matrix.
     };
-
-    /// @brief Returns tetrahedron cell topology.
-    shards::CellTopology _getTetrahedronCellTopology() const;
-
-    /**
-     * @brief Retrieves a basis object for tetrahedral elements using a specified polynomial order.
-     * @details This function creates a basis using hierarchical high-order polynomials on tetrahedral elements.
-     *          The basis type is HGRAD (hierarchical gradient), which is suitable for representing solutions
-     *          of scalar field problems such as temperature or pressure distribution.
-     * @return An Intrepid2 basis object configured for the specified polynomial order.
-     */
-    auto _getBasis() const;
 
     /// @brief Initializes cubature points and weights according to the mesh and polynomial order.
     void _initializeCubature();

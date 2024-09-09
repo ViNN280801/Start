@@ -58,11 +58,10 @@ void MatrixEquationSolver::calculateElectricField()
 
         // We have map: (Tetrahedron ID | map<Node ID | Basis function gradient math vector (3 components)>).
         // To get electric field of the cell we just need to accumulate all the basis func grads for each node for each tetrahedron:
-        // E_cell = -1/(6V)*Σ(φi⋅∇φi), where i - global index of the node.
+        // E_cell = Σ(φi⋅∇φi), where i - global index of the node.
         for (auto const &tetrahedronData : m_assemblier->getMeshComponents().getMeshComponents())
         {
             MathVector electricField{};
-            double volumeFactor{1.0 / (6.0 * tetrahedronData.tetrahedron.volume())};
 
             for (auto const &node : tetrahedronData.nodes)
             {
@@ -73,7 +72,6 @@ void MatrixEquationSolver::calculateElectricField()
                     WARNINGMSG(util::stringify("Node potential or nablaPhi is not set for the ",
                                                node.globalNodeId, " vertex of the ", tetrahedronData.globalTetraId, " tetrahedron"));
             }
-            electricField *= volumeFactor;
             m_assemblier->getMeshComponents().assignElectricField(tetrahedronData.globalTetraId, Point(electricField.getX(), electricField.getY(), electricField.getZ()));
         }
     }
