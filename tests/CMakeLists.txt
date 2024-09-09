@@ -182,6 +182,8 @@ set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelector.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelectorException.cpp
 
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cubature/CubatureManager.cpp
+
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMCheckers.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMPrinter.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMatrixAssemblier.cpp
@@ -223,6 +225,7 @@ set(FINITE_ELEMENT_METHOD_TEST_SOURCES
 
     FiniteElementMethod/Cell/CellSelectorTests.cpp
 
+    FiniteElementMethod/Cubature/CubatureManagerTests.cpp
     FiniteElementMethod/Cubature/BasisSelectorTests.cpp
 )
 set(GENERATORS_TEST_SOURCES

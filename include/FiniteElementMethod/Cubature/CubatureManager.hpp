@@ -11,6 +11,9 @@
  * The `CubatureManager` class is responsible for initializing and managing cubature (integration) points
  * and weights for different cell types in finite element analysis. It uses a specified polynomial order
  * and accuracy to generate the appropriate cubature data.
+ * 
+ * Table example for TETRAHEDRON cell type:
+ * 
  * | FEM accuracy | Count of cubature points |
  * | :----------: | :----------------------: |
  * |      1       |            1             |
