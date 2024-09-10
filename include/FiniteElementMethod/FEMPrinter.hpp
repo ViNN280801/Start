@@ -1,8 +1,9 @@
 #ifndef FEMPRINTER_HPP
 #define FEMPRINTER_HPP
 
-#include "FEMTypes.hpp"
-#include "GSMatrixAssemblier.hpp"
+#include "FiniteElementMethod/FEMTypes.hpp"
+#include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
+#include "FiniteElementMethod/LinearAlgebraManagers/VectorManager.hpp"
 #include "Utilities/Utilities.hpp"
 
 /**
@@ -42,6 +43,15 @@ public:
     static void printVector(Teuchos::RCP<TpetraVectorType> vector);
 
     /**
+     * @brief Prints the contents of a VectorManager vector.
+     *
+     * @param vector `VectorManager` class instance.
+     * @throws std::exception If an error occurs during the operation, an error message is displayed.
+     * @throws ... If an unknown error occurs, an error message is displayed.
+     */
+    static void printVector(VectorManager const &vector) { printVector(vector.get()); }
+
+    /**
      * @brief Prints the contents of a Tpetra CRS matrix.
      *
      * This method prints the global row entries and values of a Tpetra `CrsMatrix`. It loops through
@@ -53,6 +63,19 @@ public:
      * @throws ... If an unknown error occurs, an error message is displayed.
      */
     static void printMatrix(Teuchos::RCP<TpetraMatrixType> matrix);
+
+    /**
+     * @brief Prints the contents of a MatrixManager matrix.
+     *
+     * This method prints the global row entries and values of a Tpetra `CrsMatrix`. It loops through
+     * all processes, ensuring each process prints its local portion of the matrix, including global
+     * row indices and the associated non-zero matrix entries.
+     *
+     * @param matrix `MatrixManager` class instance.
+     * @throws std::exception If an error occurs during the operation, an error message is displayed.
+     * @throws ... If an unknown error occurs, an error message is displayed.
+     */
+    static void printMatrix(MatrixManager const &matrix) { printMatrix(matrix.get()); }
 };
 
 #endif // !FEMPRINTER_HPP
