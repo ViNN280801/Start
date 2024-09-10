@@ -42,12 +42,62 @@ using TetrahedronIndicesVector = std::vector<TetrahedronIndices>;
 using Commutator = Teuchos::RCP<Teuchos::Comm<int> const>;
 
 // ***** *****   Concepts for types    ***** ***** //
+/**
+ * @brief Concept that ensures the type is a valid Kokkos execution space.
+ *
+ * This concept is used to constrain templates to types that are recognized by Kokkos as execution spaces.
+ * Execution spaces define where and how parallel work is performed, such as on a CPU or GPU.
+ *
+ * A type satisfies this concept if `Kokkos::is_execution_space_v<T>` is `true`.
+ *
+ * Example:
+ * @code
+ * static_assert(ExecutionSpaceConcept<Kokkos::Serial>, "Kokkos::Serial is an execution space");
+ * static_assert(!ExecutionSpaceConcept<int>, "int is not a valid execution space");
+ * @endcode
+ *
+ * @tparam T The type to check if it qualifies as a valid execution space.
+ */
 template <typename T>
 concept ExecutionSpaceConcept = Kokkos::is_execution_space_v<T>;
 
+/**
+ * @brief Concept that ensures the type is a valid Kokkos memory space.
+ * 
+ * This concept is used to constrain templates to types that are recognized by Kokkos as memory spaces.
+ * Memory spaces represent locations where data can be stored, such as host (CPU) or device (GPU) memory.
+ * 
+ * A type satisfies this concept if `Kokkos::is_memory_space_v<T>` is `true`.
+ * 
+ * Example:
+ * @code
+ * static_assert(MemorySpaceConcept<Kokkos::HostSpace>, "Kokkos::HostSpace is a memory space");
+ * static_assert(!MemorySpaceConcept<int>, "int is not a valid memory space");
+ * @endcode
+ * 
+ * @tparam T The type to check if it qualifies as a valid memory space.
+ */
 template <typename T>
 concept MemorySpaceConcept = Kokkos::is_memory_space_v<T>;
 
+/**
+ * @brief Concept that ensures the type is a valid Kokkos device type.
+ * 
+ * This concept ensures that the provided type has both a valid execution space and a valid memory space.
+ * A device type in Kokkos typically combines both an execution space and a memory space (e.g., `Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>`).
+ * 
+ * A type satisfies this concept if:
+ * - It has an inner `execution_space` type that satisfies `ExecutionSpaceConcept`.
+ * - It has an inner `memory_space` type that satisfies `MemorySpaceConcept`.
+ * 
+ * Example:
+ * @code
+ * static_assert(DeviceTypeConcept<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>, "Kokkos::Device with Serial execution and Host memory is a valid device type");
+ * static_assert(!DeviceTypeConcept<int>, "int is not a valid device type");
+ * @endcode
+ * 
+ * @tparam T The type to check if it qualifies as a valid Kokkos device type.
+ */
 template <typename T>
 concept DeviceTypeConcept = requires {
     typename T::execution_space;
