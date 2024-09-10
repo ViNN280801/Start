@@ -230,6 +230,9 @@ set(FINITE_ELEMENT_METHOD_TEST_SOURCES
     FiniteElementMethod/Cubature/CubatureManagerTests.cpp
     FiniteElementMethod/Cubature/BasisSelectorTests.cpp
 
+    FiniteElementMethod/LinearAlgebraManagers/MatrixManagerTests.cpp
+    FiniteElementMethod/LinearAlgebraManagers/VectorManagerTests.cpp
+
     FiniteElementMethod/FEMCheckersTests.cpp
 )
 set(GENERATORS_TEST_SOURCES
