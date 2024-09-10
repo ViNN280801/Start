@@ -184,11 +184,13 @@ set(FINITE_ELEMENT_METHOD_SOURCES
 
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cubature/CubatureManager.cpp
 
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/LinearAlgebraManagers/MatrixManager.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/LinearAlgebraManagers/VectorManager.cpp
+
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMCheckers.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMPrinter.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMatrixAssemblier.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/SolutionVector.cpp
 )
 set(GENERATORS_SOURCES
     ${GENERATORS_SRC_PATH}/RealNumberGenerator.cpp
@@ -227,6 +229,8 @@ set(FINITE_ELEMENT_METHOD_TEST_SOURCES
 
     FiniteElementMethod/Cubature/CubatureManagerTests.cpp
     FiniteElementMethod/Cubature/BasisSelectorTests.cpp
+
+    FiniteElementMethod/FEMCheckersTests.cpp
 )
 set(GENERATORS_TEST_SOURCES
     Generators/RealNumberGeneratorTests.cpp
