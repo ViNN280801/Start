@@ -3,9 +3,8 @@
 set(FEM_SOURCES
     FEMCheckers.cpp
     FEMPrinter.cpp
-    GSMatrixAssemblier.cpp
+    GSMAssemblier.cpp
     MatrixEquationSolver.cpp
-    SolutionVector.cpp
 )
 
 if (WIN32)
@@ -17,6 +16,7 @@ endif()
 add_subdirectory(BoundaryConditions)
 add_subdirectory(Cell)
 add_subdirectory(Cubature)
+add_subdirectory(LinearAlgebraManagers)
 
 add_library(FiniteElementMethod ${FEM_SOURCES})
 
@@ -24,6 +24,8 @@ target_link_libraries(FiniteElementMethod PRIVATE
     FiniteElementMethod_BoundaryConditions
     FiniteElementMethod_Cell
     FiniteElementMethod_Cubature
+    FiniteElementMethod_LinearAlgebraManagers
+
     ${Trilinos_LIBRARIES}
 )
 
