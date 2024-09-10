@@ -36,7 +36,6 @@
 class ModelingMainDriver final
 {
 private:
-    static constexpr short const kdefault_polynomOrder{1};                 ///< Polynom order. Responds for count of the basis functions.
     static constexpr short const kdefault_max_numparticles_to_anim{5'000}; ///< Maximal count of particles to do animation.
 
     static std::mutex m_PICTracker_mutex;              ///< Mutex for synchronizing access to the particles in tetrahedrons.
@@ -94,10 +93,10 @@ private:
      * @param boundaryConditions A map of boundary conditions to be set.
      * @param solutionVector The solution vector to be initialized.
      */
-    void initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
+    void initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
                        std::shared_ptr<Grid3D> &cubicGrid,
                        std::map<GlobalOrdinal, double> &boundaryConditions,
-                       std::shared_ptr<SolutionVector> &solutionVector);
+                       std::shared_ptr<VectorManager> &solutionVector);
 
     /**
      * @brief Saves the particle movements to a JSON file.
@@ -134,14 +133,14 @@ private:
     void processWithThreads(unsigned int num_threads, Function &&function, Args &&...args);
 
     void processParticleTracker(size_t start_index, size_t end_index, double t,
-                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
+                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
     void solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                       std::shared_ptr<GSMatrixAssemblier> &assemblier,
-                       std::shared_ptr<SolutionVector> &solutionVector,
+                       std::shared_ptr<GSMAssemblier> &assemblier,
+                       std::shared_ptr<VectorManager> &solutionVector,
                        std::map<GlobalOrdinal, double> &boundaryConditions, double time);
     void processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier);
+                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
 
 public:
     ModelingMainDriver(std::string_view config_filename);

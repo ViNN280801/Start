@@ -6,13 +6,13 @@ using json = nlohmann::json;
 
 void MatrixEquationSolver::initialize()
 {
-    m_A = m_assemblier->getGlobalStiffnessMatrix();
+    m_A = m_assemblier->getMatrix();
     m_x = Teuchos::rcp(new TpetraVectorType(m_A->getRowMap()));
-    m_rhs = m_solutionVector->getSolutionVector();
+    m_rhs = m_solutionVector->get();
     m_x->putScalar(0.0); // Initialize solution vector `x` with zeros.
 }
 
-MatrixEquationSolver::MatrixEquationSolver(std::shared_ptr<GSMatrixAssemblier> assemblier, std::shared_ptr<SolutionVector> solutionVector)
+MatrixEquationSolver::MatrixEquationSolver(std::shared_ptr<GSMAssemblier> assemblier, std::shared_ptr<VectorManager> solutionVector)
     : m_assemblier(assemblier), m_solutionVector(solutionVector) { initialize(); }
 
 void MatrixEquationSolver::setRHS(const Teuchos::RCP<TpetraVectorType> &rhs) { m_rhs = rhs; }

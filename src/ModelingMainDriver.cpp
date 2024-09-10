@@ -73,13 +73,13 @@ void ModelingMainDriver::initialize()
     initializeSurfaceMeshAABB();
 }
 
-void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &assemblier,
+void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
                                        std::shared_ptr<Grid3D> &cubicGrid,
                                        std::map<GlobalOrdinal, double> &boundaryConditions,
-                                       std::shared_ptr<SolutionVector> &solutionVector)
+                                       std::shared_ptr<VectorManager> &solutionVector)
 {
     // Assembling global stiffness matrix from the mesh file.
-    assemblier = std::make_shared<GSMatrixAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
+    assemblier = std::make_shared<GSMAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
 
     // Creating cubic grid for the tetrahedron mesh.
     cubicGrid = std::make_shared<Grid3D>(assemblier->getMeshComponents(), m_config.getEdgeSize());
@@ -88,10 +88,10 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMatrixAssemblier> &asse
     for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
         for (GlobalOrdinal nodeId : nodeIds)
             boundaryConditions[nodeId] = value;
-    BoundaryConditionsManager::set(assemblier->getGlobalStiffnessMatrix(), assemblier->getPolynomOrder(), boundaryConditions);
+    BoundaryConditionsManager::set(assemblier->getMatrix(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
 
     // Initializing the solution vector.
-    solutionVector = std::make_shared<SolutionVector>(assemblier->rows(), kdefault_polynomOrder);
+    solutionVector = std::make_shared<VectorManager>(assemblier->getRows());
     solutionVector->clear();
 }
 
@@ -229,7 +229,7 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
 }
 
 void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_index, double t,
-                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier,
+                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
                                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
     try
@@ -299,8 +299,8 @@ void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_i
 }
 
 void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                                       std::shared_ptr<GSMatrixAssemblier> &assemblier,
-                                       std::shared_ptr<SolutionVector> &solutionVector,
+                                       std::shared_ptr<GSMAssemblier> &assemblier,
+                                       std::shared_ptr<VectorManager> &solutionVector,
                                        std::map<GlobalOrdinal, double> &boundaryConditions, double time)
 {
     try
@@ -309,7 +309,7 @@ void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChar
         for (auto const &[nodeId, nodeChargeDensity] : nodeChargeDensityMap)
             if (std::ranges::find(nonChangebleNodes, nodeId) == nonChangebleNodes.cend())
                 boundaryConditions[nodeId] = nodeChargeDensity;
-        BoundaryConditionsManager::set(solutionVector->getSolutionVector(), solutionVector->getPolynomOrder(), boundaryConditions);
+        BoundaryConditionsManager::set(solutionVector->get(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
 
         MatrixEquationSolver solver(assemblier, solutionVector);
         auto solverParams{solver.createSolverParams(m_config.getSolverName(), m_config.getMaxIterations(), m_config.getConvergenceTolerance(),
@@ -333,7 +333,7 @@ void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChar
 }
 
 void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMatrixAssemblier> assemblier)
+                                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier)
 {
     try
     {
@@ -440,10 +440,10 @@ void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_ind
 void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
-    std::shared_ptr<GSMatrixAssemblier> assemblier;
+    std::shared_ptr<GSMAssemblier> assemblier;
     std::shared_ptr<Grid3D> cubicGrid;
     std::map<GlobalOrdinal, double> boundaryConditions;
-    std::shared_ptr<SolutionVector> solutionVector;
+    std::shared_ptr<VectorManager> solutionVector;
 
     initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
     /* Ending of the FEM initialization. */
