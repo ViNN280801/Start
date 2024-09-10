@@ -9,6 +9,9 @@ Debug/
 # Visual Studio Code files
 .vscode/
 
+# Documentation files
+docs/
+
 # Build files
 build/
 CMakeFiles/
