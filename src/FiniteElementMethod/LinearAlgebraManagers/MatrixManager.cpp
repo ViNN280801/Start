@@ -1,25 +1,40 @@
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
 
-MatrixManager::MatrixManager() : m_is_default_initialized(true) {}
-
-void MatrixManager::setMap(Teuchos::RCP<MapType> map)
+MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m_entries(matrix_entries)
 {
-    if (!m_is_default_initialized)
-        throw std::logic_error("setMap can only be used with the default constructor");
-    m_map = map;
-}
+    // 1. Getting unique global entries.
+    std::map<GlobalOrdinal, std::set<GlobalOrdinal>> graphEntries;
+    for (auto const &entry : m_entries)
+        graphEntries[entry.row].insert(entry.col);
 
-void MatrixManager::setMatrix(Teuchos::RCP<TpetraMatrixType> matrix)
-{
-    if (!m_is_default_initialized)
-        throw std::logic_error("setMatrix can only be used with the default constructor");
-    m_matrix = matrix;
-}
+    // 2. Initializing all necessary variables.
+    short indexBase{};
+    auto countGlobalNodes{graphEntries.size()};
 
-MatrixManager::MatrixManager(GlobalOrdinal num_rows, GlobalOrdinal num_cols)
-    : m_map(Teuchos::rcp(new MapType(num_rows, 0, Tpetra::getDefaultComm()))),
-      m_matrix(Teuchos::rcp(new TpetraMatrixType(m_map, num_cols))) {}
+    // 3. Initializing tpetra map.
+    m_map = Teuchos::rcp(new MapType(countGlobalNodes, indexBase, Tpetra::getDefaultComm()));
+
+    // 4. Initializing tpetra graph.
+    std::vector<size_t> numEntriesPerRow(countGlobalNodes);
+    for (auto const &rowEntry : graphEntries)
+        numEntriesPerRow.at(m_map->getLocalElement(rowEntry.first)) = rowEntry.second.size();
+
+    Teuchos::RCP<Tpetra::CrsGraph<>> graph{Teuchos::rcp(new Tpetra::CrsGraph<>(m_map, Teuchos::ArrayView<size_t const>(numEntriesPerRow.data(), numEntriesPerRow.size())))};
+    for (auto const &rowEntries : graphEntries)
+    {
+        std::vector<GlobalOrdinal> columns(rowEntries.second.begin(), rowEntries.second.end());
+        Teuchos::ArrayView<GlobalOrdinal const> colsView(columns.data(), columns.size());
+        graph->insertGlobalIndices(rowEntries.first, colsView);
+    }
+    graph->fillComplete();
+
+    // 5. Initializing matrix.
+    m_matrix = Teuchos::rcp(new TpetraMatrixType(graph));
+
+    // 6. Finalizing work with matrix.
+    m_matrix->fillComplete();
+}
 
 size_t MatrixManager::rows() const { return m_matrix->getGlobalNumRows(); }
 

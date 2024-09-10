@@ -5,7 +5,6 @@
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "Generators/RealNumberGenerator.hpp"
-#include "LinearAlgebraManagers/MatrixManager.hpp"
 
 DynRankView GSMAssemblier::_getTetrahedronVertices()
 {
@@ -40,7 +39,7 @@ DynRankView GSMAssemblier::_getTetrahedronVertices()
     return DynRankView();
 }
 
-std::vector<MatrixManager::MatrixEntry> GSMAssemblier::_getMatrixEntries()
+std::vector<MatrixEntry> GSMAssemblier::_getMatrixEntries()
 {
     TetrahedronIndicesVector globalNodeIndicesPerElement;
     std::set<size_t> allNodeIDs;
@@ -59,7 +58,7 @@ std::vector<MatrixManager::MatrixEntry> GSMAssemblier::_getMatrixEntries()
     auto localStiffnessMatrices{_computeLocalStiffnessMatrices()};
 
     // 3. Filling matrix entries.
-    std::vector<MatrixManager::MatrixEntry> matrixEntries;
+    std::vector<MatrixEntry> matrixEntries;
     try
     {
         for (size_t tetraId{}; tetraId < globalNodeIndicesPerElement.size(); ++tetraId)
@@ -174,52 +173,19 @@ void GSMAssemblier::_assembleGlobalStiffnessMatrix()
 {
     try
     {
-        // 1. Getting all matrix entries.
-        auto matrixEntries{_getMatrixEntries()};
+        // 1. Preparing to fill matrix.
+        getGlobalStiffnessMatrix()->resumeFill();
 
-        // 2. Getting unique global entries.
-        std::map<GlobalOrdinal, std::set<GlobalOrdinal>> graphEntries;
-        for (auto const &entry : matrixEntries)
-            graphEntries[entry.row].insert(entry.col);
-
-        // 3. Initializing all necessary variables.
-        short indexBase{};
-        auto countGlobalNodes{graphEntries.size()};
-
-        // 4. Initializing tpetra map.
-        auto map{Teuchos::rcp(new MapType(countGlobalNodes, indexBase, Tpetra::getDefaultComm()))};
-
-        // 5. Initializing tpetra graph.
-        std::vector<size_t> numEntriesPerRow(countGlobalNodes);
-        for (auto const &rowEntry : graphEntries)
-            numEntriesPerRow.at(map->getLocalElement(rowEntry.first)) = rowEntry.second.size();
-
-        Teuchos::RCP<Tpetra::CrsGraph<>> graph{Teuchos::rcp(new Tpetra::CrsGraph<>(map, Teuchos::ArrayView<size_t const>(numEntriesPerRow.data(), numEntriesPerRow.size())))};
-        for (auto const &rowEntries : graphEntries)
-        {
-            std::vector<GlobalOrdinal> columns(rowEntries.second.begin(), rowEntries.second.end());
-            Teuchos::ArrayView<GlobalOrdinal const> colsView(columns.data(), columns.size());
-            graph->insertGlobalIndices(rowEntries.first, colsView);
-        }
-        graph->fillComplete();
-
-        // 6. Initializing GSM.
-        auto matrix{Teuchos::rcp(new TpetraMatrixType(graph))};
-
-        // 7. Adding local stiffness matrices to the global.
-        for (auto const &entry : matrixEntries)
+        // 2. Adding local stiffness matrices to the global.
+        for (auto const &entry : m_matrix_manager.getMatrixEntries())
         {
             Teuchos::ArrayView<GlobalOrdinal const> colsView(std::addressof(entry.col), 1);
             Teuchos::ArrayView<Scalar const> valsView(std::addressof(entry.value), 1);
-            matrix->sumIntoGlobalValues(entry.row, colsView, valsView);
+            getGlobalStiffnessMatrix()->sumIntoGlobalValues(entry.row, colsView, valsView);
         }
 
-        // 8. Filling completion.
-        matrix->fillComplete();
-
-        // 9. Setting map and matrix using matrix manager.
-        m_matrix_manager.setMap(map);
-        m_matrix_manager.setMatrix(matrix);
+        // 3. Filling completion.
+        getGlobalStiffnessMatrix()->fillComplete();
     }
     catch (std::exception const &ex)
     {
@@ -233,10 +199,11 @@ void GSMAssemblier::_assembleGlobalStiffnessMatrix()
 
 GSMAssemblier::GSMAssemblier(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order)
     : m_mesh_filename(mesh_filename.data()),
-      m_cubature_manager(cell_type, desired_calc_accuracy, polynom_order),
       m_cell_type(cell_type),
       m_desired_accuracy(desired_calc_accuracy),
-      m_polynom_order(polynom_order)
+      m_polynom_order(polynom_order),
+      m_cubature_manager(cell_type, desired_calc_accuracy, polynom_order),
+      m_matrix_manager(_getMatrixEntries())
 {
     FEMCheckers::checkMeshFile(mesh_filename);
     FEMCheckers::checkPolynomOrder(polynom_order);

@@ -14,13 +14,13 @@
 class GSMAssemblier
 {
 private:
-    std::string m_mesh_filename;        ///< Filename of the mesh.
-    CubatureManager m_cubature_manager; ///< Cubature manager (manages cubature points and weights based on cell type).
-    MatrixManager m_matrix_manager;     ///< Matrix manager (manages CRS matrix (initialization, accessing, etc.)).
-
+    std::string m_mesh_filename;       ///< Filename of the mesh.
     CellType m_cell_type;              ///< Type of the mesh cell (for example: tetrahedron, hexahedron, etc.).
     unsigned short m_desired_accuracy; ///< Desired accuracy for cubature calculation, defining the number of cubature points. Higher values increase precision.
     unsigned short m_polynom_order;    ///< Polynomial order used in the basis functions for the finite element method. Determines the degree of approximation.
+
+    CubatureManager m_cubature_manager; ///< Cubature manager (manages cubature points and weights based on cell type).
+    MatrixManager m_matrix_manager;     ///< Matrix manager (manages initialization and filling of matrices).
 
     /**
      * @brief Retrieves the vertices of all tetrahedrons in the mesh.
@@ -39,7 +39,7 @@ private:
      * @brief Retrieves matrix entries from calculated local stiffness matrices.
      * @return A vector of matrix entries, each containing global row, column, and value.
      */
-    std::vector<MatrixManager::MatrixEntry> _getMatrixEntries();
+    std::vector<MatrixEntry> _getMatrixEntries();
 
     /**
      * @brief Computes the local stiffness matrix for a given set of basis gradients and cubature weights.
@@ -58,13 +58,12 @@ public:
     ~GSMAssemblier() {}
 
     /* === Getters for matrix params. === */
-    constexpr auto const &getMatrix() const { return m_matrix_manager.get(); }
-    size_t getRows() const { return m_matrix_manager.rows(); }
-    size_t getCols() const { return m_matrix_manager.cols(); }
     auto &getMeshComponents() { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
     auto const &getMeshComponents() const { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
 
     /// &&& Getters. &&& ///
+    auto getGlobalStiffnessMatrix() { return m_matrix_manager.get(); }
+    size_t getRows() const { return m_matrix_manager.rows(); }
     constexpr CellType getCellType() const { return m_cell_type; }
     constexpr unsigned short getDesiredCalculationAccuracy() const { return m_desired_accuracy; }
     constexpr unsigned short getPolynomOrder() const { return m_polynom_order; }

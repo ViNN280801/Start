@@ -88,7 +88,7 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblie
     for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
         for (GlobalOrdinal nodeId : nodeIds)
             boundaryConditions[nodeId] = value;
-    BoundaryConditionsManager::set(assemblier->getMatrix(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
+    BoundaryConditionsManager::set(assemblier->getGlobalStiffnessMatrix(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
 
     // Initializing the solution vector.
     solutionVector = std::make_shared<VectorManager>(assemblier->getRows());

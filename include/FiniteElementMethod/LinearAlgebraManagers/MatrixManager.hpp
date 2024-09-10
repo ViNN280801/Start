@@ -4,6 +4,19 @@
 #include "FiniteElementMethod/FEMTypes.hpp"
 
 /**
+ * @struct MatrixEntry
+ * @brief Struct representing an entry in the global stiffness matrix.
+ *
+ * The MatrixEntry struct stores the row index, column index, and value of a single entry in the global matrix.
+ */
+struct MatrixEntry
+{
+    GlobalOrdinal row; ///< Global row index for the matrix entry.
+    GlobalOrdinal col; ///< Global column index for the matrix entry.
+    Scalar value;      ///< Value to be inserted at (row, col) in the global matrix.
+};
+
+/**
  * @class MatrixManager
  * @brief Class responsible for managing the global stiffness matrix in the equation Ax = b in FEM.
  *
@@ -18,63 +31,29 @@ class MatrixManager
 private:
     Teuchos::RCP<MapType> m_map;             ///< A smart pointer managing the lifetime of a Map object, which defines the layout of distributed data across the processes in a parallel computation.
     Teuchos::RCP<TpetraMatrixType> m_matrix; ///< Smart pointer on the CRS matrix.
-    bool m_is_default_initialized{false};    ///< Flag that shows is the instance was initialized with empty default ctor or not.
+    std::vector<MatrixEntry> m_entries;      ///< Entries of the matrix: [row][col]=<value>. So-called "triplets": row number, column number and value.
 
 public:
     /**
-     * @struct MatrixEntry
-     * @brief Struct representing an entry in the global stiffness matrix.
+     * @brief Constructor for the MatrixManager class using a list of matrix entries.
      *
-     * The MatrixEntry struct stores the row index, column index, and value of a single entry in the global matrix.
+     * This constructor initializes the MatrixManager with a set of global stiffness matrix entries.
+     * It processes the matrix entries (row, col, value) to build the Tpetra compressed row storage (CRS) matrix.
+     * The constructor follows these steps:
+     * - Collects unique global row-column entries to construct the CRS graph.
+     * - Initializes the Tpetra map based on the global node count.
+     * - Creates the Tpetra CRS graph using the number of entries per row.
+     * - Inserts the global indices into the graph and finalizes it.
+     * - Initializes the global stiffness matrix and prepares it for further operations.
+     *
+     * @param matrix_entries A vector of MatrixEntry structures containing the row, column, and value information
+     *                       for the non-zero entries in the global stiffness matrix.
+     *
+     * @note This constructor assumes that the matrix is sparse and the number of non-zero entries is significantly
+     *       smaller than the total number of possible entries in a full matrix.
+     * @throws std::runtime_error if there is any issue during the matrix or graph construction process.
      */
-    struct MatrixEntry
-    {
-        GlobalOrdinal row; ///< Global row index for the matrix entry.
-        GlobalOrdinal col; ///< Global column index for the matrix entry.
-        Scalar value;      ///< Value to be inserted at (row, col) in the global matrix.
-    };
-
-    /// @brief Ctor that does nothing. Needs for manually initialize map and matrix.
-    explicit MatrixManager();
-
-    /**
-     * @brief Sets the map for the MatrixManager object.
-     *
-     * This method assigns a new map to the MatrixManager. It can only be used when
-     * the MatrixManager was created using the default constructor. If any other
-     * constructor was used (where the matrix or map was already initialized), this
-     * method will throw an exception.
-     *
-     * WARNING: Available only when instance initialized with empty ctor.
-     *
-     * @param map The map to be assigned to the MatrixManager.
-     * @throws std::logic_error If the MatrixManager was not created using the default constructor.
-     */
-    void setMap(Teuchos::RCP<MapType> map);
-
-    /**
-     * @brief Sets the matrix for the MatrixManager object.
-     *
-     * This method assigns a new matrix to the MatrixManager. Similar to setMap, this method
-     * can only be used when the MatrixManager was created using the default constructor.
-     * It will throw an exception if the manager was initialized through other constructors.
-     *
-     * WARNING: Available only when instance initialized with empty ctor.
-     *
-     * @param matrix The matrix to be assigned to the MatrixManager.
-     * @throws std::logic_error If the MatrixManager was not created using the default constructor.
-     */
-    void setMatrix(Teuchos::RCP<TpetraMatrixType> matrix);
-
-    /**
-     * @brief Constructor for MatrixManager.
-     *
-     * Initializes the matrix with the given number of rows and columns, based on a distributed map.
-     *
-     * @param num_rows Number of rows in the matrix.
-     * @param num_cols Number of columns in the matrix.
-     */
-    MatrixManager(GlobalOrdinal num_rows, GlobalOrdinal num_cols);
+    MatrixManager(std::vector<MatrixEntry> const &matrix_entries);
 
     /**
      * @brief Getter for the matrix.
@@ -83,7 +62,18 @@ public:
      *
      * @return A reference-counted pointer to the Tpetra matrix.
      */
-    constexpr Teuchos::RCP<TpetraMatrixType> const &get() const { return m_matrix; }
+    Teuchos::RCP<TpetraMatrixType> get() const { return m_matrix; }
+
+    /**
+     * @brief Retrieves the matrix entries stored in the MatrixManager.
+     *
+     * The matrix entries represent the global indices and corresponding values of the non-zero elements
+     * in the global stiffness matrix. These entries are provided in a triplet format (row, col, value),
+     * which is useful for constructing the sparse matrix or for retrieving and manipulating its values.
+     *
+     * @return A constant reference to the vector of matrix entries (row, col, value).
+     */
+    constexpr auto const &getMatrixEntries() const { return m_entries; }
 
     /**
      * @brief Returns the number of rows in the global matrix.

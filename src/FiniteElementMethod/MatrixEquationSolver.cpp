@@ -6,7 +6,7 @@ using json = nlohmann::json;
 
 void MatrixEquationSolver::initialize()
 {
-    m_A = m_assemblier->getMatrix();
+    m_A = m_assemblier->getGlobalStiffnessMatrix();
     m_x = Teuchos::rcp(new TpetraVectorType(m_A->getRowMap()));
     m_rhs = m_solutionVector->get();
     m_x->putScalar(0.0); // Initialize solution vector `x` with zeros.
