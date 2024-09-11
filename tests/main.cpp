@@ -1,4 +1,3 @@
-#include <Kokkos_Core.hpp>
 #include <gtest/gtest.h>
 
 #include "FiniteElementMethod/FEMTypes.hpp"
@@ -15,6 +14,6 @@ int main(int argc, char **argv)
 
     if (Kokkos::is_initialized())
         Kokkos::finalize();
-    
+
     return result;
 }
