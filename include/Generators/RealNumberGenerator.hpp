@@ -4,7 +4,14 @@
 #include <random>
 #include <vector>
 
-/// @brief Generator for real numbers and their sequences.
+/**
+ * @brief Generator for real numbers and their sequences.
+ *
+ * This class generates random real numbers and sequences of real numbers
+ * using the Mersenne Twister engine. It supports generating random numbers
+ * within a specified interval and allows the configuration of upper and lower
+ * bounds for the generated numbers.
+ */
 class RealNumberGenerator final
 {
 private:
@@ -21,37 +28,83 @@ private:
     static constexpr double kdefault_max_value{1.0}; // Default value of the upper bound.
 
 public:
+    /**
+     * @brief Constructs a RealNumberGenerator with default bounds (0.0, 1.0).
+     *
+     * Initializes the random number generator with a non-deterministic seed.
+     */
     RealNumberGenerator();
+
+    /**
+     * @brief Constructs a RealNumberGenerator with specified bounds.
+     *
+     * Initializes the random number generator with the provided bounds [from, to].
+     *
+     * @param from Lower bound for generated numbers.
+     * @param to Upper bound for generated numbers.
+     */
     RealNumberGenerator(double from, double to);
-    ~RealNumberGenerator() {}
 
     /**
-     * @brief Generates one random real number in specified interval (from, to).
-     * Usage:
-     * RealNumberGenerator rng;
-     * rng(); -> by default generates real numbers in (0.0, 1.0)
-     * rng.set_lower_bound(0.5);
-     * rng(); -> now generates real number in interval (0.5, 1.0)
+     * @brief Destructor for RealNumberGenerator.
+     *
+     * Default destructor for RealNumberGenerator. It performs no special cleanup as the class
+     * does not manage any resources that require manual handling.
      */
-    double operator()();
+    ~RealNumberGenerator() = default;
 
     /**
-     * @brief Generates one random real number in interval (from, to).
-     * @param from lower bound.
-     * @param to upper bound.
+     * @brief Generates a random real number in the configured interval [m_from, m_to].
+     *
+     * @return A random real number within the bounds [m_from, m_to].
+     *
+     * @note Ignoring this function's return value means the random number generated is discarded.
      */
-    double operator()(double from, double to);
+    [[nodiscard("Random number should not be discarded")]] double operator()();
 
     /**
-     * @brief Generates one random real number in interval (from, to).
-     * @param from lower bound.
-     * @param to upper bound.
+     * @brief Generates a random real number in the specified interval [from, to].
+     *
+     * @param from Lower bound for the generated number.
+     * @param to Upper bound for the generated number.
+     * @return A random real number within the bounds [from, to].
+     *
+     * @note Ignoring this function's return value means the random number generated is discarded.
      */
-    double get_double(double from, double to);
+    [[nodiscard("Random number should not be discarded")]] double operator()(double from, double to);
+
+    /**
+     * @brief Generates a random real number in the specified interval [from, to].
+     *
+     * @param from Lower bound for the generated number.
+     * @param to Upper bound for the generated number.
+     * @return A random real number within the bounds [from, to].
+     *
+     * @note Ignoring this function's return value means the random number generated is discarded.
+     */
+    [[nodiscard("Random number should not be discarded")]] double get_double(double from, double to) const;
 
     /* === Setter methods for data members === */
+    /**
+     * @brief Sets the lower bound for random number generation.
+     *
+     * @param val The lower bound value.
+     */
     void set_lower_bound(double);
+
+    /**
+     * @brief Sets the upper bound for random number generation.
+     *
+     * @param val The upper bound value.
+     */
     void set_upper_bound(double);
+
+    /**
+     * @brief Sets the lower and upper bounds for random number generation.
+     *
+     * @param from Lower bound for the generated number.
+     * @param to Upper bound for the generated number.
+     */
     void set(double from, double to);
 
     /**
