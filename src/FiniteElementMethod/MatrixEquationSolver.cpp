@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <execution>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -45,8 +47,9 @@ void MatrixEquationSolver::fillNodesPotential()
         throw std::runtime_error("Solution vector is not initialized");
 
     GlobalOrdinal id{1};
-    for (Scalar potential : getValuesFromX())
-        m_assemblier->getMeshComponents().assignPotential(id++, potential);
+    auto values{getValuesFromX()};
+    std::for_each(std::execution::par, values.begin(), values.end(), [&](Scalar potential)
+                  { m_assemblier->getMeshComponents().assignPotential(id++, potential); });
 }
 
 void MatrixEquationSolver::calculateElectricField()
@@ -56,24 +59,35 @@ void MatrixEquationSolver::calculateElectricField()
         // Filling node potentials before calculating the electric field in the cell.
         fillNodesPotential();
 
+        auto &meshComponents{m_assemblier->getMeshComponents().getMeshComponents()};
+
         // We have map: (Tetrahedron ID | map<Node ID | Basis function gradient math vector (3 components)>).
         // To get electric field of the cell we just need to accumulate all the basis func grads for each node for each tetrahedron:
         // E_cell = Σ(φi⋅∇φi), where i - global index of the node.
-        for (auto const &tetrahedronData : m_assemblier->getMeshComponents().getMeshComponents())
-        {
+        std::for_each(std::execution::par, meshComponents.begin(), meshComponents.end(), [&](auto const &tetrahedronData)
+                      {
             MathVector electricField{};
 
+            // Accumulate electric field contributions from each node in the tetrahedron
             for (auto const &node : tetrahedronData.nodes)
             {
                 if (node.potential && node.nablaPhi)
-                    electricField += MathVector(node.nablaPhi.value().x(), node.nablaPhi.value().y(), node.nablaPhi.value().z()) *
-                                     node.potential.value();
+                {
+                    auto const& nablaPhiVec{node.nablaPhi.value()};
+                    electricField += MathVector(nablaPhiVec.x(), nablaPhiVec.y(), nablaPhiVec.z()) * node.potential.value();
+                }
                 else
+                {
                     WARNINGMSG(util::stringify("Node potential or nablaPhi is not set for the ",
                                                node.globalNodeId, " vertex of the ", tetrahedronData.globalTetraId, " tetrahedron"));
+                }
             }
-            m_assemblier->getMeshComponents().assignElectricField(tetrahedronData.globalTetraId, Point(electricField.getX(), electricField.getY(), electricField.getZ()));
-        }
+
+            // Assign the calculated electric field to the current tetrahedron
+            m_assemblier->getMeshComponents().assignElectricField(
+                tetrahedronData.globalTetraId, 
+                Point(electricField.getX(), electricField.getY(), electricField.getZ())
+            ); });
     }
     catch (std::exception const &ex)
     {
