@@ -82,7 +82,7 @@ public:
      *
      * @note Ignoring this function's return value means the random number generated is discarded.
      */
-    [[nodiscard("Random number should not be discarded")]] double get_double(double from, double to) const;
+    [[nodiscard("Random number should not be discarded")]] double get_double(double from, double to);
 
     /* === Setter methods for data members === */
     /**
