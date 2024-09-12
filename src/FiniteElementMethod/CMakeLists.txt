@@ -20,12 +20,14 @@ add_subdirectory(LinearAlgebraManagers)
 
 add_library(FiniteElementMethod ${FEM_SOURCES})
 
+find_package(TBB REQUIRED)
 target_link_libraries(FiniteElementMethod PRIVATE
     FiniteElementMethod_BoundaryConditions
     FiniteElementMethod_Cell
     FiniteElementMethod_Cubature
     FiniteElementMethod_LinearAlgebraManagers
 
+    TBB::tbb
     ${Trilinos_LIBRARIES}
 )
 
