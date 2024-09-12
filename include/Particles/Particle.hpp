@@ -227,12 +227,12 @@ private:
      * @return void The function does not return a value but presumably updates
      * the energy state of the particle within the class.
      */
-    void calculateEnergyJFromVelocity(double vx, double vy, double vz);
-    void calculateEnergyJFromVelocity(VelocityVector const &v);
+    void calculateEnergyJFromVelocity(double vx, double vy, double vz) noexcept;
+    void calculateEnergyJFromVelocity(VelocityVector const &v) noexcept;
     void calculateEnergyJFromVelocity(VelocityVector &&v) noexcept;
 
     /// @brief Calculates bounding box for the current particle.
-    void calculateBoundingBox();
+    void calculateBoundingBox() noexcept;
 
 public:
     Particle() : m_bbox(0, 0, 0, 0, 0, 0) {}
@@ -339,9 +339,45 @@ public:
     [[nodiscard("Check of Particle inequality should not be ignored to ensure correct logic flow")]] friend bool operator!=(Particle const &lhs, Particle const &rhs) { return !(lhs == rhs); }
 };
 
-std::ostream &operator<<(std::ostream &os, Particle const &particle);
-
 using ParticleVector = std::vector<Particle>;
+
+/**
+ * @brief Concept to ensure the Generator is callable and returns a Particle.
+ *
+ * This concept requires that the Generator type be a callable (such as a function, lambda,
+ * or functor) that returns a `Particle` or a type convertible to `Particle`.
+ */
+template <typename Generator>
+concept ParticleGenerator = std::invocable<Generator> && std::same_as<std::invoke_result_t<Generator>, Particle>;
+
+/**
+ * @brief Creates a specified number of particles using a generator function.
+ *
+ * This function generates particles by invoking a provided generator function. The generator
+ * must return a `Particle` or an object convertible to `Particle`.
+ *
+ * @tparam Gen Type of the generator function, constrained by the `ParticleGenerator` concept.
+ * @param count The number of particles to generate.
+ * @param gen A callable (e.g., lambda, function) that generates a `Particle` when invoked.
+ * @return ParticleVector A vector containing the generated particles.
+ *
+ * @note The generator must return a `Particle` object on each invocation.
+ * @code
+ * ParticleVector particles = createParticles(100, []() {
+ *     return Particle(...);  // Return a particle instance
+ * });
+ * @endcode
+ */
+template <ParticleGenerator Gen>
+ParticleVector createParticles(size_t count, Gen gen)
+{
+    ParticleVector particles;
+    for (size_t i{}; i < count; i++)
+        particles.emplace_back(gen());
+    return particles;
+}
+
+std::ostream &operator<<(std::ostream &os, Particle const &particle);
 
 /// @brief Generates a vector of particles with velocity.
 ParticleVector createParticlesWithVelocities(size_t count, ParticleType type,
