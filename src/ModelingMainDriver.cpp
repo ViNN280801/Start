@@ -95,15 +95,15 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblie
     solutionVector->clear();
 }
 
-size_t ModelingMainDriver::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
+std::optional<size_t> ModelingMainDriver::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
 {
     // Returning invalid index if ray or triangle is degenerate
     if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
-        return -1ul;
+        return std::nullopt;
 
     return (RayTriangleIntersection::isIntersectTriangle(ray, std::get<1>(triangle)))
-               ? std::get<0>(triangle)
-               : -1ul;
+               ? std::optional<size_t>{std::get<0>(triangle)}
+               : std::nullopt;
 }
 
 unsigned int ModelingMainDriver::getNumThreads() const
@@ -185,6 +185,18 @@ void ModelingMainDriver::updateSurfaceMesh()
 template <typename Function, typename... Args>
 void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &&function, Args &&...args)
 {
+    // Static assert to ensure the number of threads is greater than 0.
+    static_assert(sizeof...(args) > 0, "You must provide at least one argument to pass to the function.");
+
+    // Check if the requested number of threads exceeds available hardware concurrency.
+    unsigned int available_threads{std::thread::hardware_concurrency()};
+    if (num_threads > available_threads)
+        throw std::invalid_argument("The number of threads requested exceeds the available hardware threads.");
+
+    // Handle edge case of num_threads == 0.
+    if (num_threads == 0)
+        throw std::invalid_argument("The number of threads must be greater than 0.");
+
     size_t particles_per_thread{m_particles.size() / num_threads}, start_index{},
         managed_particles{particles_per_thread * num_threads}; // Count of the managed particles.
 
@@ -402,12 +414,12 @@ void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_ind
                                                               { return triangle == std::get<1>(el); })};
                           if (matchedIt != _triangleMesh.cend())
                           {
-                              size_t id{isRayIntersectTriangle(ray, *matchedIt)};
-                              if (id != -1ul)
+                              auto id{isRayIntersectTriangle(ray, *matchedIt)};
+                              if (id)
                               {
                                   {
                                       std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
-                                      ++_settledParticlesCounterMap[id];
+                                      ++_settledParticlesCounterMap[id.value()];
                                       _settledParticlesIds.insert(particle.getId());
 
                                       if (_settledParticlesIds.size() >= m_particles.size())

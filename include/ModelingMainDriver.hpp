@@ -107,12 +107,18 @@ private:
     void saveParticleMovements() const;
 
     /**
-     * @brief Checker for ray-triangle intersection.
-     * @param ray Finite ray object - line segment.
-     * @param triangle Triangle object.
-     * @return ID with what triangle ray intersects, otherwise max `size_t` value (-1ul).
+     * @brief Checks if a given ray intersects with a triangle.
+     *
+     * This function determines whether a finite ray intersects with a given triangle.
+     * If an intersection occurs, the ID of the intersected triangle is returned.
+     * Otherwise, an empty `std::optional<size_t>` is returned, indicating no intersection.
+     *
+     * @param ray A constant reference to the ray (line segment) to be checked.
+     * @param triangle A constant reference to the triangle to check for intersection.
+     * @return An `std::optional<size_t>` containing the ID of the intersected triangle
+     *         if the ray intersects, or `std::nullopt` if there is no intersection.
      */
-    size_t isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle);
+    std::optional<size_t> isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle);
 
     /// @brief Returns count of threads from config. Has initial checkings and warning msg when num threads occupies 80% of all the threads.
     unsigned int getNumThreads() const;
@@ -121,29 +127,88 @@ private:
     void updateSurfaceMesh();
 
     /**
-     * @brief Runs the given function in a multithreaded mode, splitting the work into segments.
+     * @brief Processes particles in parallel using multiple threads.
      *
-     * @param num_threads Count of the using threads.
-     * @tparam Function Type of the function.
-     * @tparam Args Types of the function arguments.
-     * @param function The function to execute.
-     * @param args Arguments for the function.
+     * This function divides the particles into segments and processes them in parallel using the given function.
+     *
+     * @tparam Function Type of the function to be executed in each thread.
+     * @tparam Args Variadic template for additional arguments to be passed to the function.
+     * @param num_threads The number of threads to use for processing.
+     * @param function The function to be executed in each thread.
+     * @param args Additional arguments to be passed to the function.
      */
     template <typename Function, typename... Args>
     void processWithThreads(unsigned int num_threads, Function &&function, Args &&...args);
 
+    /**
+     * @brief Processes particle tracking within a specified range of particles.
+     *
+     * This function processes particle tracking for particles within the specified range
+     * [start_index, end_index). It performs operations based on the time `t` and interacts
+     * with the provided cubic grid and GSM assembler. The node charge density map is updated
+     * accordingly during the process.
+     *
+     * @param start_index The starting index of the particles to process.
+     * @param end_index The ending index of the particles to process.
+     * @param t The current time of the simulation.
+     * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
+     * @param assemblier A shared pointer to the GSM assembler that handles particle interactions.
+     * @param nodeChargeDensityMap A reference to a map that tracks the charge density at each node.
+     */
     void processParticleTracker(size_t start_index, size_t end_index, double t,
                                 std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
+
+    /**
+     * @brief Solves the equation for the system using node charge density and boundary conditions.
+     *
+     * This function solves the system of equations based on the provided node charge density map
+     * and boundary conditions. It updates the solution vector accordingly.
+     *
+     * @param nodeChargeDensityMap A reference to a map containing the charge density at each node.
+     * @param assemblier A shared pointer to the GSM assembler that constructs the system of equations.
+     * @param solutionVector A shared pointer to the vector manager that holds the solution.
+     * @param boundaryConditions A reference to a map containing boundary conditions for the system.
+     * @param time The current simulation time.
+     */
     void solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
                        std::shared_ptr<GSMAssemblier> &assemblier,
                        std::shared_ptr<VectorManager> &solutionVector,
                        std::map<GlobalOrdinal, double> &boundaryConditions, double time);
+
+    /**
+     * @brief Processes particle-in-cell (PIC) and surface collision tracking within a particle range.
+     *
+     * This function tracks particle-in-cell interactions and surface collisions for particles
+     * in the specified range [start_index, end_index). It updates the state of the particles based on
+     * the time `t` and interactions with the provided cubic grid and GSM assembler.
+     *
+     * @param start_index The starting index of the particles to process.
+     * @param end_index The ending index of the particles to process.
+     * @param t The current time of the simulation.
+     * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
+     * @param assemblier A shared pointer to the GSM assembler that handles particle and surface interactions.
+     */
     void processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
                                                 std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
 
 public:
+    /**
+     * @brief Constructs the ModelingMainDriver object and initializes it using a configuration file.
+     *
+     * This constructor initializes the driver for the modeling process using the provided configuration
+     * filename. It sets up necessary components based on the configuration.
+     *
+     * @param config_filename A string view of the path to the configuration file.
+     */
     ModelingMainDriver(std::string_view config_filename);
+
+    /**
+     * @brief Starts the modeling process.
+     *
+     * This function initiates the entire modeling process, which typically involves setting up
+     * the simulation, processing particles, solving equations, and updating the system at each time step.
+     */
     void startModeling();
 };
 
