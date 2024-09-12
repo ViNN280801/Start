@@ -1,4 +1,4 @@
-# Root CMakeLists.txt
+# tests/CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.14)
 project(Tests)
@@ -11,8 +11,19 @@ include(FetchContent)
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
+
+# Silence CMP0148 policy warning
+if(POLICY CMP0148)
+  cmake_policy(SET CMP0148 NEW)
+endif()
+
+# Silence CMP0167 policy warning
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 # HDF5
 find_package(HDF5 REQUIRED COMPONENTS CXX)
