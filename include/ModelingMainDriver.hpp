@@ -2,6 +2,7 @@
 #define PARTICLEINCELL_HPP
 
 #include <barrier>
+#include <future>
 #include <mutex>
 #include <shared_mutex>
 
@@ -129,16 +130,21 @@ private:
     /**
      * @brief Processes particles in parallel using multiple threads.
      *
-     * This function divides the particles into segments and processes them in parallel using the given function.
+     * This function splits the particles among the given number of threads and asynchronously or
+     * deferred processes each segment of particles using the provided function. The launch policy
+     * can be either immediate execution (async) or deferred execution.
      *
-     * @tparam Function Type of the function to be executed in each thread.
+     * @tparam Function A callable type that represents the function to be executed in each thread.
      * @tparam Args Variadic template for additional arguments to be passed to the function.
      * @param num_threads The number of threads to use for processing.
-     * @param function The function to be executed in each thread.
-     * @param args Additional arguments to be passed to the function.
+     * @param function The member function to be executed in each thread.
+     * @param launch_policy The launch policy, which can be std::launch::async or std::launch::deferred.
+     * @param args Additional arguments to be forwarded to the function.
+     *
+     * @throws std::invalid_argument if num_threads exceeds the number of available hardware threads.
      */
     template <typename Function, typename... Args>
-    void processWithThreads(unsigned int num_threads, Function &&function, Args &&...args);
+    void processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_plicy, Args &&...args);
 
     /**
      * @brief Processes particle tracking within a specified range of particles.

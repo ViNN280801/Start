@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <atomic>
 #include <execution>
-#include <future>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -183,7 +182,7 @@ void ModelingMainDriver::updateSurfaceMesh()
 }
 
 template <typename Function, typename... Args>
-void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &&function, Args &&...args)
+void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_policy, Args &&...args)
 {
     // Static assert to ensure the number of threads is greater than 0.
     static_assert(sizeof...(args) > 0, "You must provide at least one argument to pass to the function.");
@@ -213,8 +212,8 @@ void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &
             end_index = m_particles.size();
 
         // Launch the function asynchronously for the current segment.
-        futures.emplace_back(std::async(std::launch::async, [this, start_index, end_index, &function, &args...]()
-                                        { (this->*function)(start_index, end_index, std::forward<Args>(args)...); }));
+        futures.emplace_back(std::async(launch_policy, [this, start_index, end_index, &function, &args...]()
+                                        { std::invoke(function, this, start_index, end_index, std::forward<Args>(args)...); }));
         start_index = end_index;
     }
 
@@ -467,13 +466,23 @@ void ModelingMainDriver::startModeling()
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
         // 1. Obtain charge densities in all the nodes.
-        processWithThreads(num_threads, &ModelingMainDriver::processParticleTracker, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+        // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
+        // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
+        // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
+        // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
+        // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
+        processWithThreads(num_threads, &ModelingMainDriver::processParticleTracker, std::launch::async, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
 
         // 2. Solve equation in the main thread.
         solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
         // 3. Process surface collision tracking in parallel.
-        processWithThreads(num_threads, &ModelingMainDriver::processPIC_and_SurfaceCollisionTracker, t, cubicGrid, assemblier);
+        // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
+        // after particle tracking. It can be deferred until it is needed, allowing for potential optimizations
+        // such as saving resources when not required right away. Deferring this task ensures that the function
+        // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
+        // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
+        processWithThreads(num_threads, &ModelingMainDriver::processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
     }
 
     updateSurfaceMesh();
