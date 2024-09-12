@@ -54,6 +54,7 @@ else()
 endif()
 include_directories(${GMP_INCLUDE_DIR})
 
+cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -76,6 +77,9 @@ else()
     endif()
 endif()
 include_directories(${MPI_INCLUDE_PATH})
+
+# Ensure C++ extensions are disabled globally to avoid warnings from Kokkos
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(NOT "$ENV{TRILINOS_DIR}" STREQUAL "")
   	set(TRILINOS_DIR "$ENV{TRILINOS_DIR}")
