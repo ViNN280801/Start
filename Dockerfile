@@ -46,8 +46,8 @@ RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
 
 # Copy the contents of the nia_start_exe directory into the container
 COPY dist/nia_start_exe /app/nia_start_exe
-COPY *.msh /app/nia_start_exe
-COPY *.json /app/nia_start_exe
+COPY meshes/ /app/nia_start_exe
+COPY configs/ /app/nia_start_exe
 WORKDIR /app/nia_start_exe
 
 # Copy the requirements.txt file
