@@ -19,7 +19,6 @@ void CubatureManager::_initializeCubature(CellType cell_type, short desired_accu
         Intrepid2::DefaultCubatureFactory cubFactory;
         auto cubature{cubFactory.create<DeviceType>(cellTopology, desired_accuracy)}; // Generating cubature function.
         m_count_cubature_points = cubature->getNumPoints();                           // Getting number of cubature points.
-        std::cout << "Count of cub points: " << m_count_cubature_points << '\n';
 
         // 1. Allocating memory for cubature points and weights.
         m_cubature_points = DynRankView("cubPoints", m_count_cubature_points, FEM_LIMITS_DEFAULT_SPACE_DIMENSION); // Matrix: m_count_cubature_points x Dimensions.
