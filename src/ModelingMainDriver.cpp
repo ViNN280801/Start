@@ -145,7 +145,7 @@ void ModelingMainDriver::saveParticleMovements() const
             }
         }
 
-        std::string filepath("particles_movements.json");
+        std::string filepath("results/particles_movements.json");
         std::ofstream file(filepath);
         if (file.is_open())
         {

@@ -109,9 +109,23 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
 
     try
     {
-        std::string filepath;
-        filepath = (time == -1) ? "electricPotential.pos" : std::format("electricPotential_time_{}.pos", time);
+        // Define the path to the results directory.
+        std::filesystem::path resultsDir{"results"};
+
+        // Check if the directory exists, and create it if it does not.
+        if (!std::filesystem::exists(resultsDir))
+            std::filesystem::create_directories(resultsDir);
+
+        // Define the file path within the results directory.
+        std::string filepath = (time == -1)
+                                   ? (resultsDir / "electricPotential.pos").string()
+                                   : std::format("{}/electricPotential_time_{}.pos", resultsDir.string(), time);
+
         std::ofstream posFile(filepath);
+
+        // Ensure the file is successfully opened.
+        if (!posFile.is_open())
+            throw std::runtime_error("Unable to open the file at: " + filepath);
 
         posFile << "View \"Scalar Field\" {\n";
         for (auto const &entry : m_assemblier->getMeshComponents().getMeshComponents())
@@ -120,7 +134,7 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
             {
                 if (!entry.nodes.at(i).potential.has_value())
                 {
-                    WARNINGMSG(util::stringify("Electic potential for the tetrahedron ", entry.globalTetraId,
+                    WARNINGMSG(util::stringify("Electric potential for the tetrahedron ", entry.globalTetraId,
                                                " and node ", entry.nodes.at(i).globalNodeId, " is empty"));
                     continue;
                 }
@@ -135,7 +149,7 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
         posFile << "};\n";
         posFile.close();
 
-        LOGMSG(util::stringify("File \'", filepath, "\' was successfully created"));
+        LOGMSG(util::stringify("File '", filepath, "' was successfully created"));
     }
     catch (std::exception const &ex)
     {
@@ -143,7 +157,7 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
     }
     catch (...)
     {
-        ERRMSG("Unknown error was occured while writing results to the .pos file");
+        ERRMSG("Unknown error occurred while writing results to the .pos file");
     }
 }
 
@@ -157,9 +171,18 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
 
     try
     {
-        std::string filepath;
-        filepath = (time == -1) ? "electricField.pos" : std::format("electricField_time_{}.pos", time);
+        std::filesystem::path resultsDir{"results"};
+        if (!std::filesystem::exists(resultsDir))
+            std::filesystem::create_directories(resultsDir);
+
+        std::string filepath = (time == -1)
+                                   ? (resultsDir / "electricPotential.pos").string()
+                                   : std::format("{}/electricPotential_time_{}.pos", resultsDir.string(), time);
+
         std::ofstream posFile(filepath);
+
+        if (!posFile.is_open())
+            throw std::runtime_error("Unable to open the file at: " + filepath);
 
         posFile << "View \"Vector Field\" {\n";
         for (auto const &entry : m_assemblier->getMeshComponents().getMeshComponents())

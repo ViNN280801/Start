@@ -166,7 +166,7 @@ class ParticleAnimator:
         if fps_dialog.exec_() == QDialog.Accepted:
             self.FPS = fps_dialog.intValue()
 
-    def load_particle_movements(self, filename="particles_movements.json"):
+    def load_particle_movements(self, filename="results/particles_movements.json"):
         """
         Load particle movements from a JSON file.
 
