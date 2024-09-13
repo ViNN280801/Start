@@ -1,0 +1,23 @@
+{
+    "Mesh File": "/home/vladislavsemykin/Documents/Work/Start/meshes/high_cyl.msh",
+    "Threads": 2,
+    "Time Step": 0.0,
+    "Simulation Time": 2.0,
+    "T": 2.0,
+    "P": 5.0,
+    "Gas": "O2",
+    "Model": "HS",
+    "EdgeSize": "5.0",
+    "DesiredAccuracy": "3",
+    "solverName": "GMRES",
+    "maxIterations": "1000",
+    "convergenceTolerance": "1e-20",
+    "outputFrequency": "1",
+    "numBlocks": "30",
+    "blockSize": "1",
+    "maxRestarts": "20",
+    "flexibleGMRES": "false",
+    "orthogonalization": "ICGS",
+    "adaptiveBlockSize": "false",
+    "convergenceTestFrequency": "-1"
+}

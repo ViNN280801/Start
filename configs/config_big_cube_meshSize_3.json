@@ -1,0 +1,36 @@
+{
+    "Mesh File": "/home/vladislavsemykin/Documents/Work/Start/meshes/thin_plate.msh",
+    "Threads": 14,
+    "Time Step": 0.001,
+    "Simulation Time": 0.01,
+    "T": 300.0,
+    "P": 2.5,
+    "Gas": "Ar",
+    "Model": "VSS",
+    "EdgeSize": "5.0",
+    "DesiredAccuracy": "3",
+    "solverName": "GMRES",
+    "maxIterations": "1000",
+    "convergenceTolerance": "1e-10",
+    "numBlocks": "30",
+    "blockSize": "1",
+    "maxRestarts": "20",
+    "flexibleGMRES": "false",
+    "orthogonalization": "ICGS",
+    "adaptiveBlockSize": "false",
+    "convergenceTestFrequency": "-1",
+    "ParticleSourceSurface": {
+        "1": {
+            "Type": "Al",
+            "Count": 10000,
+            "Energy": 1.0,
+            "BaseCoordinates": {
+                "46.67, 0.33, 0.00": [
+                    0.0,
+                    0.0,
+                    -1.0
+                ]
+            }
+        }
+    }
+}
