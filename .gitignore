@@ -66,8 +66,11 @@ all_tests
 # Configs
 *.config
 *.cfg
-config*.json
 *.json
+
+# Excluding configuration file examples
+!config*.json
+!configs/
 
 # Drawings
 *.vtk
