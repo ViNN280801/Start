@@ -61,18 +61,6 @@ private:
     std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
     std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
 
-    /**
-     * @brief Checks the validity of the provided mesh filename.
-     *
-     * This function performs several checks to ensure that the provided mesh filename
-     * is valid and can be opened. It checks if the filename is empty, if the file exists,
-     * and if the file has the correct `.msh` extension. If any of these conditions are not met,
-     * an error message is logged and a `std::runtime_error` is thrown.
-     *
-     * @throws std::runtime_error if the filename is empty, if the file does not exist, or if the file does not have a `.msh` extension.
-     */
-    void checkMeshfilename() const;
-
     /* Initializers for all the necessary objects. */
     void initializeSurfaceMesh();
     void initializeSurfaceMeshAABB();

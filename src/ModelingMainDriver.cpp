@@ -6,6 +6,7 @@ using json = nlohmann::json;
 
 #include "DataHandling/HDF5Handler.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
+#include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "ModelingMainDriver.hpp"
 
@@ -14,18 +15,6 @@ std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
 std::mutex ModelingMainDriver::m_particlesMovement_mutex;
 std::shared_mutex ModelingMainDriver::m_settledParticles_mutex;
 std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
-
-void ModelingMainDriver::checkMeshfilename() const
-{
-    if (m_config.getMeshFilename() == "")
-        throw std::runtime_error("Can't open mesh file: Name of the file is empty");
-
-    if (!util::exists(m_config.getMeshFilename()))
-        throw std::runtime_error(util::stringify("Can't open mesh file: There is no such file with name: ", m_config.getMeshFilename()));
-
-    if (!m_config.getMeshFilename().ends_with(".msh"))
-        throw std::runtime_error(util::stringify("Can't open mesh file: Format of the file must be .msh. Current filename: ", m_config.getMeshFilename()));
-}
 
 void ModelingMainDriver::initializeSurfaceMesh() { _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename()); }
 
@@ -225,7 +214,7 @@ void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &
 ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
-    checkMeshfilename();
+    FEMCheckers::checkMeshFile(m_config.getMeshFilename());
 
     // Calculating and checking gas concentration.
     _gasConcentration = util::calculateConcentration(config_filename);
