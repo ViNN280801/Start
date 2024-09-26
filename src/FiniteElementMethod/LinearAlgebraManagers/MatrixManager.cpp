@@ -4,7 +4,7 @@
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
 
-MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m_entries(matrix_entries)
+MatrixManager::MatrixManager(std::span<MatrixEntry const> matrix_entries) : m_entries(matrix_entries.begin(), matrix_entries.end())
 {
     if (matrix_entries.empty())
         throw std::invalid_argument("Matrix entries can't be empty");
@@ -19,7 +19,7 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
         graphEntries[entry.row].insert(entry.col);
 
     // 2. Find the maximum global row index.
-    auto maxGlobalIndex = std::ranges::max_element(matrix_entries, {}, &MatrixEntry::row)->row;
+    auto maxGlobalIndex{std::ranges::max_element(matrix_entries, {}, &MatrixEntry::row)->row};
 
     // 3. Initializing tpetra map.
     short indexBase{};
@@ -31,7 +31,7 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
     {
         auto localIndex = m_map->getLocalElement(rowEntry.first);
         if (static_cast<size_t>(localIndex) == Teuchos::OrdinalTraits<size_t>::invalid())
-            throw std::out_of_range("Invalid local index for row entry");
+            throw std::out_of_range(util::stringify("Invalid local index ", localIndex, " for row entry: ", rowEntry.first));
 
         numEntriesPerRow.at(localIndex) = rowEntry.second.size();
     }

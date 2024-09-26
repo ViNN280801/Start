@@ -1,6 +1,8 @@
 #ifndef MATRIXMANAGER_HPP
 #define MATRIXMANAGER_HPP
 
+#include <span>
+
 #include "FiniteElementMethod/FEMTypes.hpp"
 
 /**
@@ -46,14 +48,14 @@ public:
      * - Inserts the global indices into the graph and finalizes it.
      * - Initializes the global stiffness matrix and prepares it for further operations.
      *
-     * @param matrix_entries A vector of MatrixEntry structures containing the row, column, and value information
+     * @param matrix_entries A span of MatrixEntry structures containing the row, column, and value information
      *                       for the non-zero entries in the global stiffness matrix.
      *
      * @note This constructor assumes that the matrix is sparse and the number of non-zero entries is significantly
      *       smaller than the total number of possible entries in a full matrix.
      * @throws std::runtime_error if there is any issue during the matrix or graph construction process.
      */
-    MatrixManager(std::vector<MatrixEntry> const &matrix_entries);
+    MatrixManager(std::span<MatrixEntry const> matrix_entries);
 
     /**
      * @brief Getter for the matrix.
