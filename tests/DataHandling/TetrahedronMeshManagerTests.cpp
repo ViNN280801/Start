@@ -99,7 +99,7 @@ TEST_F(TetrahedronMeshManagerTest, LoadValidMeshData)
     auto &instance{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
 
     ASSERT_FALSE(instance.empty()) << "Mesh data should not be empty for a valid mesh file.";
-    EXPECT_GT(instance.size(), 0) << "Mesh should contain tetrahedra for a valid mesh file.";
+    EXPECT_GT(instance.getNumTetrahedrons(), 0) << "Mesh should contain tetrahedra for a valid mesh file.";
 
     for (auto const &tetra : instance.getMeshComponents())
     {
@@ -123,5 +123,5 @@ TEST_F(TetrahedronMeshManagerTest, GetTetrahedronCenters)
     auto &instance{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
 
     auto centers{instance.getTetrahedronCenters()};
-    EXPECT_EQ(centers.size(), instance.size()) << "Number of centers should match number of tetrahedra.";
+    EXPECT_EQ(centers.size(), instance.getNumTetrahedrons()) << "Number of centers should match number of tetrahedra.";
 }
