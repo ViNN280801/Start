@@ -49,7 +49,7 @@ void MatrixEquationSolver::fillNodesPotential()
     GlobalOrdinal id{1};
     auto values{getValuesFromX()};
     std::for_each(std::execution::par, values.begin(), values.end(), [&](Scalar potential)
-                  { m_assemblier->getMeshComponents().assignPotential(id++, potential); });
+                  { m_assemblier->getMeshManager().assignPotential(id++, potential); });
 }
 
 void MatrixEquationSolver::calculateElectricField()
@@ -59,7 +59,7 @@ void MatrixEquationSolver::calculateElectricField()
         // Filling node potentials before calculating the electric field in the cell.
         fillNodesPotential();
 
-        auto &meshComponents{m_assemblier->getMeshComponents().getMeshComponents()};
+        auto &meshComponents{m_assemblier->getMeshManager().getMeshComponents()};
 
         // We have map: (Tetrahedron ID | map<Node ID | Basis function gradient math vector (3 components)>).
         // To get electric field of the cell we just need to accumulate all the basis func grads for each node for each tetrahedron:
@@ -84,7 +84,7 @@ void MatrixEquationSolver::calculateElectricField()
             }
 
             // Assign the calculated electric field to the current tetrahedron
-            m_assemblier->getMeshComponents().assignElectricField(
+            m_assemblier->getMeshManager().assignElectricField(
                 tetrahedronData.globalTetraId, 
                 Point(electricField.getX(), electricField.getY(), electricField.getZ())
             ); });
@@ -128,7 +128,7 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
             throw std::runtime_error("Unable to open the file at: " + filepath);
 
         posFile << "View \"Scalar Field\" {\n";
-        for (auto const &entry : m_assemblier->getMeshComponents().getMeshComponents())
+        for (auto const &entry : m_assemblier->getMeshManager().getMeshComponents())
         {
             for (short i{}; i < 4; ++i)
             {
@@ -185,7 +185,7 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
             throw std::runtime_error("Unable to open the file at: " + filepath);
 
         posFile << "View \"Vector Field\" {\n";
-        for (auto const &entry : m_assemblier->getMeshComponents().getMeshComponents())
+        for (auto const &entry : m_assemblier->getMeshManager().getMeshComponents())
         {
             if (!entry.electricField.has_value())
             {

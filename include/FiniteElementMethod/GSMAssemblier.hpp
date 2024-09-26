@@ -58,8 +58,8 @@ public:
     ~GSMAssemblier() {}
 
     /* === Getters for matrix params. === */
-    auto &getMeshComponents() { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
-    auto const &getMeshComponents() const { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
+    auto &getMeshManager() { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
+    auto const &getMeshManager() const { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
 
     /// &&& Getters. &&& ///
     auto getGlobalStiffnessMatrix() { return m_matrix_manager.get(); }

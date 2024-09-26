@@ -91,7 +91,50 @@ public:
     void print() const noexcept;
 
     /// @brief Returns count of the tetrahedra in the mesh.
-    constexpr size_t size() const { return m_meshComponents.size(); }
+    constexpr size_t getNumTetrahedrons() const { return m_meshComponents.size(); }
+
+    /**
+     * @brief Retrieves the mesh data for a specific tetrahedron by its local ID.
+     * @param localTetraId The local ID of the tetrahedron in the mesh.
+     * @return A constant reference to the `TetrahedronData` of the specified tetrahedron.
+     */
+    TetrahedronData const &getTetrahedron(size_t localTetraId) const { return m_meshComponents.at(localTetraId); }
+
+    /**
+     * @brief Retrieves the global tetrahedron ID for a specific tetrahedron.
+     * @param localTetraId The local ID of the tetrahedron in the mesh.
+     * @return The global ID of the specified tetrahedron.
+     */
+    size_t getGlobalTetraId(size_t localTetraId) const { return m_meshComponents.at(localTetraId).globalTetraId; }
+
+    /**
+     * @brief Retrieves the node data for a specific tetrahedron.
+     * @param localTetraId The local ID of the tetrahedron in the mesh.
+     * @return A constant reference to an array containing the node data for the specified tetrahedron.
+     */
+    std::array<TetrahedronData::NodeData, 4ul> const &getTetrahedronNodes(size_t localTetraId) const { return m_meshComponents.at(localTetraId).nodes; }
+
+    /**
+     * @brief Retrieves the global node ID for a specific node in a tetrahedron.
+     * @param localTetraId The local ID of the tetrahedron in the mesh.
+     * @param localNodeId The local ID of the node in the tetrahedron.
+     * @return The global node ID of the specified node.
+     */
+    size_t getGlobalNodeId(size_t localTetraId, size_t localNodeId) const { return m_meshComponents.at(localTetraId).nodes.at(localNodeId).globalNodeId; }
+
+    /**
+     * @brief Retrieves the volume of a specific tetrahedron based on its global ID.
+     *
+     * This function searches for the tetrahedron with the specified global ID in the mesh
+     * and returns its volume. It uses the `getMeshDataByTetrahedronId()` method to locate
+     * the tetrahedron and accesses its `tetrahedron` field to compute the volume.
+     *
+     * @param globalTetraId The global ID of the tetrahedron to retrieve.
+     * @return double The volume of the specified tetrahedron.
+     * @throw std::bad_optional_access if no tetrahedron is found for the provided global ID.
+     *        This occurs if `getMeshDataByTetrahedronId()` returns `std::nullopt`.
+     */
+    double getVolumeByGlobalTetraId(size_t globalTetraId) const { return getMeshDataByTetrahedronId(globalTetraId).value().tetrahedron.volume(); }
 
     /// @brief Checks and returns result of the checking if there is no tetrahedra in the mesh.
     constexpr bool empty() const { return m_meshComponents.empty(); }

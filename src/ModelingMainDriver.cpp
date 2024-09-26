@@ -70,7 +70,7 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblie
     assemblier = std::make_shared<GSMAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
 
     // Creating cubic grid for the tetrahedron mesh.
-    cubicGrid = std::make_shared<Grid3D>(assemblier->getMeshComponents(), m_config.getEdgeSize());
+    cubicGrid = std::make_shared<Grid3D>(assemblier->getMeshManager(), m_config.getEdgeSize());
 
     // Setting boundary conditions.
     for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
@@ -248,14 +248,14 @@ void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_i
                 particleTracker[meshParam.globalTetraId].emplace_back(particle); });
 
         // Calculating charge density in each of the tetrahedron using `particleTracker`.
-        for (auto const &[tetrId, particlesInside] : particleTracker)
-            tetrahedronChargeDensityMap.insert({tetrId,
+        for (auto const &[globalTetraId, particlesInside] : particleTracker)
+            tetrahedronChargeDensityMap.insert({globalTetraId,
                                                 (std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0, [](double sum, Particle const &particle)
                                                                  { return sum + particle.getCharge(); })) /
-                                                    assemblier->getMeshComponents().getMeshDataByTetrahedronId(tetrId).value().tetrahedron.volume()});
+                                                    assemblier->getMeshManager().getVolumeByGlobalTetraId(globalTetraId)});
 
         // Go around each node and aggregate data from adjacent tetrahedra.
-        for (auto const &[nodeId, adjecentTetrahedrons] : assemblier->getMeshComponents().getNodeTetrahedronsMap())
+        for (auto const &[nodeId, adjecentTetrahedrons] : assemblier->getMeshManager().getNodeTetrahedronsMap())
         {
             double totalCharge{}, totalVolume{};
 
@@ -265,7 +265,7 @@ void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_i
                 if (tetrahedronChargeDensityMap.find(tetrId) != tetrahedronChargeDensityMap.end())
                 {
                     double tetrahedronChargeDensity{tetrahedronChargeDensityMap.at(tetrId)},
-                        tetrahedronVolume{assemblier->getMeshComponents().getMeshDataByTetrahedronId(tetrId)->tetrahedron.volume()};
+                        tetrahedronVolume{assemblier->getMeshManager().getVolumeByGlobalTetraId(tetrId)};
 
                     totalCharge += tetrahedronChargeDensity * tetrahedronVolume;
                     totalVolume += tetrahedronVolume;
@@ -359,7 +359,7 @@ void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_ind
                               }
                           }
 
-                          if (auto tetrahedron{assemblier->getMeshComponents().getMeshDataByTetrahedronId(containingTetrahedron)})
+                          if (auto tetrahedron{assemblier->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron)})
                               if (tetrahedron->electricField.has_value())
                                   // Updating velocity of the particle according to the Lorentz force.
                                   particle.electroMagneticPush(magneticInduction,
