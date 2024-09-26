@@ -1,5 +1,5 @@
-#ifndef PARTICLEINCELL_HPP
-#define PARTICLEINCELL_HPP
+#ifndef MODELINGMAINDRIVER_HPP
+#define MODELINGMAINDRIVER_HPP
 
 #include <barrier>
 #include <future>
@@ -8,8 +8,8 @@
 
 #include "FiniteElementMethod/MatrixEquationSolver.hpp"
 #include "Generators/VolumeCreator.hpp"
+#include "Geometry/CubicGrid.hpp"
 #include "Geometry/Mesh.hpp"
-#include "ParticleTracker/Grid3D.hpp"
 #include "Particles/Particle.hpp"
 #include "Utilities/ConfigParser.hpp"
 
@@ -83,7 +83,7 @@ private:
      * @param solutionVector The solution vector to be initialized.
      */
     void initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
-                       std::shared_ptr<Grid3D> &cubicGrid,
+                       std::shared_ptr<CubicGrid> &cubicGrid,
                        std::map<GlobalOrdinal, double> &boundaryConditions,
                        std::shared_ptr<VectorManager> &solutionVector);
 
@@ -150,7 +150,7 @@ private:
      * @param nodeChargeDensityMap A reference to a map that tracks the charge density at each node.
      */
     void processParticleTracker(size_t start_index, size_t end_index, double t,
-                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
+                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
 
     /**
@@ -184,7 +184,7 @@ private:
      * @param assemblier A shared pointer to the GSM assembler that handles particle and surface interactions.
      */
     void processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
+                                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
 
 public:
     /**
@@ -206,4 +206,4 @@ public:
     void startModeling();
 };
 
-#endif // !PARTICLEINCELL_HPP
+#endif // !MODELINGMAINDRIVER_HPP

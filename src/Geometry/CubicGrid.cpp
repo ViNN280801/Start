@@ -4,9 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "ParticleTracker/Grid3D.hpp"
+#include "Geometry/CubicGrid.hpp"
 
-Grid3D::Grid3D(TetrahedronMeshManager const &meshData, double edgeSize)
+CubicGrid::CubicGrid(TetrahedronMeshManager const &meshData, double edgeSize)
     : m_cubeEdgeSize(edgeSize), m_meshData(meshData)
 {
     if (m_meshData.empty())
@@ -47,7 +47,7 @@ Grid3D::Grid3D(TetrahedronMeshManager const &meshData, double edgeSize)
     }
 }
 
-GridIndex Grid3D::getGridIndexByPosition(double x, double y, double z) const
+GridIndex CubicGrid::getGridIndexByPosition(double x, double y, double z) const
 {
     return {
         std::clamp(short((x - m_commonBbox.xmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsX - 1)),
@@ -55,7 +55,7 @@ GridIndex Grid3D::getGridIndexByPosition(double x, double y, double z) const
         std::clamp(short((z - m_commonBbox.zmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsZ - 1))};
 }
 
-GridIndex Grid3D::getGridIndexByPosition(Point const &point) const
+GridIndex CubicGrid::getGridIndexByPosition(Point const &point) const
 {
     double x{CGAL_TO_DOUBLE(point.x())},
         y{CGAL_TO_DOUBLE(point.y())},
@@ -66,7 +66,7 @@ GridIndex Grid3D::getGridIndexByPosition(Point const &point) const
         std::clamp(short((z - m_commonBbox.zmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsZ - 1))};
 }
 
-bool Grid3D::isInsideTetrahedronMesh(Point const &point) const
+bool CubicGrid::isInsideTetrahedronMesh(Point const &point) const
 {
     auto gridIndex{getGridIndexByPosition(point)};
     auto tetrahedrons{getTetrahedronsByGridIndex(gridIndex)};
@@ -81,7 +81,7 @@ bool Grid3D::isInsideTetrahedronMesh(Point const &point) const
     return checks.any();
 }
 
-std::vector<TetrahedronMeshManager::TetrahedronData> Grid3D::getTetrahedronsByGridIndex(GridIndex const &index) const
+std::vector<TetrahedronMeshManager::TetrahedronData> CubicGrid::getTetrahedronsByGridIndex(GridIndex const &index) const
 {
     std::vector<TetrahedronMeshManager::TetrahedronData> meshParams;
     for (auto const &[tetrId, cells] : m_tetrahedronCells)
@@ -90,7 +90,7 @@ std::vector<TetrahedronMeshManager::TetrahedronData> Grid3D::getTetrahedronsByGr
     return meshParams;
 }
 
-void Grid3D::printGrid() const
+void CubicGrid::printGrid() const
 {
     for (auto const &[id, cells] : m_tetrahedronCells)
     {

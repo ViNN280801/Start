@@ -62,7 +62,7 @@ void ModelingMainDriver::initialize()
 }
 
 void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
-                                       std::shared_ptr<Grid3D> &cubicGrid,
+                                       std::shared_ptr<CubicGrid> &cubicGrid,
                                        std::map<GlobalOrdinal, double> &boundaryConditions,
                                        std::shared_ptr<VectorManager> &solutionVector)
 {
@@ -70,7 +70,11 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblie
     assemblier = std::make_shared<GSMAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
 
     // Creating cubic grid for the tetrahedron mesh.
+<<<<<<< HEAD
     cubicGrid = std::make_shared<Grid3D>(assemblier->getMeshManager(), m_config.getEdgeSize());
+=======
+    cubicGrid = std::make_shared<CubicGrid>(assemblier->getMeshManager(), m_config.getEdgeSize());
+>>>>>>> 5c7810a (Added auxiliary methods in  class to provide functionality and remove chains like  which are violates The Law of Demeter.)
 
     // Setting boundary conditions.
     for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
@@ -229,7 +233,7 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
 }
 
 void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_index, double t,
-                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
+                                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
                                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
     try
@@ -333,7 +337,7 @@ void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChar
 }
 
 void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                                std::shared_ptr<Grid3D> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier)
+                                                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier)
 {
     try
     {
@@ -441,7 +445,7 @@ void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
     std::shared_ptr<GSMAssemblier> assemblier;
-    std::shared_ptr<Grid3D> cubicGrid;
+    std::shared_ptr<CubicGrid> cubicGrid;
     std::map<GlobalOrdinal, double> boundaryConditions;
     std::shared_ptr<VectorManager> solutionVector;
 

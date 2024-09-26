@@ -1,5 +1,5 @@
-#ifndef GRID3D_HPP
-#define GRID3D_HPP
+#ifndef CUBICGRID_HPP
+#define CUBICGRID_HPP
 
 #include <CGAL/Bbox_3.h>
 
@@ -20,7 +20,7 @@ struct GridIndex
 };
 
 /// @brief Represents a 3D grid that maps tetrahedrons to their containing cells.
-class Grid3D
+class CubicGrid
 {
 private:
     std::map<size_t, std::vector<GridIndex>> m_tetrahedronCells; ///< Each tetrahedron contains list of cells. Key - ID of tetrahedron, Value - list of cells.
@@ -35,7 +35,7 @@ public:
      * @param meshData Reference to TetrahedronMeshManager.
      * @param edgeSize Size of the cube edge.
      */
-    Grid3D(TetrahedronMeshManager const &meshData, double edgeSize);
+    CubicGrid(TetrahedronMeshManager const &meshData, double edgeSize);
 
     /**
      * @brief Getter for grid index by spatial position of some object.
@@ -82,4 +82,4 @@ public:
     void printGrid() const;
 };
 
-#endif // !GRID3D_HPP
+#endif // !CUBICGRID_HPP

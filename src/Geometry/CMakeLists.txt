@@ -1,4 +1,5 @@
 set(GEOMETRY_SOURCES
+    CubicGrid.cpp
     MathVector.cpp
     Mesh.cpp
     RayTriangleIntersection.cpp

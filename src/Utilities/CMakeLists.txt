@@ -1,5 +1,4 @@
 set(UTILITIES_SOURCES
-    CollisionTracker.cpp
     ConfigParser.cpp
     Timer.cpp
     Utilities.cpp

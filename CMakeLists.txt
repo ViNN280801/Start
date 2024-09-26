@@ -163,7 +163,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/Generators
     ${CMAKE_SOURCE_DIR}/include/Geometry
     ${CMAKE_SOURCE_DIR}/include/Particles
-    ${CMAKE_SOURCE_DIR}/include/ParticleTracker
     ${CMAKE_SOURCE_DIR}/include/Utilities
 )
 
@@ -199,7 +198,6 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     FiniteElementMethod
     Generators
     Geometry
-    ParticleTracker
     Particles
     Utilities
 )
