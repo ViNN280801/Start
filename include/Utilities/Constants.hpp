@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
-#include "CompilerUtils.hpp"
+#include "PreprocessorUtils.hpp"
 
 namespace constants
 {
