@@ -457,8 +457,10 @@ ParticleVector createParticlesFromSurfaceSource(std::vector<surface_source_t> co
 
 std::ostream &operator<<(std::ostream &os, Particle const &particle)
 {
-	std::cout << std::format("Particle[{}]:\nCenter: {} {} {}\nRadius: {}\nVelocity components: {} {} {}\nEnergy: {} eV\n\n",
-							 particle.getId(), particle.getX(), particle.getY(), particle.getZ(), particle.getRadius(),
-							 particle.getVx(), particle.getVy(), particle.getVz(), particle.getEnergy_eV());
+	std::cout << "Particle[" << particle.getId() << "]:\n"
+			  << "Center: " << particle.getX() << " " << particle.getY() << " " << particle.getZ() << "\n"
+			  << "Radius: " << particle.getRadius() << "\n"
+			  << "Velocity components: " << particle.getVx() << " " << particle.getVy() << " " << particle.getVz() << "\n"
+			  << "Energy: " << particle.getEnergy_eV() << " eV\n\n";
 	return os;
 }

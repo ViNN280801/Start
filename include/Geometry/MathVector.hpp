@@ -172,7 +172,7 @@ public:
     /* << Output stream operator. << */
     friend std::ostream &operator<<(std::ostream &os, MathVector const &vector)
     {
-        os << std::format("{} {} {}", vector.x, vector.y, vector.z);
+        os << vector.x << ' ' << vector.y << ' ' << vector.z;
         return os;
     }
 

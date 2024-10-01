@@ -94,9 +94,9 @@ void CubicGrid::printGrid() const
 {
     for (auto const &[id, cells] : m_tetrahedronCells)
     {
-        std::cout << std::format("Tetrahedron[{}] is in cells: ", id);
+        std::cout << "Tetrahedron[" << id << "] is in cells: ";
         for (auto const &[x, y, z] : cells)
-            std::cout << std::format("[{}][{}][{}] ", x, y, z);
+            std::cout << "[" << x << "][" << y << "][" << z << "] ";
         std::cout << std::endl;
     }
 }

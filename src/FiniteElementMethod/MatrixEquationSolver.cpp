@@ -119,7 +119,7 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
         // Define the file path within the results directory.
         std::string filepath = (time == -1)
                                    ? (resultsDir / "electricPotential.pos").string()
-                                   : std::format("{}/electricPotential_time_{}.pos", resultsDir.string(), time);
+                                   : (resultsDir.string() + "/electricPotential_time_" + std::to_string(time) + ".pos");
 
         std::ofstream posFile(filepath);
 
@@ -143,7 +143,8 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
                 auto globalNodeId{entry.nodes.at(i).globalNodeId};
 
                 double value{getScalarFieldValueFromX(globalNodeId - 1)};
-                posFile << std::format("SP({}, {}, {}){{{}}};\n", node.nodeCoords.x(), node.nodeCoords.y(), node.nodeCoords.z(), value);
+                posFile << "SP(" << node.nodeCoords.x() << ", " << node.nodeCoords.y() << ", " << node.nodeCoords.z()
+                        << "){" << value << "};\n";
             }
         }
         posFile << "};\n";
@@ -177,7 +178,7 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
 
         std::string filepath = (time == -1)
                                    ? (resultsDir / "electricPotential.pos").string()
-                                   : std::format("{}/electricPotential_time_{}.pos", resultsDir.string(), time);
+                                   : (resultsDir.string() + "/electricPotential_time_" + std::to_string(time) + ".pos");
 
         std::ofstream posFile(filepath);
 
@@ -198,9 +199,8 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
                 z{entry.getTetrahedronCenter().z()};
 
             auto fieldVector{entry.electricField.value()};
-            posFile << std::format("VP({}, {}, {}){{{}, {}, {}}};\n",
-                                   x, y, z,
-                                   fieldVector.x(), fieldVector.y(), fieldVector.z());
+            posFile << "VP(" << x << ", " << y << ", " << z
+                    << "){" << fieldVector.x() << ", " << fieldVector.y() << ", " << fieldVector.z() << "};\n";
         }
 
         posFile << "};\n";

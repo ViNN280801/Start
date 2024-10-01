@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+#include "CompilerUtils.hpp"
+
 namespace constants
 {
     namespace physical_constants
