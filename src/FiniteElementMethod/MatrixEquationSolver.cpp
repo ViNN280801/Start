@@ -177,8 +177,8 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
             std::filesystem::create_directories(resultsDir);
 
         std::string filepath = (time == -1)
-                                   ? (resultsDir / "electricPotential.pos").string()
-                                   : (resultsDir.string() + "/electricPotential_time_" + std::to_string(time) + ".pos");
+                                   ? (resultsDir / "electricField.pos").string()
+                                   : (resultsDir.string() + "/electricField_time_" + std::to_string(time) + ".pos");
 
         std::ofstream posFile(filepath);
 
