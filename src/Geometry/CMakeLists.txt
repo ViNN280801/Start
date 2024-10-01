@@ -9,7 +9,6 @@ add_library(Geometry ${GEOMETRY_SOURCES})
 
 target_link_libraries(Geometry PRIVATE
     ${GMSH_LIBRARIES}
-    ${CGAL_LIBRARIES}
 )
 
 target_include_directories(Geometry PRIVATE
