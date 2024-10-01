@@ -109,7 +109,7 @@ double &MathVector::operator[](int k)
     case 2:
         return z;
     default:
-        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+        throw std::out_of_range("Requested index " + std::to_string(k) + " for MathVector is out of range");
     }
 }
 
@@ -124,35 +124,35 @@ double const &MathVector::operator[](int k) const
     case 2:
         return z;
     default:
-        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+        throw std::out_of_range("Requested index " + std::to_string(k) + " for MathVector is out of range");
     }
 }
 
 double &MathVector::operator()(int k)
 {
     if (k < 0 || k > 2)
-        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+        throw std::out_of_range("Requested index " + std::to_string(k) + " for MathVector is out of range");
     return (*this)[k];
 }
 
 double const &MathVector::operator()(int k) const
 {
     if (k < 0 || k > 2)
-        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+        throw std::out_of_range("Requested index " + std::to_string(k) + " for MathVector is out of range");
     return (*this)[k];
 }
 
 double &MathVector::at(int k)
 {
     if (k < 0 || k > 2)
-        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+        throw std::out_of_range("Requested index " + std::to_string(k) + " for MathVector is out of range");
     return (*this)[k];
 }
 
 double const &MathVector::at(int k) const
 {
     if (k < 0 || k > 2)
-        throw std::out_of_range(std::format("Requested index {} for MathVector is out of range", k));
+        throw std::out_of_range("Requested index " + std::to_string(k) + " for MathVector is out of range");
     return (*this)[k];
 }
 

@@ -1,7 +1,6 @@
 #ifndef MESH_HPP
 #define MESH_HPP
 
-#include <format>
 #include <iostream>
 #include <map>
 #include <optional>

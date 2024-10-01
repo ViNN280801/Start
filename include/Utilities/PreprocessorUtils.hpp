@@ -1,13 +1,6 @@
 #ifndef COMPILERUTILS_HPP
 #define COMPILERUTILS_HPP
 
-#if __cplusplus >= 202002L
-    #include <format>
-    #define FORMAT_SUPPORTED 1
-#else
-    #define FORMAT_SUPPORTED 0
-#endif
-
 #if __GNUC__ >= 13 && __cplusplus >= 201103L // C++11 or later
     #define STARTCONSTEXPR constexpr
 #else

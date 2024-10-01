@@ -90,45 +90,55 @@ TetrahedronMeshManager &TetrahedronMeshManager::getInstance(std::string_view mes
     return *instance;
 }
 
-
-
 void TetrahedronMeshManager::print() const noexcept
 {
     for (auto const &meshComponent : m_meshComponents)
     {
-        std::cout << std::format("Tetrahedron[{}]\n", meshComponent.globalTetraId);
+        std::cout << "Tetrahedron[" << meshComponent.globalTetraId << "]\n";
+
         for (short i{}; i < 4; ++i)
         {
-            std::cout << std::format("Vertex[{}]: ({}, {}, {})\n", meshComponent.nodes.at(i).globalNodeId,
-                                     meshComponent.nodes.at(i).nodeCoords.x(),
-                                     meshComponent.nodes.at(i).nodeCoords.y(),
-                                     meshComponent.nodes.at(i).nodeCoords.z());
+            std::cout << "Vertex[" << meshComponent.nodes.at(i).globalNodeId << "]: ("
+                      << meshComponent.nodes.at(i).nodeCoords.x() << ", "
+                      << meshComponent.nodes.at(i).nodeCoords.y() << ", "
+                      << meshComponent.nodes.at(i).nodeCoords.z() << ")\n";
+
             if (meshComponent.nodes.at(i).nablaPhi)
             {
-                std::cout << std::format("  ∇φ: ({}, {}, {})\n",
-                                         meshComponent.nodes.at(i).nablaPhi->x(),
-                                         meshComponent.nodes.at(i).nablaPhi->y(),
-                                         meshComponent.nodes.at(i).nablaPhi->z());
+                std::cout << "  ∇φ: ("
+                          << meshComponent.nodes.at(i).nablaPhi->x() << ", "
+                          << meshComponent.nodes.at(i).nablaPhi->y() << ", "
+                          << meshComponent.nodes.at(i).nablaPhi->z() << ")\n";
             }
             else
+            {
                 std::cout << "  ∇φ: empty\n";
+            }
 
             if (meshComponent.nodes.at(i).potential)
-                std::cout << std::format(" Potential φ: {}\n", meshComponent.nodes.at(i).potential.value());
+            {
+                std::cout << "  Potential φ: " << meshComponent.nodes.at(i).potential.value() << "\n";
+            }
             else
+            {
                 std::cout << "  Potential φ: empty\n";
+            }
         }
+
         if (meshComponent.electricField)
         {
-            std::cout << std::format("ElectricField: ({}, {}, {})\n",
-                                     meshComponent.electricField->x(),
-                                     meshComponent.electricField->y(),
-                                     meshComponent.electricField->z());
+            std::cout << "ElectricField: ("
+                      << meshComponent.electricField->x() << ", "
+                      << meshComponent.electricField->y() << ", "
+                      << meshComponent.electricField->z() << ")\n";
         }
         else
+        {
             std::cout << "ElectricField: empty\n";
+        }
     }
-    std::endl(std::cout);
+
+    std::cout << std::endl;
 }
 
 std::optional<TetrahedronMeshManager::TetrahedronData> TetrahedronMeshManager::getMeshDataByTetrahedronId(size_t globalTetrahedronId) const

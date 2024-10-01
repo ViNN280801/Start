@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <chrono>
-#include <format>
 #include <functional>
 #include <iostream>
 #include <ranges>

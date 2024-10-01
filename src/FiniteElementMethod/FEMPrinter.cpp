@@ -48,7 +48,7 @@ void FEMPrinter::printVector(Teuchos::RCP<TpetraVectorType> vector)
         if (myRank == proc)
         {
             // Only the current process prints its portion of the vector.
-            std::cout << std::format("Process {}\n", myRank);
+            std::cout << "Process " << myRank << '\n';
 
             // Printing using describe() for detailed information.
             Teuchos::RCP<Teuchos::FancyOStream> out{Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout))};
@@ -59,7 +59,7 @@ void FEMPrinter::printVector(Teuchos::RCP<TpetraVectorType> vector)
             auto vecData{vecView.data()};
             size_t localLength{vector->getLocalLength()};
             for (size_t i{}; i < localLength; ++i)
-                std::cout << std::format("Element {}: {}\n", i, vecData[i]);
+                std::cout << "Element " << i << ": " << vecData[i] << '\n';
         }
         // Synchronize before the next process starts printing.
         comm->barrier();
@@ -104,7 +104,7 @@ void FEMPrinter::printMatrix(Teuchos::RCP<TpetraMatrixType> matrix)
 
                     matrix->getGlobalRowCopy(globalRow, indices, values, checkNumEntries);
 
-                    std::cout << std::format("Row {}: ", globalRow);
+                    std::cout << "Row " << globalRow << ": ";
                     for (size_t k{}; k < checkNumEntries; ++k)
                         std::cout << "(" << indices[k] << ", " << values[k] << ") ";
                     std::endl(std::cout);

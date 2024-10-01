@@ -13,13 +13,13 @@ std::ostream &operator<<(std::ostream &os, MeshTriangleParam const &meshParam)
         v1{triangle.vertex(1)},
         v2{triangle.vertex(2)};
 
-    os << std::format("Triangle[{}]:\nVertex A: {} {} {}\nVertex B: {} {} {}\nVertex C: {} {} {}\nSurface area: {}\nSettled particle count: {}\n\n",
-                      std::get<0>(meshParam),
-                      CGAL_TO_DOUBLE(v0.x()), CGAL_TO_DOUBLE(v0.y()), CGAL_TO_DOUBLE(v0.z()),
-                      CGAL_TO_DOUBLE(v1.x()), CGAL_TO_DOUBLE(v1.y()), CGAL_TO_DOUBLE(v1.z()),
-                      CGAL_TO_DOUBLE(v2.x()), CGAL_TO_DOUBLE(v2.y()), CGAL_TO_DOUBLE(v2.z()),
-                      std::get<2>(meshParam),
-                      std::get<3>(meshParam));
+    os << "Triangle[" << std::get<0>(meshParam) << "]:\n"
+       << "Vertex A: " << CGAL_TO_DOUBLE(v0.x()) << " " << CGAL_TO_DOUBLE(v0.y()) << " " << CGAL_TO_DOUBLE(v0.z()) << "\n"
+       << "Vertex B: " << CGAL_TO_DOUBLE(v1.x()) << " " << CGAL_TO_DOUBLE(v1.y()) << " " << CGAL_TO_DOUBLE(v1.z()) << "\n"
+       << "Vertex C: " << CGAL_TO_DOUBLE(v2.x()) << " " << CGAL_TO_DOUBLE(v2.y()) << " " << CGAL_TO_DOUBLE(v2.z()) << "\n"
+       << "Surface area: " << std::get<2>(meshParam) << "\n"
+       << "Settled particle count: " << std::get<3>(meshParam) << "\n\n";
+
     return os;
 }
 
@@ -32,13 +32,12 @@ std::ostream &operator<<(std::ostream &os, MeshTetrahedronParam const &meshParam
         v2{tetrahedron.vertex(2)},
         v3{tetrahedron.vertex(3)};
 
-    os << std::format("Tetrahedron[{}]:\nVertex A: {} {} {}\nVertex B: {} {} {}\nVertex C: {} {} {}\nVertex D: {} {} {}\nVolume: {}\n\n",
-                      std::get<0>(meshParam),
-                      CGAL_TO_DOUBLE(v0.x()), CGAL_TO_DOUBLE(v0.y()), CGAL_TO_DOUBLE(v0.z()),
-                      CGAL_TO_DOUBLE(v1.x()), CGAL_TO_DOUBLE(v1.y()), CGAL_TO_DOUBLE(v1.z()),
-                      CGAL_TO_DOUBLE(v2.x()), CGAL_TO_DOUBLE(v2.y()), CGAL_TO_DOUBLE(v2.z()),
-                      CGAL_TO_DOUBLE(v3.x()), CGAL_TO_DOUBLE(v3.y()), CGAL_TO_DOUBLE(v3.z()),
-                      std::get<2>(meshParam));
+    os << "Tetrahedron[" << std::get<0>(meshParam) << "]:\n"
+       << "Vertex A: " << CGAL_TO_DOUBLE(v0.x()) << " " << CGAL_TO_DOUBLE(v0.y()) << " " << CGAL_TO_DOUBLE(v0.z()) << "\n"
+       << "Vertex B: " << CGAL_TO_DOUBLE(v1.x()) << " " << CGAL_TO_DOUBLE(v1.y()) << " " << CGAL_TO_DOUBLE(v1.z()) << "\n"
+       << "Vertex C: " << CGAL_TO_DOUBLE(v2.x()) << " " << CGAL_TO_DOUBLE(v2.y()) << " " << CGAL_TO_DOUBLE(v2.z()) << "\n"
+       << "Vertex D: " << CGAL_TO_DOUBLE(v3.x()) << " " << CGAL_TO_DOUBLE(v3.y()) << " " << CGAL_TO_DOUBLE(v3.z()) << "\n"
+       << "Volume: " << std::get<2>(meshParam) << "\n\n";
 
     return os;
 }
