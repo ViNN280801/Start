@@ -1,9 +1,9 @@
 #ifndef GEOMETRY_TYPES_HPP
 #define GEOMETRY_TYPES_HPP
 
-#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_traits_3.h>
 #include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_triangle_primitive.h>
+#include <CGAL/AABB_triangle_primitive_3.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Segment_3.h>
 #include <CGAL/intersections.h>
@@ -28,8 +28,8 @@ using TriangleVector = std::vector<Triangle>;
 using TriangleVectorConstIter = TriangleVector::const_iterator;
 
 // Custom property map with CGAL::AABB_triangle_primitive.
-using TrianglePrimitive = CGAL::AABB_triangle_primitive<Kernel, TriangleVectorConstIter>;
-using TriangleTraits = CGAL::AABB_traits<Kernel, TrianglePrimitive>;
+using TrianglePrimitive = CGAL::AABB_triangle_primitive_3<Kernel, TriangleVectorConstIter>;
+using TriangleTraits = CGAL::AABB_traits_3<Kernel, TrianglePrimitive>;
 using AABB_Tree_Triangle = CGAL::AABB_tree<TriangleTraits>;
 
 /**
