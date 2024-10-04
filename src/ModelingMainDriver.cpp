@@ -394,7 +394,7 @@ void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_ind
                           if (!intersection)
                               return;
 
-                          auto triangle{boost::get<Triangle>(*intersection->second)};
+                          auto triangle{*intersection->second};
                           if (triangle.is_degenerate())
                               return;
 
