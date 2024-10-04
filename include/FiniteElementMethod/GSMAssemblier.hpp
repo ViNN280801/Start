@@ -19,6 +19,7 @@ private:
     unsigned short m_desired_accuracy; ///< Desired accuracy for cubature calculation, defining the number of cubature points. Higher values increase precision.
     unsigned short m_polynom_order;    ///< Polynomial order used in the basis functions for the finite element method. Determines the degree of approximation.
 
+    TetrahedronMeshManager m_meshManager;
     CubatureManager m_cubature_manager; ///< Cubature manager (manages cubature points and weights based on cell type).
     MatrixManager m_matrix_manager;     ///< Matrix manager (manages initialization and filling of matrices).
 
@@ -58,8 +59,8 @@ public:
     ~GSMAssemblier() {}
 
     /* === Getters for matrix params. === */
-    auto &getMeshManager() { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
-    auto const &getMeshManager() const { return TetrahedronMeshManager::getInstance(m_mesh_filename.data()); }
+    auto &getMeshManager() { return m_meshManager; }
+    auto const &getMeshManager() const { return m_meshManager; }
 
     /// &&& Getters. &&& ///
     auto getGlobalStiffnessMatrix() { return m_matrix_manager.get(); }
