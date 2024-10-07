@@ -15,9 +15,6 @@
 class TetrahedronMeshManager final
 {
 private:
-    static std::unique_ptr<TetrahedronMeshManager> instance; ///< Singleton instance of TetrahedronMeshManager.
-    static std::mutex instanceMutex;                         ///< Mutex for thread-safe access to the singleton instance.
-
 #ifdef _WIN32
 #define TETRAHEDRON_DATA_VISIBILITY public
 #else
@@ -50,6 +47,32 @@ private:
 private:
     std::vector<TetrahedronData> m_meshComponents; ///< Array of all the tetrahedrons from the mesh.
 
+    // Member variables.
+    int m_rank;
+    int m_size;
+
+    // Local mesh data
+    std::vector<std::pair<size_t, std::array<size_t, 4>>> m_localElementData;
+    std::vector<size_t> m_localNodeTags;
+    std::map<size_t, std::array<double, 3>> m_localNodeCoordinates;
+
+    // Only used on rank 0.
+    std::map<size_t, std::array<double, 3>> m_nodeCoordinatesMap;
+    std::vector<std::vector<std::pair<size_t, std::array<size_t, 4>>>> m_elementsPerProc;
+    std::vector<std::vector<size_t>> m_nodeTagsPerProc;
+
+    void _readAndPartitionMesh(std::string_view mesh_filename);
+    void _distributeMeshData();
+    void _receiveData();
+    void _constructLocalMesh();
+
+public:
+    using NodeData = TetrahedronMeshManager::TetrahedronData::NodeData;
+    using TetrahedronData = TetrahedronMeshManager::TetrahedronData;
+
+    /// @brief Default constructor for non-root ranks.
+    TetrahedronMeshManager();
+
     /**
      * @brief Constructor. Fills storage for the volumetric mesh.
      * @details This constructor reads the mesh file once, extracts the node coordinates and tetrahedron
@@ -59,29 +82,11 @@ private:
      */
     TetrahedronMeshManager(std::string_view mesh_filename);
 
-public:
-    using NodeData = TetrahedronMeshManager::TetrahedronData::NodeData;
-    using TetrahedronData = TetrahedronMeshManager::TetrahedronData;
-
     // Preventing copy of this object.
     TetrahedronMeshManager(TetrahedronMeshManager const &) = delete;
     TetrahedronMeshManager(TetrahedronMeshManager &&) = delete;
     TetrahedronMeshManager &operator=(TetrahedronMeshManager const &) = delete;
     TetrahedronMeshManager &operator=(TetrahedronMeshManager &&) = delete;
-
-    /**
-     * @brief Retrieves the singleton instance of the TetrahedronMeshManager class.
-     *
-     * This static method ensures that only one instance of the TetrahedronMeshManager
-     * class is created. It initializes the instance if it hasn't been initialized yet
-     * using the provided mesh filename. Subsequent calls will return the same instance.
-     *
-     * @param mesh_filename The filename of the mesh file to read during the initialization.
-     *                      This parameter is used only the first time the instance is initialized.
-     * @return TetrahedronMeshManager& A reference to the singleton instance of the TetrahedronMeshManager class.
-     * @throw std::runtime_error if there is an error reading the mesh file or extracting the data.
-     */
-    static TetrahedronMeshManager &getInstance(std::string_view mesh_filename);
 
     /// @brief Getter for all the tetrahedra mesh components from the mesh.
     auto &getMeshComponents() { return m_meshComponents; }

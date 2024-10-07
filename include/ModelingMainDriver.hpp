@@ -61,6 +61,8 @@ private:
     std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
     std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
 
+    void _broadcastTriangleMesh();
+
     /* Initializers for all the necessary objects. */
     void initializeSurfaceMesh();
     void initializeSurfaceMeshAABB();

@@ -80,8 +80,17 @@ std::vector<int> VolumeCreator::createSpheres(SphereVector spheres)
     return dimTags;
 }
 
-GMSHVolumeCreator::GMSHandler::GMSHandler() { gmsh::initialize(); }
-GMSHVolumeCreator::GMSHandler::~GMSHandler() { gmsh::finalize(); }
+GMSHVolumeCreator::GMSHandler::GMSHandler()
+{
+    if (!gmsh::isInitialized())
+        gmsh::initialize();
+}
+
+GMSHVolumeCreator::GMSHandler::~GMSHandler()
+{
+    if (gmsh::isInitialized())
+        gmsh::finalize();
+}
 
 void GMSHVolumeCreator::gmshSynchronizer(double meshSize, double meshDim, std::string_view outputPath)
 {

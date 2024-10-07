@@ -1,4 +1,4 @@
-#ifndef VECTORANAGER_HPP
+#ifndef VECTORMANAGER_HPP
 #define VECTORMANAGER_HPP
 
 #include "FiniteElementMethod/FEMTypes.hpp"

@@ -309,15 +309,33 @@ include_directories(${TBB_INCLUDE_DIRS})
 # ║ Remove unnecessary flags in debug mode and optimize in release mode.      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 if(MSVC)
-    add_compile_options(/W4)  # Enable warning level 4
+    add_compile_options(/W4)                                                     # Enable warning level 4
     string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")  # Remove /RTC1 flag
     string(REPLACE "/O2" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")    # Remove /O2 flag from debug
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")                # Optimize in release mode
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")                            # Compiling as big object file
 else()
-    set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -flarge-source-files -Wmisleading-indentation")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_CPP_FLAGS}")
-    message(STATUS "⚙️ Non-MSVC: Added common flags ${COMMON_CPP_FLAGS}")
+
+# Setting cpp flags
+set(VARIABLE_FLAGS "-DSHOW_LOGS")
+set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -Wmisleading-indentation")
+set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${VARIABLE_FLAGS}")
+
+# Check for Clang and set specific flags.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CLANG_FLAGS "-Xclang -flarge-source-files")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
+    message(STATUS "🛠️ Clang-specific flags added: ${CLANG_FLAGS}")
+
+# Check for GCC and set specific flags.
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(GCC_FLAGS "-flarge-source-files")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
+    message(STATUS "🛠️ GCC-specific flags added: ${GCC_FLAGS}")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
+message(STATUS "⚙️ Non-MSVC: Added common flags ${FINAL_CPP_FLAGS}")
 endif()
 
 # ╔══════════════════════════════════════════════════════════════════════════╗

@@ -194,7 +194,9 @@ bool Particle::colide(Particle target, double n_concentration, std::string_view 
 	else if (std::string(model) == "VSS")
 		return colideVSS(target, n_concentration, target.getViscosityTemperatureIndex(), target.getVSSDeflectionParameter(), time_step);
 	else
+	{
 		ERRMSG("No such kind of scattering model. Available only: HS/VHS/VSS");
+	}
 	return false;
 }
 

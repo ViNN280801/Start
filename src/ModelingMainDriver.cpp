@@ -8,6 +8,7 @@ using json = nlohmann::json;
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
+#include "FiniteElementMethod/FEMPrinter.hpp"
 #include "ModelingMainDriver.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
@@ -16,7 +17,86 @@ std::mutex ModelingMainDriver::m_particlesMovement_mutex;
 std::shared_mutex ModelingMainDriver::m_settledParticles_mutex;
 std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
 
-void ModelingMainDriver::initializeSurfaceMesh() { _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename()); }
+void ModelingMainDriver::_broadcastTriangleMesh()
+{
+    int rank{};
+#ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
+#endif
+
+    size_t numTriangles{};
+    if (rank == 0)
+        numTriangles = _triangleMesh.size();
+
+    // Broadcast the number of triangles
+    MPI_Bcast(std::addressof(numTriangles), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+
+    // Prepare arrays for sending or receiving
+    std::vector<size_t> triangleIds(numTriangles);
+    std::vector<double> triangleCoords(numTriangles * 9); // 9 doubles per triangle
+    std::vector<double> dS_values(numTriangles);
+    std::vector<int> counters(numTriangles);
+
+    if (rank == 0)
+    {
+        // Prepare data on rank 0
+        for (size_t i{}; i < numTriangles; ++i)
+        {
+            auto const &meshParam{_triangleMesh[i]};
+            triangleIds[i] = std::get<0>(meshParam);
+            Triangle const &triangle{std::get<1>(meshParam)};
+            double dS{std::get<2>(meshParam)};
+            int counter{std::get<3>(meshParam)};
+
+            // Extract triangle coordinates
+            for (int j{}; j < 3; ++j)
+            {
+                const Point &p = triangle.vertex(j);
+                triangleCoords[i * 9 + j * 3 + 0] = p.x();
+                triangleCoords[i * 9 + j * 3 + 1] = p.y();
+                triangleCoords[i * 9 + j * 3 + 2] = p.z();
+            }
+            dS_values[i] = dS;
+            counters[i] = counter;
+        }
+    }
+
+    // Broadcast the data arrays
+    MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(counters.data(), numTriangles, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (rank != 0)
+    {
+        // Reconstruct the triangle mesh on other ranks
+        _triangleMesh.clear();
+        for (size_t i = 0; i < numTriangles; ++i)
+        {
+            size_t triangleId = triangleIds[i];
+            Point p1(triangleCoords[i * 9 + 0], triangleCoords[i * 9 + 1], triangleCoords[i * 9 + 2]);
+            Point p2(triangleCoords[i * 9 + 3], triangleCoords[i * 9 + 4], triangleCoords[i * 9 + 5]);
+            Point p3(triangleCoords[i * 9 + 6], triangleCoords[i * 9 + 7], triangleCoords[i * 9 + 8]);
+            Triangle triangle(p1, p2, p3);
+            double dS{dS_values[i]};
+            int counter{counters[i]};
+            _triangleMesh.emplace_back(std::make_tuple(triangleId, triangle, dS, counter));
+        }
+    }
+}
+
+void ModelingMainDriver::initializeSurfaceMesh()
+{
+    int rank{};
+#ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
+#endif
+
+    if (rank == 0)
+        _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename());
+
+    _broadcastTriangleMesh();
+}
 
 void ModelingMainDriver::initializeSurfaceMeshAABB()
 {
@@ -71,7 +151,7 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblie
 
     // Creating cubic grid for the tetrahedron mesh.
     cubicGrid = std::make_shared<CubicGrid>(assemblier->getMeshManager(), m_config.getEdgeSize());
-    
+
     // Setting boundary conditions.
     for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
         for (GlobalOrdinal nodeId : nodeIds)
@@ -105,9 +185,11 @@ unsigned int ModelingMainDriver::getNumThreads() const
         hardware_threads{std::thread::hardware_concurrency()},
         threshold{static_cast<unsigned int>(hardware_threads * 0.8)};
     if (num_threads > threshold)
+    {
         WARNINGMSG(util::stringify("Warning: The number of threads requested (", num_threads,
                                    ") is close to or exceeds 80% of the available hardware threads (", hardware_threads, ").",
                                    " This might cause the system to slow down or become unresponsive because the system also needs resources for its own tasks."));
+    }
 
     return num_threads;
 }
@@ -219,7 +301,9 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
     // Calculating and checking gas concentration.
     _gasConcentration = util::calculateConcentration(config_filename);
     if (_gasConcentration < constants::gasConcentrationMinimalValue)
+    {
         WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", _gasConcentration, ". Simulation might considerably slows down"));
+    }
 
     // Initializing all the objects from the mesh.
     initialize();
@@ -394,7 +478,7 @@ void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_ind
                           if (!intersection)
                               return;
 
-                          auto triangle{boost::get<Triangle>(*intersection->second)};
+                          auto triangle{*intersection->second};
                           if (triangle.is_degenerate())
                               return;
 
@@ -445,15 +529,47 @@ void ModelingMainDriver::startModeling()
     std::map<GlobalOrdinal, double> boundaryConditions;
     std::shared_ptr<VectorManager> solutionVector;
 
+#ifndef USE_MPI
     initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
+#endif
     /* Ending of the FEM initialization. */
+
+    [[maybe_unused]] int rank{};
+
+#ifdef USE_MPI
+    MPI_Comm commAssembly, commSingle;
+    int numProcs{1};
+
+    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
+    MPI_Comm_size(MPI_COMM_WORLD, std::addressof(numProcs));
+    MPI_Comm_dup(MPI_COMM_WORLD, std::addressof(commAssembly));
+
+    LOGMSG(util::stringify("Rank ", rank, " started modeling with ", numProcs, " processes using commAssembly."));
+    initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
+    MPI_Barrier(commAssembly);
+    LOGMSG(util::stringify("Rank ", rank, " finished assembly and reached MPI barrier with commAssembly."));
+
+    if (rank == 0)
+        MPI_Comm_split(MPI_COMM_WORLD, 0, rank, std::addressof(commSingle));
+    else
+    {
+        MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, rank, std::addressof(commSingle));
+        LOGMSG(util::stringify("Rank ", rank, " is finalizing MPI and exiting."));
+        MPI_Comm_free(std::addressof(commAssembly));
+        MPI_Finalize();
+        exit(EXIT_SUCCESS);
+    }
+
+    MPI_Comm_free(std::addressof(commAssembly));
+#endif
 
     auto num_threads{getNumThreads()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
-    // Separate particles on segments.
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
+        LOGMSG(util::stringify("Rank ", rank, " started timestep: ", t));
+
         // 1. Obtain charge densities in all the nodes.
         // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
         // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
@@ -472,8 +588,17 @@ void ModelingMainDriver::startModeling()
         // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
         // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
         processWithThreads(num_threads, &ModelingMainDriver::processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
+
+        LOGMSG(util::stringify("Rank ", rank, " completed timestep: ", t));
     }
+
+    LOGMSG(util::stringify("Rank ", rank, " completed simulation."));
 
     updateSurfaceMesh();
     saveParticleMovements();
+
+#ifdef USE_MPI
+    MPI_Comm_free(std::addressof(commSingle));
+    MPI_Finalize();
+#endif
 }
