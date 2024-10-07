@@ -10,54 +10,9 @@ using namespace particle_types;
 
 #define STATUS_TO_STR(status) util::getStatusName(status)
 #define UNKNOWN_BUILD_CONFIGURATION "Unknown build configuration"
-#define DEVELOPER_MAIL "vladislav_semykin01@mail.ru"
-#define CONTACT_SUPPORT_MSG(desc) util::stringify("Internal Error: ", desc, ". Contact support: ", DEVELOPER_MAIL, "\n");
-#define CONTACT_SUPPORT_MSG_TO_CERR(desc) std::cerr << CONTACT_SUPPORT_MSG(desc);
 
 namespace util
 {
-    /**
-     * @brief Concept that specifies all types that can be convert to "std::string_view" type
-     * For example, "char", "const char *", "std::string", etc.
-     * @tparam T The type to check for convertibility to std::string_view.
-     */
-    template <typename T>
-    concept StringConvertible = std::is_convertible_v<T, std::string_view>;
-
-    /**
-     * @brief Concept that checks if variable has output operator
-     * @tparam a variable to check
-     * @param os output stream
-     */
-    template <typename T>
-    concept Printable = requires(T a, std::ostream &os) {
-        {
-            os << a
-        } -> std::same_as<std::ostream &>;
-    };
-
-    /**
-     * @brief Gets the current system time in the specified format.
-     * @tparam Format A format string compatible with std::put_time.
-     * Defaults to "%H:%M:%S" if not specified.
-     * For example, "%Y-%m-%d %H:%M:%S" for date and time in YYYY-MM-DD HH:MM:SS format.
-     * @param format The format string compatible with std::put_time. Defaults to "%H:%M:%S".
-     */
-    std::string getCurTime(std::string_view format = "%H:%M:%S");
-
-    /**
-     * @brief Generates string with specified multiple args
-     * @tparam args arguments of type that can be convert to string
-     * @return String composed from all arguments
-     */
-    template <Printable... Args>
-    std::string stringify(Args &&...args)
-    {
-        std::ostringstream oss;
-        (oss << ... << std::forward<Args>(args));
-        return oss.str();
-    }
-
     /**
      * @brief Calculates sign.
      * @details Takes a double (`val`) and returns:
