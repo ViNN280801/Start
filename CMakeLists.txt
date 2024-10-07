@@ -315,29 +315,61 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")                # Optimize in release mode
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")                            # Compiling as big object file
 else()
+    # Define the VECTORIZATION_ON option
+    option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 
-# Setting cpp flags
-set(VARIABLE_FLAGS "-DSHOW_LOGS")
-set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
-set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
-set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -Wmisleading-indentation")
-set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG} ${VARIABLE_FLAGS}")
+    # Check the value of VECTORIZATION_ON and set up the flags accordingly
+    if(VECTORIZATION_ON)
+        message(STATUS "✅ Vectorization and anti-aliasing flags are enabled by default.")
+    else()
+        message(WARNING "🚫 Vectorization and anti-aliasing flags are disabled as specified by the user.")
+    endif()
 
-# Check for Clang and set specific flags.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CLANG_FLAGS "-Xclang -flarge-source-files")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
-    message(STATUS "🛠️ Clang-specific flags added: ${CLANG_FLAGS}")
+    # Set custom and common flags
+    set(CUSTOM_FLAGS "-DSHOW_LOGS")
+    set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
+    set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
+    set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -Wmisleading-indentation")
 
-# Check for GCC and set specific flags.
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(GCC_FLAGS "-flarge-source-files")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
-    message(STATUS "🛠️ GCC-specific flags added: ${GCC_FLAGS}")
-endif()
+    set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG} ${CUSTOM_FLAGS}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
-message(STATUS "⚙️ Non-MSVC: Added common flags ${FINAL_CPP_FLAGS}")
+    # Initialize variables for optional flags
+    set(ANTI_ALIASING_FLAG "")
+    set(VECTORIZATION_FLAGS "")
+
+    # Check if vectorization is enabled
+    if(VECTORIZATION_ON)
+        # Check for Clang and set specific flags
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
+            set(VECTORIZATION_FLAGS "-fvectorize -march=native -mtune=native")
+            set(CLANG_FLAGS "-Xclang -flarge-source-files")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            message(STATUS "🛠️ Clang-specific vectorization flags added: ${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+
+        # Check for GCC and set specific flags
+        elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
+            set(VECTORIZATION_FLAGS "-ftree-vectorize -march=native -mtune=native -mprefer-vector-width=512")
+            set(GCC_FLAGS "-flarge-source-files")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            message(STATUS "🛠️ GCC-specific vectorization flags added: ${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+
+        # Check for Intel compiler and set specific flags
+        elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+            set(ANTI_ALIASING_FLAG "-ansi-alias")
+            set(VECTORIZATION_FLAGS "-restrict -xHost -vecabi=cmdtarget -qopt-zmm-usage=high")
+            set(INTEL_COMPILER_FLAGS "-flarge-source-files")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            message(STATUS "🛠️ Intel-specific vectorization flags added: ${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+        endif()
+    else()
+        message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled.")
+    endif()
+
+    # Append the common and custom flags to CMAKE_CXX_FLAGS
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
+    message(STATUS "⚙️ Non-MSVC: Added common flags ${FINAL_CPP_FLAGS}")
 endif()
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
