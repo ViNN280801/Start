@@ -3,19 +3,29 @@
 
 void _setBoundaryConditionForNode(Teuchos::RCP<TpetraMatrixType> matrix, LocalOrdinal nodeID, Scalar value)
 {
+    if (!matrix->getRowMap()->isNodeGlobalElement(nodeID))
+        return; // 0. Skip nodes not owned by this process.
+
+    // 1. Fetch the number of entries in the global row for nodeID.
     size_t numEntries{matrix->getNumEntriesInGlobalRow(nodeID)};
+
+    // 2. Allocate arrays for indices and values based on the number of entries.
     TpetraMatrixType::nonconst_global_inds_host_view_type indices("ind", numEntries);
     TpetraMatrixType::nonconst_values_host_view_type values("val", numEntries);
     size_t checkNumEntries{};
 
-    // 1. Fetch the current row's structure.
+    // 3. Fetch the current row's structure.
     matrix->getGlobalRowCopy(nodeID, indices, values, checkNumEntries);
 
-    // 2. Modify the values array to set the diagonal to 'value' and others to 0
+    // 4. Ensure we fetched the correct number of entries
+    if (checkNumEntries != numEntries)
+        throw std::runtime_error("Mismatch in number of entries retrieved from the matrix.");
+
+    // 5. Modify the values array to set the diagonal to 'value' and others to 0
     for (size_t i{}; i < numEntries; i++)
         values[i] = (indices[i] == nodeID) ? value : 0.0; // Set diagonal value to the value = 1, other - to 0 to correctly solve matrix equation Ax=b.
 
-    // 3. Replace the modified row back into the matrix.
+    // 6. Replace the modified row back into the matrix.
     matrix->replaceGlobalValues(nodeID, indices, values);
 }
 
