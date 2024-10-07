@@ -185,9 +185,11 @@ unsigned int ModelingMainDriver::getNumThreads() const
         hardware_threads{std::thread::hardware_concurrency()},
         threshold{static_cast<unsigned int>(hardware_threads * 0.8)};
     if (num_threads > threshold)
+    {
         WARNINGMSG(util::stringify("Warning: The number of threads requested (", num_threads,
                                    ") is close to or exceeds 80% of the available hardware threads (", hardware_threads, ").",
                                    " This might cause the system to slow down or become unresponsive because the system also needs resources for its own tasks."));
+    }
 
     return num_threads;
 }
@@ -299,7 +301,9 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
     // Calculating and checking gas concentration.
     _gasConcentration = util::calculateConcentration(config_filename);
     if (_gasConcentration < constants::gasConcentrationMinimalValue)
+    {
         WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", _gasConcentration, ". Simulation might considerably slows down"));
+    }
 
     // Initializing all the objects from the mesh.
     initialize();
