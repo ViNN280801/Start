@@ -109,13 +109,18 @@ public:
     std::pair<std::string, Teuchos::RCP<Teuchos::ParameterList>> parseSolverParamsFromJson(std::string_view filename = "temp_solver_params.json");
 
     /**
-     * @brief Solves the equation Ax=b.
-     * @details This method initializes and configures the solver, sets up the linear problem, and solves it using the specified iterative method.
-     * @param solverName Name of the iterative solver.
-     * @param solverParams Iterative solver parameters that you can set with method `createSolverParams`.
-     * @return true if the solver converged to a solution, false otherwise.
+     * @brief Solves the linear system Ax = b using an iterative solver.
+     *
+     * This method configures and runs the iterative solver specified by `solverName`.
+     * It sets up the linear problem, applies a preconditioner, and solves the system
+     * of equations using the provided solver parameters.
+     *
+     * @param solverName Name of the iterative solver to use (e.g., "GMRES", "CG").
+     * @param solverParams Parameters for the iterative solver, typically created
+     *        using the `createSolverParams` method.
+     * @throws std::runtime_error If there is a problem during setup or if the solver fails to converge.
      */
-    bool solve(std::string_view solverName, Teuchos::RCP<Teuchos::ParameterList> solverParams);
+    void solve(std::string_view solverName, Teuchos::RCP<Teuchos::ParameterList> solverParams);
 };
 
 #endif // !MATRIX_EQUATION_SOLVER_HPP

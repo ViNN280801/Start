@@ -337,7 +337,7 @@ std::pair<std::string, Teuchos::RCP<Teuchos::ParameterList>> MatrixEquationSolve
     return std::make_pair(solverName, params);
 }
 
-bool MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuchos::ParameterList> solverParams)
+void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuchos::ParameterList> solverParams)
 {
     try
     {
@@ -349,26 +349,27 @@ bool MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
         problem->setOperator(m_A);
         problem->setLHS(m_x);
         problem->setRHS(m_rhs);
-
         problem->setLeftPrec(M);
 
         if (!problem->setProblem())
-            return false;
+            throw std::runtime_error("Failed to set up the linear problem.");
 
         Belos::SolverFactory<Scalar, TpetraMultiVector, TpetraOperator> factory;
         auto solver{factory.create(solverName.data(), solverParams)};
         solver->setProblem(problem);
 
         Belos::ReturnType result{solver->solve()};
-        return (result == Belos::Converged);
+        if (result != Belos::Converged)
+            throw std::runtime_error("Belos solver failed to converge.");
     }
     catch (std::exception const &ex)
     {
         ERRMSG(ex.what());
+        throw;
     }
     catch (...)
     {
         ERRMSG("Solver: Unknown error was occured while trying to solve equation");
+        throw;
     }
-    return false;
 }
