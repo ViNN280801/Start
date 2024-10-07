@@ -365,11 +365,9 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
     catch (std::exception const &ex)
     {
         ERRMSG(ex.what());
-        throw;
     }
     catch (...)
     {
         ERRMSG("Solver: Unknown error was occured while trying to solve equation");
-        throw;
     }
 }
