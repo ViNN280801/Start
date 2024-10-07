@@ -318,8 +318,10 @@ else()
 
 # Setting cpp flags
 set(VARIABLE_FLAGS "-DSHOW_LOGS")
+set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
+set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
 set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -Wmisleading-indentation")
-set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${VARIABLE_FLAGS}")
+set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG} ${VARIABLE_FLAGS}")
 
 # Check for Clang and set specific flags.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
