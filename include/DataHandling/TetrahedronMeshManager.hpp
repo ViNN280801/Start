@@ -47,9 +47,31 @@ private:
 private:
     std::vector<TetrahedronData> m_meshComponents; ///< Array of all the tetrahedrons from the mesh.
 
+    // Member variables.
+    int m_rank;
+    int m_size;
+
+    // Local mesh data
+    std::vector<std::pair<size_t, std::array<size_t, 4>>> m_localElementData;
+    std::vector<size_t> m_localNodeTags;
+    std::map<size_t, std::array<double, 3>> m_localNodeCoordinates;
+
+    // Only used on rank 0.
+    std::map<size_t, std::array<double, 3>> m_nodeCoordinatesMap;
+    std::vector<std::vector<std::pair<size_t, std::array<size_t, 4>>>> m_elementsPerProc;
+    std::vector<std::vector<size_t>> m_nodeTagsPerProc;
+
+    void _readAndPartitionMesh(std::string_view mesh_filename);
+    void _distributeMeshData();
+    void _receiveData();
+    void _constructLocalMesh();
+
 public:
     using NodeData = TetrahedronMeshManager::TetrahedronData::NodeData;
     using TetrahedronData = TetrahedronMeshManager::TetrahedronData;
+
+    /// @brief Default constructor for non-root ranks.
+    TetrahedronMeshManager();
 
     /**
      * @brief Constructor. Fills storage for the volumetric mesh.
