@@ -13,50 +13,70 @@ MatrixManager::MatrixManager(std::span<MatrixEntry const> matrix_entries) : m_en
                             { return entry.row < 0 || entry.col < 0; }))
         throw std::out_of_range("Matrix entries cannot have negative row or column indices");
 
-    // 1. Getting unique global entries.
-    std::map<GlobalOrdinal, std::set<GlobalOrdinal>> graphEntries;
+    // 1. Collect global row indices
+    std::set<GlobalOrdinal> globalRowIndices;
     for (auto const &entry : m_entries)
-        graphEntries[entry.row].insert(entry.col);
+        globalRowIndices.insert(entry.row);
 
-    // 2. Find the maximum global row index.
-    auto maxGlobalIndex{std::ranges::max_element(matrix_entries, {}, &MatrixEntry::row)->row};
-
-    // 3. Initializing tpetra map.
+    // 2. Create the Tpetra Map with local elements
+    Teuchos::Array<GlobalOrdinal> myGlobalElements(globalRowIndices.begin(), globalRowIndices.end());
     short indexBase{};
-    m_map = Teuchos::rcp(new MapType(maxGlobalIndex + 1, indexBase, Tpetra::getDefaultComm()));
+    m_map = Teuchos::rcp(new MapType(Teuchos::OrdinalTraits<GlobalOrdinal>::invalid(),
+                                     myGlobalElements(), indexBase, Tpetra::getDefaultComm()));
 
-    // 4. Initializing tpetra graph.
-    std::vector<size_t> numEntriesPerRow(maxGlobalIndex + 1);
-    for (auto const &rowEntry : graphEntries)
+    // 3. Build the graph entries
+    std::map<GlobalOrdinal, std::set<GlobalOrdinal>> graphEntries;
+    for (const auto &entry : m_entries)
     {
-        auto localIndex = m_map->getLocalElement(rowEntry.first);
-        if (static_cast<size_t>(localIndex) == Teuchos::OrdinalTraits<size_t>::invalid())
-            throw std::out_of_range(util::stringify("Invalid local index ", localIndex, " for row entry: ", rowEntry.first));
+        graphEntries[entry.row].insert(entry.col);
+    }
 
-        numEntriesPerRow.at(localIndex) = rowEntry.second.size();
+    // 4. Initialize the CrsGraph
+    size_t numLocalRows = m_map->getLocalNumElements();
+    std::vector<size_t> numEntriesPerRow(numLocalRows, 0);
+
+    auto globalToLocalRow = [this](GlobalOrdinal globalRow)
+    {
+        return m_map->getLocalElement(globalRow);
+    };
+
+    for (const auto &rowEntry : graphEntries)
+    {
+        auto localIndex {globalToLocalRow(rowEntry.first)};
+        if (localIndex == Teuchos::OrdinalTraits<LocalOrdinal>::invalid())
+        {
+            continue; // Skip rows not owned by this process
+        }
+        numEntriesPerRow[localIndex] = rowEntry.second.size();
     }
 
     Teuchos::RCP<Tpetra::CrsGraph<>> graph{Teuchos::rcp(new Tpetra::CrsGraph<>(m_map, Teuchos::ArrayView<size_t const>(numEntriesPerRow.data(), numEntriesPerRow.size())))};
     for (auto const &rowEntries : graphEntries)
     {
+        if (!m_map->isNodeGlobalElement(rowEntries.first))
+            continue; // Skip rows not owned by this process
         std::vector<GlobalOrdinal> columns(rowEntries.second.begin(), rowEntries.second.end());
-        Teuchos::ArrayView<GlobalOrdinal const> colsView(columns.data(), columns.size());
+        Teuchos::ArrayView<const GlobalOrdinal> colsView(columns.data(), columns.size());
         graph->insertGlobalIndices(rowEntries.first, colsView);
     }
     graph->fillComplete();
 
-    // 5. Initializing matrix.
+    // 5. Initialize the matrix
     m_matrix = Teuchos::rcp(new TpetraMatrixType(graph));
 
-    // 6. Adding matrix entries.
-    for (auto const &entry : m_entries)
+    // 6. Insert matrix entries
+    for (const auto &entry : m_entries)
     {
-        Teuchos::ArrayView<GlobalOrdinal const> colsView(std::addressof(entry.col), 1);
-        Teuchos::ArrayView<Scalar const> valsView(std::addressof(entry.value), 1);
+        if (!m_map->isNodeGlobalElement(entry.row))
+        {
+            continue; // Skip entries not owned by this process
+        }
+        Teuchos::ArrayView<const GlobalOrdinal> colsView(&entry.col, 1);
+        Teuchos::ArrayView<const Scalar> valsView(&entry.value, 1);
         m_matrix->sumIntoGlobalValues(entry.row, colsView, valsView);
     }
 
-    // 7. Finalizing work with matrix.
+    // 7. Finalize the matrix
     m_matrix->fillComplete();
 }
 

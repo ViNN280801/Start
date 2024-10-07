@@ -1,7 +1,8 @@
 #include <gmsh.h>
-#include <memory>
+
+#ifdef USE_MPI
 #include <mpi.h>
-#include <mutex>
+#endif
 
 #include "DataHandling/TetrahedronMeshManager.hpp"
 
@@ -24,156 +25,242 @@ Point TetrahedronMeshManager::TetrahedronData::getTetrahedronCenter() const
     }
 }
 
-TetrahedronMeshManager::TetrahedronMeshManager(std::string_view mesh_filename)
+void TetrahedronMeshManager::_readAndPartitionMesh(std::string_view mesh_filename)
 {
-    util::check_gmsh_mesh_file(mesh_filename);
-
-    int rank = 0, size = 1;
-#ifdef USE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
-    MPI_Comm_size(MPI_COMM_WORLD, std::addressof(size));
-#endif
-
-    std::vector<size_t> localElementTags;
-    std::vector<size_t> localNodeTags;
-    std::map<size_t, std::array<double, 3>> localNodeCoordinates;
-
-    if (rank == 0)
+    // Only called by rank 0.
+    try
     {
-        try
+        gmsh::open(mesh_filename.data());
+
+        std::vector<std::size_t> nodeTags;
+        std::vector<double> coord, parametricCoord;
+        gmsh::model::mesh::getNodes(nodeTags, coord, parametricCoord);
+
+        m_nodeCoordinatesMap.clear();
+        for (size_t i{}; i < nodeTags.size(); ++i)
         {
-            gmsh::open(mesh_filename.data());
-
-            // Read nodes
-            std::vector<std::size_t> nodeTags;
-            std::vector<double> coord, parametricCoord;
-            gmsh::model::mesh::getNodes(nodeTags, coord, parametricCoord, -1, -1, false, false);
-
-            // Map node IDs to coordinates
-            std::map<size_t, std::array<double, 3>> nodeCoordinatesMap;
-            for (size_t i = 0; i < nodeTags.size(); ++i)
-            {
-                size_t nodeID = nodeTags[i];
-                std::array<double, 3> coords = {coord[i * 3 + 0], coord[i * 3 + 1], coord[i * 3 + 2]};
-                nodeCoordinatesMap[nodeID] = coords;
-            }
-
-            // Read tetrahedron elements
-            std::vector<size_t> elTags, nodeTagsByEl;
-            gmsh::model::mesh::getElementsByType(4, elTags, nodeTagsByEl, -1);
-
-            // Partition elements among MPI processes
-            size_t numElements = elTags.size();
-            std::vector<std::vector<size_t>> elementsPerProc(size);
-            std::vector<std::vector<size_t>> nodeTagsPerProc(size);
-
-            for (size_t i = 0; i < numElements; ++i)
-            {
-                int destRank = i % size;
-                elementsPerProc[destRank].push_back(elTags[i]);
-                for (int j = 0; j < 4; ++j)
-                {
-                    nodeTagsPerProc[destRank].push_back(nodeTagsByEl[i * 4 + j]);
-                }
-            }
-
-            // Send partitioned mesh data to other processes
-            for (int destRank = 1; destRank < size; ++destRank)
-            {
-                // Send the number of elements
-                size_t numLocalElements = elementsPerProc[destRank].size();
-                MPI_Send(&numLocalElements, 1, MPI_UNSIGNED_LONG, destRank, 0, MPI_COMM_WORLD);
-
-                // Send element IDs
-                MPI_Send(elementsPerProc[destRank].data(), numLocalElements, MPI_UNSIGNED_LONG, destRank, 1, MPI_COMM_WORLD);
-
-                // Send node IDs
-                size_t numLocalNodes = nodeTagsPerProc[destRank].size();
-                MPI_Send(&numLocalNodes, 1, MPI_UNSIGNED_LONG, destRank, 2, MPI_COMM_WORLD);
-                MPI_Send(nodeTagsPerProc[destRank].data(), numLocalNodes, MPI_UNSIGNED_LONG, destRank, 3, MPI_COMM_WORLD);
-
-                // Collect coordinates for the nodes used
-                std::vector<double> localNodeCoords;
-                for (size_t nodeID : nodeTagsPerProc[destRank])
-                {
-                    auto coords = nodeCoordinatesMap[nodeID];
-                    localNodeCoords.insert(localNodeCoords.end(), coords.begin(), coords.end());
-                }
-
-                // Send node coordinates
-                MPI_Send(localNodeCoords.data(), localNodeCoords.size(), MPI_DOUBLE, destRank, 4, MPI_COMM_WORLD);
-            }
-
-            // Root process keeps its part of the data
-            localElementTags = elementsPerProc[0];
-            localNodeTags = nodeTagsPerProc[0];
-
-            for (size_t nodeID : localNodeTags)
-            {
-                localNodeCoordinates[nodeID] = nodeCoordinatesMap[nodeID];
-            }
-
-            gmsh::finalize();
+            size_t nodeID{nodeTags[i]};
+            std::array<double, 3> coords = {coord[i * 3 + 0], coord[i * 3 + 1], coord[i * 3 + 2]};
+            m_nodeCoordinatesMap[nodeID] = coords;
         }
-        catch (std::exception const &e)
+
+        // Read tetrahedron elements (element type 4 corresponds to tetrahedra).
+        std::vector<size_t> elTags, nodeTagsByEl;
+        gmsh::model::mesh::getElementsByType(4, elTags, nodeTagsByEl);
+
+        // Partition elements among MPI processes.
+        size_t numElements{elTags.size()};
+        m_elementsPerProc.resize(m_size);
+
+        for (size_t i{}; i < numElements; ++i)
         {
-            throw std::runtime_error(util::stringify("Error initializing TetrahedronMeshManager: ", e.what()));
+            int destRank = i % m_size;
+            size_t elID{elTags[i]};
+            std::array<size_t, 4> nodeIDs;
+            for (short j{}; j < 4; ++j)
+                nodeIDs[j] = nodeTagsByEl[i * 4 + j];
+            m_elementsPerProc[destRank].push_back(std::make_pair(elID, nodeIDs));
+        }
+
+        // Collect node IDs per process.
+        m_nodeTagsPerProc.resize(m_size);
+
+        for (int proc{}; proc < m_size; ++proc)
+        {
+            std::set<size_t> nodeSet;
+            for (auto const &el : m_elementsPerProc[proc])
+            {
+                auto const &nodeIDs{el.second};
+                nodeSet.insert(nodeIDs.begin(), nodeIDs.end());
+            }
+            m_nodeTagsPerProc[proc].assign(nodeSet.begin(), nodeSet.end());
+        }
+
+        // Store local data for rank 0.
+        m_localElementData = m_elementsPerProc[0]; // Vector of pair<size_t, array<size_t,4>>.
+        m_localNodeTags = m_nodeTagsPerProc[0];
+
+        // Collect node coordinates for local nodes.
+        for (size_t nodeID : m_localNodeTags)
+            m_localNodeCoordinates[nodeID] = m_nodeCoordinatesMap[nodeID];
+    }
+    catch (std::exception const &e)
+    {
+        throw std::runtime_error(std::string("Error in _readAndPartitionMesh: ") + e.what());
+    }
+}
+
+void TetrahedronMeshManager::_distributeMeshData()
+{
+#ifdef USE_MPI
+    // Only called by rank 0.
+    try
+    {
+        for (int destRank{1}; destRank < m_size; ++destRank)
+        {
+            // Send the number of elements.
+            size_t numLocalElements{m_elementsPerProc[destRank].size()};
+            MPI_Send(std::addressof(numLocalElements), 1, MPI_UNSIGNED_LONG, destRank, 0, MPI_COMM_WORLD);
+
+            // Prepare element data to send: for each element, element ID and node IDs.
+            // Total data size: numLocalElements * (1 + 4) size_t.
+            std::vector<size_t> elementData; // Flat array of element IDs and node IDs.
+            elementData.reserve(numLocalElements * 5);
+            for (auto const &el : m_elementsPerProc[destRank])
+            {
+                elementData.push_back(el.first);                                           // Element ID.
+                elementData.insert(elementData.end(), el.second.begin(), el.second.end()); // Node IDs.
+            }
+
+            // Send element data.
+            MPI_Send(elementData.data(), elementData.size(), MPI_UNSIGNED_LONG, destRank, 1, MPI_COMM_WORLD);
+
+            // Send node IDs.
+            size_t numLocalNodes{m_nodeTagsPerProc[destRank].size()};
+            MPI_Send(std::addressof(numLocalNodes), 1, MPI_UNSIGNED_LONG, destRank, 2, MPI_COMM_WORLD);
+            MPI_Send(m_nodeTagsPerProc[destRank].data(), numLocalNodes, MPI_UNSIGNED_LONG, destRank, 3, MPI_COMM_WORLD);
+
+            // Collect coordinates for the nodes used.
+            std::vector<double> localNodeCoords;
+            for (size_t nodeID : m_nodeTagsPerProc[destRank])
+            {
+                auto coords{m_nodeCoordinatesMap[nodeID]};
+                localNodeCoords.insert(localNodeCoords.end(), coords.begin(), coords.end());
+            }
+
+            // Send node coordinates.
+            MPI_Send(localNodeCoords.data(), localNodeCoords.size(), MPI_DOUBLE, destRank, 4, MPI_COMM_WORLD);
         }
     }
-    else
+    catch (std::exception const &e)
     {
-        // Receive mesh data from the root process
-        // Receive the number of elements
+        throw std::runtime_error(std::string("Error in _distributeMeshData: ") + e.what());
+    }
+#endif
+}
+
+void TetrahedronMeshManager::_receiveData()
+{
+#ifdef USE_MPI
+    // Called by ranks != 0.
+    try
+    {
+        // Receive the number of elements.
         size_t numLocalElements;
-        MPI_Recv(&numLocalElements, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(std::addressof(numLocalElements), 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // Receive element IDs
-        localElementTags.resize(numLocalElements);
-        MPI_Recv(localElementTags.data(), numLocalElements, MPI_UNSIGNED_LONG, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        // Receive element data.
+        std::vector<size_t> elementData(numLocalElements * 5);
+        MPI_Recv(elementData.data(), elementData.size(), MPI_UNSIGNED_LONG, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // Receive node IDs
+        // Reconstruct m_localElementData.
+        m_localElementData.resize(numLocalElements);
+        for (size_t i{}; i < numLocalElements; ++i)
+        {
+            size_t elID = elementData[i * 5];
+            std::array<size_t, 4> nodeIDs;
+            for (short j{}; j < 4; ++j)
+                nodeIDs[j] = elementData[i * 5 + 1 + j];
+            m_localElementData[i] = std::make_pair(elID, nodeIDs);
+        }
+
+        // Receive node IDs.
         size_t numLocalNodes;
-        MPI_Recv(&numLocalNodes, 1, MPI_UNSIGNED_LONG, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        localNodeTags.resize(numLocalNodes);
-        MPI_Recv(localNodeTags.data(), numLocalNodes, MPI_UNSIGNED_LONG, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(std::addressof(numLocalNodes), 1, MPI_UNSIGNED_LONG, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        m_localNodeTags.resize(numLocalNodes);
+        MPI_Recv(m_localNodeTags.data(), numLocalNodes, MPI_UNSIGNED_LONG, 0, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // Receive node coordinates
+        // Receive node coordinates.
         std::vector<double> localNodeCoords(numLocalNodes * 3);
         MPI_Recv(localNodeCoords.data(), localNodeCoords.size(), MPI_DOUBLE, 0, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // Reconstruct nodeCoordinatesMap
-        for (size_t i = 0; i < numLocalNodes; ++i)
+        // Reconstruct m_localNodeCoordinates.
+        for (size_t i{}; i < numLocalNodes; ++i)
         {
-            size_t nodeID = localNodeTags[i];
+            size_t nodeID{m_localNodeTags[i]};
             std::array<double, 3> coords = {
                 localNodeCoords[i * 3 + 0],
                 localNodeCoords[i * 3 + 1],
                 localNodeCoords[i * 3 + 2]};
-            localNodeCoordinates[nodeID] = coords;
+            m_localNodeCoordinates[nodeID] = coords;
         }
     }
-
-    // Now use localElementTags and localNodeCoordinates to construct tetrahedrons and store them in m_meshComponents
-    for (size_t tetrahedronID : localElementTags)
+    catch (std::exception const &e)
     {
-        std::array<Point, 4> vertices;
-        std::array<size_t, 4> nodes;
-        for (size_t j = 0; j < 4; ++j)
-        {
-            size_t nodeID = localNodeTags[j];
-            auto coords = localNodeCoordinates.at(nodeID);
-            vertices[j] = Point(coords[0], coords[1], coords[2]);
-            nodes[j] = nodeID;
-        }
-
-        Tetrahedron tetrahedron(vertices[0], vertices[1], vertices[2], vertices[3]);
-        TetrahedronData data{tetrahedronID, tetrahedron, {}, std::nullopt};
-
-        for (size_t j = 0; j < nodes.size(); ++j)
-            data.nodes[j] = {nodes[j], vertices[j], std::nullopt, std::nullopt};
-
-        m_meshComponents.emplace_back(data);
+        throw std::runtime_error(std::string("Error in _receiveData: ") + e.what());
     }
+#endif
+}
+
+void TetrahedronMeshManager::_constructLocalMesh()
+{
+    // Use m_localElementData and m_localNodeCoordinates to construct m_meshComponents.
+    try
+    {
+        for (auto const &elData : m_localElementData)
+        {
+            size_t tetrahedronID{elData.first};
+            std::array<size_t, 4> const &nodeIDs = elData.second;
+
+            std::array<Point, 4> vertices;
+            for (short j{}; j < 4; ++j)
+            {
+                size_t nodeID = nodeIDs[j];
+                auto coords = m_localNodeCoordinates.at(nodeID);
+                vertices[j] = Point(coords[0], coords[1], coords[2]);
+            }
+
+            Tetrahedron tetrahedron(vertices[0], vertices[1], vertices[2], vertices[3]);
+            TetrahedronData data{tetrahedronID, tetrahedron, {}, std::nullopt};
+
+            for (short j{}; j < 4; ++j)
+                data.nodes[j] = {nodeIDs[j], vertices[j], std::nullopt, std::nullopt};
+
+            m_meshComponents.emplace_back(data);
+        }
+    }
+    catch (std::exception const &e)
+    {
+        throw std::runtime_error(std::string("Error in _constructLocalMesh: ") + e.what());
+    }
+}
+
+TetrahedronMeshManager::TetrahedronMeshManager()
+{
+    // Initialize MPI rank and size
+    m_rank = 0;
+    m_size = 1;
+#ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(m_rank));
+    MPI_Comm_size(MPI_COMM_WORLD, std::addressof(m_size));
+#endif
+
+    // Ensure this constructor is not called on rank 0.
+    if (m_rank == 0)
+        throw std::runtime_error("Default constructor should not be called on the root process (rank 0).");
+
+    _receiveData();
+    _constructLocalMesh();
+}
+
+TetrahedronMeshManager::TetrahedronMeshManager(std::string_view mesh_filename)
+{
+    m_rank = 0;
+    m_size = 1;
+#ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(m_rank));
+    MPI_Comm_size(MPI_COMM_WORLD, std::addressof(m_size));
+#endif
+
+    if (m_rank == 0)
+    {
+        _readAndPartitionMesh(mesh_filename);
+        _distributeMeshData();
+    }
+    else
+        _receiveData();
+
+    _constructLocalMesh();
 }
 
 void TetrahedronMeshManager::print() const noexcept
