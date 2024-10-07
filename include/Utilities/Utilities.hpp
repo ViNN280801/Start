@@ -2,46 +2,13 @@
 #define UTILITIES_HPP
 
 #include <concepts>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <source_location>
-#include <sstream>
-#include <string_view>
 
-#include "Constants.hpp"
+#include "Utilities/Constants.hpp"
+#include "Utilities/LogMacros.hpp"
 using namespace constants;
 using namespace particle_types;
 
 #define STATUS_TO_STR(status) util::getStatusName(status)
-#define ERRMSG_ABS_PATH(desc) std::cerr << util::stringify("\033[1;31mError:\033[0m\033[1m ", \
-                                                          util::getCurTime(),               \
-                                                          ": ",                             \
-                                                          std::source_location::current().file_name(), \
-                                                          "(", std::source_location::current().line(), " line): ", \
-                                                          COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
-#define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ", \
-                                                           std::source_location::current().file_name(), \
-                                                           "(", std::source_location::current().line(), " line): ", \
-                                                           COMMON_PRETTY_FUNC, ": ", desc, "\n");
-#define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
-#define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(), \
-                                        ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                        "(", std::source_location::current().line(), " line): ", \
-                                        COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
-#define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
-#define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), ": ", \
-                                        EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                        "(", std::source_location::current().line(), " line): ", \
-                                        COMMON_PRETTY_FUNC, ": ", desc, "\n");
-
-#define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
-#define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(), \
-                                            ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                            "(", std::source_location::current().line(), " line): ", \
-                                            COMMON_PRETTY_FUNC, ": ", desc, "\n");
-
-#define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
 #define UNKNOWN_BUILD_CONFIGURATION "Unknown build configuration"
 #define DEVELOPER_MAIL "vladislav_semykin01@mail.ru"
 #define CONTACT_SUPPORT_MSG(desc) util::stringify("Internal Error: ", desc, ". Contact support: ", DEVELOPER_MAIL, "\n");

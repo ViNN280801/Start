@@ -87,7 +87,9 @@ std::vector<MatrixEntry> GSMAssemblier::_getMatrixEntries()
     }
 
     if (matrixEntries.empty())
+    {
         WARNINGMSG("Something went wrong while filling matrix entries - matrix entries are empty - there is no elements");
+    }
 
     return matrixEntries;
 }
