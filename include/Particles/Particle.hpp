@@ -376,10 +376,10 @@ template <ParticleGenerator Gen>
 ParticleVector createParticles(size_t count, Gen gen)
 {
     ParticleVector particles;
-    
+
 #ifdef USE_OMP
     particles.reserve(count);
-#pragma omp simd
+#pragma omp for simd
     for (size_t i = 0; i < count; ++i)
     {
         particles[i] = gen();
