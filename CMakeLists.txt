@@ -3,14 +3,24 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 # --------{---(@    Setting custom options with default values   @}}>-----
 option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
+option(START_MPI_ON "Enable MPI support for the project" ON)
 option(START_DEBUG "Compile the project in Start Debug mode" OFF)
 option(START_RELEASE "Compile the project in Start Release mode" OFF)
 # --------{---(@    Setting custom options with default values   @}}>-----
 
+##########  °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸  ##########
+##########                    Reporting about custom project flags                         ##########
 if (GPU_CUDA_ON)
     message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
 else()
     message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
+endif()
+
+if (START_MPI_ON)
+    message(STATUS "✅ MPI is enabled for the project.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MPI")
+else()
+    message(STATUS "🚫 MPI is disabled for the project.")
 endif()
 
 if(VECTORIZATION_ON)
@@ -18,6 +28,7 @@ if(VECTORIZATION_ON)
 else()
     message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled as specified by the user.")
 endif()
+##########  °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸  ##########
 
 ###############################################################
 #                   Setting compilers                         #
