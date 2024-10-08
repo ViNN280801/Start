@@ -320,7 +320,7 @@ else()
 
     # Check the value of VECTORIZATION_ON and set up the flags accordingly
     if(VECTORIZATION_ON)
-        message(STATUS "✅ Vectorization and anti-aliasing flags are enabled by default.")
+        message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
     else()
         message(WARNING "🚫 Vectorization and anti-aliasing flags are disabled as specified by the user.")
     endif()

@@ -245,6 +245,8 @@ TetrahedronMeshManager::TetrahedronMeshManager()
 
 TetrahedronMeshManager::TetrahedronMeshManager(std::string_view mesh_filename)
 {
+    util::check_gmsh_mesh_file(mesh_filename);
+
     m_rank = 0;
     m_size = 1;
 #ifdef USE_MPI

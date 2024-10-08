@@ -3,6 +3,12 @@
 
 void _setBoundaryConditionForNode(Teuchos::RCP<TpetraMatrixType> matrix, LocalOrdinal nodeID, Scalar value)
 {
+    static_assert(std::is_integral_v<LocalOrdinal>, "LocalOrdinal must be an integral type.");
+    static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating point type.");
+    if constexpr (std::is_signed_v<LocalOrdinal>)
+        if (nodeID < 0)
+            throw std::logic_error(util::stringify("Node ID cannot be negative, got node ID = ", nodeID, "."));
+
     if (!matrix->getRowMap()->isNodeGlobalElement(nodeID))
         return; // 0. Skip nodes not owned by this process.
 
