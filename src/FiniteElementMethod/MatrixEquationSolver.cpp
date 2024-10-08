@@ -69,8 +69,10 @@ void MatrixEquationSolver::calculateElectricField()
                     electricField += MathVector(node.nablaPhi.value().x(), node.nablaPhi.value().y(), node.nablaPhi.value().z()) *
                                      node.potential.value();
                 else
+                {
                     WARNINGMSG(util::stringify("Node potential or nablaPhi is not set for the ",
                                                node.globalNodeId, " vertex of the ", tetrahedronData.globalTetraId, " tetrahedron"));
+                }
             }
             m_assemblier->getMeshManager().assignElectricField(tetrahedronData.globalTetraId, Point(electricField.getX(), electricField.getY(), electricField.getZ()));
         }

@@ -351,7 +351,9 @@ std::map<size_t, std::vector<size_t>> TetrahedronMeshManager::getTetrahedronNode
             tetrahedronNodesMap[meshData.globalTetraId].emplace_back(meshData.nodes.at(i).globalNodeId);
 
     if (tetrahedronNodesMap.empty())
+    {
         WARNINGMSG("Tetrahedron - nodes map is empty");
+    }
     return tetrahedronNodesMap;
 }
 
@@ -364,7 +366,9 @@ std::map<size_t, std::vector<size_t>> TetrahedronMeshManager::getNodeTetrahedron
             nodeTetrahedronsMap[meshData.nodes.at(i).globalNodeId].emplace_back(meshData.globalTetraId);
 
     if (nodeTetrahedronsMap.empty())
+    {
         WARNINGMSG("Node - tetrahedrons map is empty");
+    }
     return nodeTetrahedronsMap;
 }
 
@@ -376,6 +380,8 @@ std::map<size_t, Point> TetrahedronMeshManager::getTetrahedronCenters() const
         tetraCentres[meshData.globalTetraId] = meshData.getTetrahedronCenter();
 
     if (tetraCentres.empty())
+    {
         WARNINGMSG("Tetrahedron centres map is empty");
+    }
     return tetraCentres;
 }
