@@ -1,5 +1,24 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
+# --------{---(@    Setting custom options with default values   @}}>-----
+option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
+option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
+option(START_DEBUG "Compile the project in Start Debug mode" OFF)
+option(START_RELEASE "Compile the project in Start Release mode" OFF)
+# --------{---(@    Setting custom options with default values   @}}>-----
+
+if (GPU_CUDA_ON)
+    message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
+else()
+    message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
+endif()
+
+if(VECTORIZATION_ON)
+    message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
+else()
+    message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled as specified by the user.")
+endif()
+
 ###############################################################
 #                   Setting compilers                         #
 ###############################################################
@@ -40,8 +59,11 @@ endfunction()
 # ──► Setting compilers ◄──
 set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc-13" "C compiler")
 set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++-13" "C++ compiler")
-set_compiler_if_not_defined(CUDAHOSTCXX CUDAHOSTCXX "/usr/bin/g++-13" "CUDA host C++ compiler")
-set_compiler_if_not_defined(CUDA_COMPILER CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" "CUDA compiler")
+
+if (GPU_CUDA_ON)
+    set_compiler_if_not_defined(CUDAHOSTCXX CUDAHOSTCXX "/usr/bin/g++-13" "CUDA host C++ compiler")
+    set_compiler_if_not_defined(CUDA_COMPILER CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" "CUDA compiler")
+endif()
 
 ###############################################################
 #              Handling GCC version for CUDA flags            #
@@ -53,52 +75,66 @@ set(gxx_major_version ${MAJOR_VERSION})
 
 # ✦ Check if GCC 14 is used, and add the appropriate CUDA flag ✦
 if(gcc_major_version STREQUAL "14" OR gxx_major_version STREQUAL "14")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
-    message(WARNING "⚠️  GCC 14 or G++ 14 detected. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC 14 is not guaranteed!")
+    if (GPU_CUDA_ON)
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
+        message(WARNING "⚠️  GCC 14 or G++ 14 detected. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC 14 is not guaranteed!")
+    endif()
 endif()
 
 ###############################################################
 #                   End of setting compilers                  #
 ###############################################################
 
+if (GPU_CUDA_ON)
+    ###############################################################
+    #                 CUDA Toolkit Directory Setup                #
+    ###############################################################
+    # ══► Function to check if a directory exists and handle errors ◄══
+    function(check_directory_exists dir description)
+        if(NOT EXISTS ${dir})
+            message(FATAL_ERROR "❌ ${description} not found at ${dir}. Please make sure it's installed or correctly configured.")
+        else()
+            message(STATUS "✅ ${description} located at ${dir}")
+        endif()
+    endfunction()
+    ###############################################################
+    #           Setting CUDA Toolkit Directory and Compiler        #
+    ###############################################################
 
-
-###############################################################
-#                 CUDA Toolkit Directory Setup                #
-###############################################################
-
-# ══► Function to check if a directory exists and handle errors ◄══
-function(check_directory_exists dir description)
-    if(NOT EXISTS ${dir})
-        message(FATAL_ERROR "❌ ${description} not found at ${dir}. Please make sure it's installed or correctly configured.")
+    # ──► Check if CUDA_TOOLKIT_ROOT_DIR is set by the user ◄──
+    if(NOT CUDA_TOOLKIT_ROOT_DIR)
+        # Set to default if not set
+        set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
+        message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: ${CUDA_TOOLKIT_ROOT_DIR}")
     else()
-        message(STATUS "✅ ${description} located at ${dir}")
+        message(STATUS "⚙️  CUDA toolkit root directory specified: ${CUDA_TOOLKIT_ROOT_DIR}")
     endif()
-endfunction()
-###############################################################
-#           Setting CUDA Toolkit Directory and Compiler        #
-###############################################################
 
-# ──► Check if CUDA_TOOLKIT_ROOT_DIR is set by the user ◄──
-if(NOT CUDA_TOOLKIT_ROOT_DIR)
-    # Set to default if not set
-    set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
-    message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: ${CUDA_TOOLKIT_ROOT_DIR}")
-else()
-    message(STATUS "⚙️  CUDA toolkit root directory specified: ${CUDA_TOOLKIT_ROOT_DIR}")
+    # ✦ Verify that the directory exists ✦
+    check_directory_exists(${CUDA_TOOLKIT_ROOT_DIR} "CUDA toolkit root directory")
+
+    ###############################################################
+    #               Setting CUDA Compiler Path (Optional)         #
+    ###############################################################
+    set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
+    message(STATUS "⚙️  CUDA compiler set to: ${CMAKE_CUDA_COMPILER}")
+
+    # Add CUDA as a project language
+    enable_language(CUDA)
+
+    # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
+    if(GPU_CUDA_ON)
+        set(CUDA_ARCHITECTURES "52 61 75 86")
+        set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
+        message(STATUS "🚀 CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
+    endif()
+    ###############################################################
+    #                    End of CUDA Setup                        #
+    ###############################################################
 endif()
 
-# ✦ Verify that the directory exists ✦
-check_directory_exists(${CUDA_TOOLKIT_ROOT_DIR} "CUDA toolkit root directory")
 
-###############################################################
-#               Setting CUDA Compiler Path (Optional)         #
-###############################################################
-set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
-message(STATUS "⚙️  CUDA compiler set to: ${CMAKE_CUDA_COMPILER}")
-###############################################################
-#                    End of CUDA Setup                        #
-###############################################################
+
 project(Start
         VERSION 1.0
         DESCRIPTION "The Start project is dedicated to the development and testing of \
@@ -107,7 +143,10 @@ project(Start
         parameters in vacuum-plasma installations with non-rectangular geometries, due to the \
         lack of algorithms for calculating non-standard grids of the electrostatic field generated \
         by plasma particles."
-        LANGUAGES CXX CUDA)
+        LANGUAGES CXX)
+
+
+
 ###############################################################
 #                     GMSH Setup                              #
 ###############################################################
@@ -315,16 +354,6 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")                # Optimize in release mode
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")                            # Compiling as big object file
 else()
-    # Define the VECTORIZATION_ON option
-    option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
-
-    # Check the value of VECTORIZATION_ON and set up the flags accordingly
-    if(VECTORIZATION_ON)
-        message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
-    else()
-        message(WARNING "🚫 Vectorization and anti-aliasing flags are disabled as specified by the user.")
-    endif()
-
     # Set custom and common flags
     set(CUSTOM_FLAGS "-DSHOW_LOGS")
     set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
@@ -416,9 +445,6 @@ endif()
 # ║ Allow the user to specify custom "Start Debug" or "Start Release" options║
 # ║ for specific behavior during compilation.                                ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
-option(START_DEBUG "Compile the project in Start Debug mode" OFF)
-option(START_RELEASE "Compile the project in Start Release mode" OFF)
-
 if(START_DEBUG)
     add_compile_definitions(START_DEBUG)
     message(STATUS " Compiling in START_DEBUG mode ")
@@ -426,7 +452,7 @@ elseif(START_RELEASE)
     add_compile_definitions(START_RELEASE)
     message(STATUS " Compiling in START_RELEASE mode ")
 else()
-    message(WARNING "⚠️ Neither START_DEBUG nor START_RELEASE is defined.")
+    message(FATAL_ERROR "⚠️ Neither START_DEBUG nor START_RELEASE is defined.")
 endif()
 # ╔══════════════════════════════════════════════════════════════════════════╗
 # ║              END OF CONFIGURING OPTIONS                                  ║
