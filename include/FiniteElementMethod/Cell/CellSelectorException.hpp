@@ -9,13 +9,7 @@
 #define CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR "Unsupported cell type"
 #define CELLSELECTOR_INVALID_ENUM_TYPE_ERR "Input is not an enum of type 'CellType'. Please check input"
 
-#ifdef START_DEBUG
 #define THROW_CELL_SELECTOR_EXCEPTION() throw CellSelectorException()
-#elif defined(START_RELEASE)
-#define THROW_CELL_SELECTOR_EXCEPTION() throw CellSelectorException(true)
-#else
-#define THROW_CELL_SELECTOR_EXCEPTION() throw std::runtime_error(UNKNOWN_BUILD_CONFIGURATION)
-#endif
 
 /**
  * @class CellSelectorException
@@ -39,7 +33,6 @@ public:
      * later be retrieved by the `what()` method.
      */
     explicit CellSelectorException(std::string const &message = CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR);
-    explicit CellSelectorException(bool contact_support, std::string const &message = CELLSELECTOR_UNSUPPORTED_CELL_TYPE_ERR);
 
     /**
      * @brief Retrieves the error message associated with the exception.

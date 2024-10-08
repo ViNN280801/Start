@@ -74,10 +74,6 @@
     #define WARNINGMSG(desc)
 #endif
 
-#define DEVELOPER_MAIL "vladislav_semykin01@mail.ru"
-#define CONTACT_SUPPORT_MSG(desc) util::stringify("Internal Error: ", desc, ". Contact support: ", DEVELOPER_MAIL, "\n");
-#define CONTACT_SUPPORT_MSG_TO_CERR(desc) std::cerr << CONTACT_SUPPORT_MSG(desc);
-
 namespace util
 {
 /**
