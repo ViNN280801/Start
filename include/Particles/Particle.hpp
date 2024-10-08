@@ -1,6 +1,10 @@
 #ifndef PARTICLES_HPP
 #define PARTICLES_HPP
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #include <CGAL/Bbox_3.h>
 #include <atomic>
 
@@ -372,8 +376,19 @@ template <ParticleGenerator Gen>
 ParticleVector createParticles(size_t count, Gen gen)
 {
     ParticleVector particles;
-    for (size_t i{}; i < count; i++)
+    
+#ifdef USE_OMP
+    particles.reserve(count);
+#pragma omp simd
+    for (size_t i = 0; i < count; ++i)
+    {
+        particles[i] = gen();
+    }
+#else
+    for (size_t i{}; i < count; ++i)
         particles.emplace_back(gen());
+#endif
+
     return particles;
 }
 
