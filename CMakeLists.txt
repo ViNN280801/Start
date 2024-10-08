@@ -347,6 +347,7 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 # ══► Ensure C++ extensions are disabled globally to avoid warnings from Kokkos ◄══
 set(CMAKE_CXX_EXTENSIONS OFF)
+message (STATUS "⚙️  C++ extensions set to OFF, because of Kokkos requirements.")
 
 ###############################################################
 #                     Trilinos Setup                          #
