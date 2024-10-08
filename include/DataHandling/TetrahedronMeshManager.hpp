@@ -47,23 +47,36 @@ private:
 private:
     std::vector<TetrahedronData> m_meshComponents; ///< Array of all the tetrahedrons from the mesh.
 
-    // Member variables.
-    int m_rank;
-    int m_size;
+    int m_rank; ///< Rank of the current MPI process (for distributed mesh processing).
+    int m_size; ///< Total number of MPI processes (for distributed mesh processing).
 
-    // Local mesh data
-    std::vector<std::pair<size_t, std::array<size_t, 4>>> m_localElementData;
-    std::vector<size_t> m_localNodeTags;
-    std::map<size_t, std::array<double, 3>> m_localNodeCoordinates;
+    std::vector<std::pair<size_t, std::array<size_t, 4>>> m_localElementData; ///< Local elements assigned to the current process (element ID and node IDs).
+    std::vector<size_t> m_localNodeTags;                                      ///< List of node IDs that are local to the current process.
+    std::map<size_t, std::array<double, 3>> m_localNodeCoordinates;           ///< Coordinates of nodes that are local to the current process.
 
-    // Only used on rank 0.
-    std::map<size_t, std::array<double, 3>> m_nodeCoordinatesMap;
-    std::vector<std::vector<std::pair<size_t, std::array<size_t, 4>>>> m_elementsPerProc;
-    std::vector<std::vector<size_t>> m_nodeTagsPerProc;
+    std::map<size_t, std::array<double, 3>> m_nodeCoordinatesMap;                         ///< Global map of node IDs to their coordinates.
+    std::vector<std::vector<std::pair<size_t, std::array<size_t, 4>>>> m_elementsPerProc; ///< Elements partitioned by process (used for MPI distribution).
+    std::vector<std::vector<size_t>> m_nodeTagsPerProc;                                   ///< Node tags partitioned by process (used for MPI distribution).
 
+    /**
+     * @brief Reads and partitions the mesh file. Only called by the root process (rank 0).
+     * @param mesh_filename Path to the mesh file to be read and partitioned.
+     */
     void _readAndPartitionMesh(std::string_view mesh_filename);
+
+    /**
+     * @brief Distributes the mesh data from the root process to other processes.
+     *        Only called by the root process (rank 0).
+     */
     void _distributeMeshData();
+
+    /**
+     * @brief Receives partitioned mesh data from the root process.
+     *        Only called by non-root processes (ranks != 0).
+     */
     void _receiveData();
+
+    /// @brief Constructs the local mesh representation using the received data.
     void _constructLocalMesh();
 
 public:
@@ -86,35 +99,60 @@ public:
     TetrahedronMeshManager &operator=(TetrahedronMeshManager &&) = delete;
 
     /// @brief Getter for all the tetrahedra mesh components from the mesh.
-    auto &getMeshComponents() { return m_meshComponents; }
-    constexpr auto const &getMeshComponents() const { return m_meshComponents; }
+    [[nodiscard("Retrieving mesh components is essential for accessing tetrahedron data.")]]
+    auto &getMeshComponents()
+    {
+        return m_meshComponents;
+    }
+
+    [[nodiscard("Retrieving mesh components is essential for accessing tetrahedron data.")]]
+    constexpr auto const &getMeshComponents() const
+    {
+        return m_meshComponents;
+    }
 
     /// @brief Prints all the mesh components to the stdout.
     void print() const noexcept;
 
     /// @brief Returns count of the tetrahedra in the mesh.
-    constexpr size_t getNumTetrahedrons() const { return m_meshComponents.size(); }
+    [[nodiscard("Knowing the number of tetrahedrons is important for mesh operations.")]]
+    constexpr size_t getNumTetrahedrons() const
+    {
+        return m_meshComponents.size();
+    }
 
     /**
      * @brief Retrieves the mesh data for a specific tetrahedron by its local ID.
      * @param localTetraId The local ID of the tetrahedron in the mesh.
      * @return A constant reference to the `TetrahedronData` of the specified tetrahedron.
      */
-    TetrahedronData const &getTetrahedron(size_t localTetraId) const { return m_meshComponents.at(localTetraId); }
+    [[nodiscard("Accessing specific tetrahedron data is critical for accurate computations.")]]
+    TetrahedronData const &getTetrahedron(size_t localTetraId) const
+    {
+        return m_meshComponents.at(localTetraId);
+    }
 
     /**
      * @brief Retrieves the global tetrahedron ID for a specific tetrahedron.
      * @param localTetraId The local ID of the tetrahedron in the mesh.
      * @return The global ID of the specified tetrahedron.
      */
-    size_t getGlobalTetraId(size_t localTetraId) const { return m_meshComponents.at(localTetraId).globalTetraId; }
+    [[nodiscard("The global ID is essential for identifying tetrahedrons in distributed systems.")]]
+    size_t getGlobalTetraId(size_t localTetraId) const
+    {
+        return m_meshComponents.at(localTetraId).globalTetraId;
+    }
 
     /**
      * @brief Retrieves the node data for a specific tetrahedron.
      * @param localTetraId The local ID of the tetrahedron in the mesh.
      * @return A constant reference to an array containing the node data for the specified tetrahedron.
      */
-    std::array<TetrahedronData::NodeData, 4ul> const &getTetrahedronNodes(size_t localTetraId) const { return m_meshComponents.at(localTetraId).nodes; }
+    [[nodiscard("Accessing node data is necessary for accurate mesh analysis.")]]
+    std::array<TetrahedronData::NodeData, 4ul> const &getTetrahedronNodes(size_t localTetraId) const
+    {
+        return m_meshComponents.at(localTetraId).nodes;
+    }
 
     /**
      * @brief Retrieves the global node ID for a specific node in a tetrahedron.
@@ -122,7 +160,11 @@ public:
      * @param localNodeId The local ID of the node in the tetrahedron.
      * @return The global node ID of the specified node.
      */
-    size_t getGlobalNodeId(size_t localTetraId, size_t localNodeId) const { return m_meshComponents.at(localTetraId).nodes.at(localNodeId).globalNodeId; }
+    [[nodiscard("The global node ID is vital for cross-referencing mesh components.")]]
+    size_t getGlobalNodeId(size_t localTetraId, size_t localNodeId) const
+    {
+        return m_meshComponents.at(localTetraId).nodes.at(localNodeId).globalNodeId;
+    }
 
     /**
      * @brief Retrieves the volume of a specific tetrahedron based on its global ID.
@@ -136,12 +178,18 @@ public:
      * @throw std::bad_optional_access if no tetrahedron is found for the provided global ID.
      *        This occurs if `getMeshDataByTetrahedronId()` returns `std::nullopt`.
      */
-    double getVolumeByGlobalTetraId(size_t globalTetraId) const { return getMeshDataByTetrahedronId(globalTetraId).value().tetrahedron.volume(); }
+    [[nodiscard("The volume is critical for physical and geometric calculations.")]]
+    double getVolumeByGlobalTetraId(size_t globalTetraId) const
+    {
+        return getMeshDataByTetrahedronId(globalTetraId).value().tetrahedron.volume();
+    }
 
     /// @brief Checks and returns result of the checking if there is no tetrahedra in the mesh.
+    [[nodiscard("It's necessary to check if the mesh is empty to avoid null operations.")]]
     constexpr bool empty() const { return m_meshComponents.empty(); }
 
     /// @brief Returns total volume of the mesh.
+    [[nodiscard("The total volume is essential for global calculations over the mesh.")]]
     constexpr double volume() const
     {
         return std::accumulate(m_meshComponents.cbegin(), m_meshComponents.cend(), 0.0, [](double sum, auto const &meshData)
@@ -186,12 +234,14 @@ public:
      * @brief Gets ID of tetrahedrons and corresponding IDs of elements within.
      * @return Map with key = tetrahedron's ID, value = list of nodes inside.
      */
+    [[nodiscard("Mapping tetrahedron IDs to node IDs is essential for node traversal.")]]
     std::map<size_t, std::vector<size_t>> getTetrahedronNodesMap() const;
 
     /**
      * @brief Map for global mesh nodes with all neighbour tetrahedrons.
      * @return Map with key = node ID, value = list of neighbour tetrahedrons to this node.
      */
+    [[nodiscard("Mapping nodes to tetrahedrons is necessary for adjacency queries.")]]
     std::map<size_t, std::vector<size_t>> getNodeTetrahedronsMap() const;
 
     /**
@@ -211,6 +261,7 @@ public:
      *         might occur during file opening, reading, or processing. These exceptions are typically
      *         caught and should be handled to avoid crashes and ensure that the error is reported properly.
      */
+    [[nodiscard("Tetrahedron centers are vital for geometric and physical calculations.")]]
     std::map<size_t, Point> getTetrahedronCenters() const;
 };
 
