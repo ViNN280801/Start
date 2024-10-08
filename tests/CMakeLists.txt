@@ -5,154 +5,199 @@ project(Tests)
 
 ################# Adding third-party libs #################
 find_package(Threads REQUIRED)
+message(STATUS "⚙️  Threads library found and linked successfully.")
 
-# Gtests
+###############################################################
+#                     Gtest Setup                             #
+###############################################################
 include(FetchContent)
+message(STATUS "🔍 Fetching GoogleTest library...")
+
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
+message(STATUS "✅ GoogleTest successfully downloaded and made available.")
+message(STATUS "⚙️ Configuring GoogleTest for project...")
 
-# Silence CMP0148 policy warning
-if(POLICY CMP0148)
-  cmake_policy(SET CMP0148 NEW)
-endif()
-
-# Silence CMP0167 policy warning
-if(POLICY CMP0167)
-  cmake_policy(SET CMP0167 NEW)
-endif()
-
-# HDF5
+###############################################################
+#                     HDF5 Setup                              #
+###############################################################
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 if(HDF5_FOUND)
-    message(STATUS "HDF5 library found: ${HDF5_LIBRARIES}")
+    message(STATUS "✅ HDF5 found: Include directories at [${HDF5_INCLUDE_DIRS}], Libraries: [${HDF5_LIBRARIES}]")
 else()
-    message(FATAL_ERROR "HDF5 library not found. Please ensure HDF5 is installed.")
+    message(FATAL_ERROR "❌ HDF5 not found. Please ensure HDF5 is installed and available.")
 endif()
 include_directories(${HDF5_INCLUDE_DIRS})
 
-# GMSH
-if (WIN32)
-    find_library(GMSH_LIBRARIES
-                NAMES gmsh
-                PATHS "C:/Program Files/gmsh-4.12.2-Windows64-sdk/lib"
-                NO_DEFAULT_PATH)
+###############################################################
+#                     GMSH Setup                              #
+###############################################################
+if(WIN32)
+    find_path(GMSH_INC NAMES gmsh.h
+        HINTS $ENV{GMSH_INC}
+        PATH_SUFFIXES include)
+
+    if(NOT GMSH_INC)
+        message(FATAL_ERROR "❌ GMSH include directory not found. Please ensure GMSH is installed and GMSH_INC is set.")
+    else()
+        message(STATUS "✅ GMSH include directories found at: [${GMSH_INC}]")
+    endif()
+
+    include_directories(${GMSH_INC})
+
+    find_library(GMSH_LIBRARIES NAMES gmsh
+        HINTS $ENV{GMSH_LIB} 
+        PATH_SUFFIXES lib)
+
+    if(NOT GMSH_LIBRARIES)
+        message(FATAL_ERROR "❌ GMSH libraries not found. Please ensure GMSH is installed and GMSH_LIB is set.")
+    else()
+        message(STATUS "✅ GMSH libraries found: ${GMSH_LIBRARIES}")
+    endif()
+
 else()
-    find_library(GMSH_LIBRARIES
-                NAMES gmsh
-                PATHS /usr/lib 
-                      /usr/local/lib
-                      /usr/lib/x86_64-linux-gnu
-                      /usr/lib64 
-                      /usr/lib64/mpich/lib 
-                      /usr/lib64/openmpi/lib
-                NO_DEFAULT_PATH)
+    find_path(GMSH_INC NAMES gmsh.h
+        HINTS /usr/include /usr/local/include)
+
+    find_library(GMSH_LIBRARIES NAMES gmsh
+        HINTS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
+
+    if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
+        message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
+    else()
+        message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
+    endif()
+
+    include_directories(${GMSH_INC})
 endif()
 
-if(GMSH_LIBRARIES)
-    message(STATUS "GMSH library found: ${GMSH_LIBRARIES}")
-else()
-    message(FATAL_ERROR "GMSH library not found. Please ensure GMSH is installed.")
-endif()
-
-# GMP
+###############################################################
+#                     GMP Setup                               #
+###############################################################
 if(MSVC)
     find_package(GMP REQUIRED)
     if(GMP_FOUND)
-        message(STATUS "GMP library found: ${GMP_LIBRARIES}")
+        message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARIES}]")
     else()
-        message(FATAL_ERROR "GMP library not found.")
+        message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed and available.")
     endif()
 else()
-    set(GMP_LIBRARIES gmp)
-    message(STATUS "GMP libraries set to default: ${GMP_LIBRARIES}")
+    find_path(GMP_INCLUDE_DIR gmp.h
+        HINTS /usr/include/x86_64-linux-gnu /usr/include/CGAL)
+
+    find_library(GMP_LIBRARY NAMES gmp libgmp
+        HINTS /usr/lib/x86_64-linux-gnu)
+
+    if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
+        message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
+    else()
+        message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
+    endif()
 endif()
 include_directories(${GMP_INCLUDE_DIR})
+link_libraries(${GMP_LIBRARY})
 
-# TBB
-find_package(TBB QUIET)
-if (TBB_FOUND)
+###############################################################
+#                     TBB Setup                               #
+###############################################################
+find_package(TBB)
+if(TBB_FOUND)
     set(TBB_NAMESPACE TBB::tbb)
-    message(STATUS "TBB library found: ${TBB_LIBRARIES}")
+    message(STATUS "✅ TBB found: Include directories at [${TBB_INCLUDE_DIRS}], Libraries: [${TBB_LIBRARIES}]")
 else()
-    message(WARNING "TBB library not found. Proceeding without TBB.")
+    message(WARNING "⚠️ TBB not found. Continuing without TBB support.")
 endif()
 include_directories(${TBB_INCLUDE_DIRS})
 
-# Boost
+###############################################################
+#                     Boost Setup                             #
+###############################################################
+cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED)
 if(Boost_FOUND)
-    message(STATUS "Boost library found: ${Boost_LIBRARIES}")
+    message(STATUS "✅ Boost found: Include directories at [${Boost_INCLUDE_DIRS}], Libraries: [${Boost_LIBRARIES}]")
 else()
-    message(FATAL_ERROR "Boost library not found. Please ensure Boost is installed.")
+    message(FATAL_ERROR "❌ Boost not found. Please ensure Boost is installed and available.")
 endif()
 include_directories(${Boost_INCLUDE_DIRS})
 
-# MPI (for parallelization)
-if (WIN32)
-    set(MPIEXEC_EXECUTABLE "C:/Program Files/Microsoft MPI/Bin/mpiexec.exe")
-    set(MPI_CXX_HEADER_DIR "C:/Program Files (x86)/Microsoft SDKs/MPI/../include")
-    set(MPI_CXX_LIB_NAMES "msmpi")
-    set(MPI_msmpi_LIBRARY "C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpi.lib")
-    set(MPI_CXX_LIBRARIES "C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64/msmpi.lib")
-    set(MPI_CXX_COMPILER "cl.exe")
-    include_directories(${MPI_CXX_HEADER_DIR})
-    link_directories(${MPI_CXX_LIBRARIES})
+###############################################################
+#                     MPI Setup                               #
+###############################################################
+find_package(MPI REQUIRED)
+if(MPI_FOUND)
+    message(STATUS "✅ MPI found: Include directories at [${MPI_INCLUDE_PATH}], Libraries: [${MPI_LIBRARIES}]")
 else()
-    find_package(MPI REQUIRED)
-    if(MPI_FOUND)
-        message(STATUS "MPI libraries found: ${MPI_LIBRARIES}")
-    else()
-        message(FATAL_ERROR "MPI libraries not found. Please ensure MPI is installed.")
-    endif()
+    message(FATAL_ERROR "❌ MPI not found. Please ensure MPI is installed and available.")
 endif()
 include_directories(${MPI_INCLUDE_PATH})
+link_directories(${MPI_LIBRARY_DIRS})
 
-# Trilinos
+###############################################################
+#                     Trilinos Setup                          #
+###############################################################
 if(NOT "$ENV{TRILINOS_DIR}" STREQUAL "")
     set(TRILINOS_DIR "$ENV{TRILINOS_DIR}")
     find_package(Trilinos REQUIRED PATHS "${TRILINOS_DIR}")
-    message(STATUS "Trilinos directory set to custom environment variable")
+    message(STATUS "✅ Trilinos directory set to custom environment variable: [${TRILINOS_DIR}]")
 else()
-    find_package(Trilinos REQUIRED PATHS "/usr/local/lib/cmake/Trilinos")
-    if(Trilinos_FOUND)
-        message(STATUS "Trilinos library found: ${Trilinos_LIBRARIES}")
-    else()
-        message(FATAL_ERROR "Trilinos library not found. Please ensure Trilinos is installed.")
-    endif()
+    set(TRILINOS_DIR "/usr/local/lib/cmake/Trilinos")
+    find_package(Trilinos REQUIRED PATHS "${TRILINOS_DIR}")
+    message(STATUS "✅ Trilinos directory set to default location: [${TRILINOS_DIR}]")
+endif()
+
+if(Trilinos_FOUND)
+    message(STATUS "✅ Trilinos libraries: [${Trilinos_LIBRARIES}]")
+    message(STATUS "✅ Trilinos include directories: [${Trilinos_INCLUDE_DIRS}]")
+else()
+    message(FATAL_ERROR "❌ Trilinos not found. Please ensure Trilinos is installed.")
 endif()
 include_directories(${Trilinos_INCLUDE_DIRS})
 link_directories(${Trilinos_LIBRARY_DIRS})
-#####################################################################################
+###############################################################
+#               End of Package Configuration                  #
+###############################################################
 
-################# Setting up build types #################
-# Build type
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║           BUILD TYPE CONFIGURATION                                       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+# ╔═► Check if we're building in Debug or Release mode ◄═════════════════════╗
+# ║ Define the appropriate macros (`DEBUG` or `RELEASE`) based on the build  ║
+# ║ type (Debug, Release, etc.).                                             ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
-    message(STATUS "*** Compiling in DEBUG mode ***")
+    message(STATUS "⚙️  Compiling in DEBUG mode")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(RELEASE)
-    message(STATUS "*** Compiling in RELEASE mode ***")
+    message(STATUS "🚀 Compiling in RELEASE mode")
 else()
-    message(WARNING "Unknown build type: ${CMAKE_BUILD_TYPE}")
+    message(WARNING "⚠️ Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
-# Custom Start build modes
-option(START_DEBUG "Compile the project in Start Debug mode" OFF)
-option(START_RELEASE "Compile the project in Start Release mode" OFF)
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║           START DEBUG / RELEASE OPTIONS                                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+# ╔═► Start-specific Debug and Release options ◄═════════════════════════════╗
+# ║ Allow the user to specify custom "Start Debug" or "Start Release" options║
+# ║ for specific behavior during compilation.                                ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
 if(START_DEBUG)
     add_compile_definitions(START_DEBUG)
-    message(STATUS "*** Compiling in START_DEBUG mode ***")
+    message(STATUS "⚙️  Start project compiling mode set to START_DEBUG.")
 elseif(START_RELEASE)
     add_compile_definitions(START_RELEASE)
-    message(STATUS "*** Compiling in START_RELEASE mode ***")
+    message(STATUS "🚀 Start project compiling mode set to START_RELEASE.")
 else()
-    message(WARNING "Neither START_DEBUG nor START_RELEASE is defined.")
+    message(FATAL_ERROR "⚠️ Neither START_DEBUG nor START_RELEASE is defined.")
 endif()
-#####################################################################################
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║              END OF CONFIGURING OPTIONS                                  ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
 
 set(TARGET_NAME all_tests)
 
@@ -160,6 +205,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -O3 -Wall -Wextra -Werror -Wno-maybe-uninitialized -Wmisleading-indentation -flarge-source-files")
+
+message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
+message(STATUS "⚙️  C++ extensions set to OFF, because of Kokkos requirements.")
+message(STATUS "⚙️  Compiling with C++ flags: ${CMAKE_CXX_FLAGS}")
 
 set(DATA_HANDLING_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/DataHandling)
 set(DATA_HANDLING_INC_PATH ${CMAKE_SOURCE_DIR}/../include/DataHandling)
@@ -287,20 +336,35 @@ set(INCLUDE_DIRECTORIES
 
 include_directories(${INCLUDE_DIRECTORIES})
 
-enable_testing()
-include(CTest)
-
 set(DATA_HANDLING_TESTS DataHandlingTests)
 set(GENERATORS_TESTS GeneratorTests)
 set(GEOMETRY_TESTS GeometryTests)
 set(PARTICLE_TESTS ParticleTests)
 set(UTILITIES_TESTS UtilitiesTests)
+set(ALL_TEST_SUITES 
+    "
+    ${DATA_HANDLING_TESTS} 
+    ${GENERATORS_TESTS}
+    ${GEOMETRY_TESTS}
+    ${PARTICLE_TESTS}
+    ${UTILITIES_TESTS}
+")
 
 add_test(NAME ${DATA_HANDLING_TESTS} COMMAND ${DATA_HANDLING_TESTS})
+message(STATUS "🛠️ Added Data Handling Tests: ${DATA_HANDLING_TESTS}")
+
 add_test(NAME ${GENERATORS_TESTS} COMMAND ${GENERATORS_TESTS})
+message(STATUS "🛠️ Added Generators Tests: ${GENERATORS_TESTS}")
+
 add_test(NAME ${GEOMETRY_TESTS} COMMAND ${GEOMETRY_TESTS})
+message(STATUS "🛠️ Added Geometry Tests: ${GEOMETRY_TESTS}")
+
 add_test(NAME ${PARTICLE_TESTS} COMMAND ${PARTICLE_TESTS})
+message(STATUS "🛠️ Added Particle Tests: ${PARTICLE_TESTS}")
+
 add_test(NAME ${UTILITIES_TESTS} COMMAND ${UTILITIES_TESTS})
+message(STATUS "🛠️ Added Utilities Tests: ${UTILITIES_TESTS}")
+
 
 add_executable(${TARGET_NAME}
     main.cpp
@@ -312,6 +376,7 @@ add_executable(${TARGET_NAME}
 # Disable -Werror for GoogleTest
 target_compile_options(gtest PRIVATE -Wno-error)
 target_compile_options(gmock PRIVATE -Wno-error)
+message(STATUS "⚙️  Applying flag '-Wno-error' for the GoogleTest and GoogleMock libraries.")
 
 target_link_libraries(${TARGET_NAME} PRIVATE
     gtest
@@ -335,3 +400,5 @@ target_include_directories(${TARGET_NAME} PRIVATE ${INCLUDE_DIRECTORIES})
 
 include(CTest)
 enable_testing()
+
+message (STATUS "✅ Build configuration for testing completed successfully. Initiating test suites: [${ALL_TEST_SUITES}]")
