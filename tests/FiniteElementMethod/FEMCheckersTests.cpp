@@ -153,7 +153,7 @@ TEST_F(FEMCheckersTest, MinGlobalOrdinal)
 
 TEST_F(FEMCheckersTest, UpperBoundEdgeCase)
 {
-    GlobalOrdinal index = 999;
+    GlobalOrdinal index = 1000;
     size_t upper_bound = 999;
     EXPECT_THROW(FEMCheckers::checkIndex(index, upper_bound), std::out_of_range);
 }

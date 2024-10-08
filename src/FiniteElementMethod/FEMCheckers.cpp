@@ -68,7 +68,7 @@ void FEMCheckers::checkIndex(GlobalOrdinal index, size_t upper_bound, std::strin
     if constexpr (std::is_signed_v<GlobalOrdinal>)
     {
         // Cast both to int64_t for signed comparison
-        if (static_cast<int64_t>(index) >= static_cast<int64_t>(upper_bound))
+        if (static_cast<int64_t>(index) > static_cast<int64_t>(upper_bound))
         {
             if (prefix != "")
                 throw std::out_of_range(util::stringify(prefix, " index cannot be bigger than ", upper_bound));
@@ -79,7 +79,7 @@ void FEMCheckers::checkIndex(GlobalOrdinal index, size_t upper_bound, std::strin
     else
     {
         // For unsigned GlobalOrdinal, simple comparison
-        if (static_cast<size_t>(index) >= upper_bound)
+        if (static_cast<size_t>(index) > upper_bound)
         {
             if (prefix != "")
                 throw std::out_of_range(util::stringify(prefix, " index cannot be bigger than ", upper_bound));

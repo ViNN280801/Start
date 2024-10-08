@@ -88,8 +88,8 @@ bool MatrixManager::empty() const { return m_matrix->getGlobalNumEntries() == 0;
 
 Scalar &MatrixManager::at(GlobalOrdinal row, GlobalOrdinal col)
 {
-    FEMCheckers::checkIndex(row, rows(), "Row ");
-    FEMCheckers::checkIndex(col, cols(), "Column ");
+    FEMCheckers::checkIndex(row, rows(), "Row");
+    FEMCheckers::checkIndex(col, cols(), "Column");
 
     // Get the number of entries in specified row and check it.
     size_t numEntries{m_matrix->getNumEntriesInGlobalRow(row)};
