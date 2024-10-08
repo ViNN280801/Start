@@ -1,5 +1,4 @@
-#include <algorithm>
-#include <execution>
+#include <format>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -47,9 +46,8 @@ void MatrixEquationSolver::fillNodesPotential()
         throw std::runtime_error("Solution vector is not initialized");
 
     GlobalOrdinal id{1};
-    auto values{getValuesFromX()};
-    std::for_each(std::execution::par, values.begin(), values.end(), [&](Scalar potential)
-                  { m_assemblier->getMeshManager().assignPotential(id++, potential); });
+    for (Scalar potential : getValuesFromX())
+        m_assemblier->getMeshManager().assignPotential(id++, potential);
 }
 
 void MatrixEquationSolver::calculateElectricField()
@@ -59,35 +57,23 @@ void MatrixEquationSolver::calculateElectricField()
         // Filling node potentials before calculating the electric field in the cell.
         fillNodesPotential();
 
-        auto &meshComponents{m_assemblier->getMeshManager().getMeshComponents()};
-
         // We have map: (Tetrahedron ID | map<Node ID | Basis function gradient math vector (3 components)>).
         // To get electric field of the cell we just need to accumulate all the basis func grads for each node for each tetrahedron:
         // E_cell = Σ(φi⋅∇φi), where i - global index of the node.
-        std::for_each(std::execution::par, meshComponents.begin(), meshComponents.end(), [&](auto const &tetrahedronData)
-                      {
+        for (auto const &tetrahedronData : m_assemblier->getMeshManager().getMeshComponents())
+        {
             MathVector electricField{};
-
-            // Accumulate electric field contributions from each node in the tetrahedron
             for (auto const &node : tetrahedronData.nodes)
             {
                 if (node.potential && node.nablaPhi)
-                {
-                    auto const& nablaPhiVec{node.nablaPhi.value()};
-                    electricField += MathVector(nablaPhiVec.x(), nablaPhiVec.y(), nablaPhiVec.z()) * node.potential.value();
-                }
+                    electricField += MathVector(node.nablaPhi.value().x(), node.nablaPhi.value().y(), node.nablaPhi.value().z()) *
+                                     node.potential.value();
                 else
-                {
                     WARNINGMSG(util::stringify("Node potential or nablaPhi is not set for the ",
                                                node.globalNodeId, " vertex of the ", tetrahedronData.globalTetraId, " tetrahedron"));
-                }
             }
-
-            // Assign the calculated electric field to the current tetrahedron
-            m_assemblier->getMeshManager().assignElectricField(
-                tetrahedronData.globalTetraId, 
-                Point(electricField.getX(), electricField.getY(), electricField.getZ())
-            ); });
+            m_assemblier->getMeshManager().assignElectricField(tetrahedronData.globalTetraId, Point(electricField.getX(), electricField.getY(), electricField.getZ()));
+        }
     }
     catch (std::exception const &ex)
     {
@@ -101,6 +87,8 @@ void MatrixEquationSolver::calculateElectricField()
 
 void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
 {
+    if (time < 0)
+        throw std::logic_error(util::stringify("Time can't be negative. Passed time is ", time, "."));
     if (m_x.is_null())
     {
         WARNINGMSG("There is nothing to show. Solution vector is empty.");
@@ -116,16 +104,10 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
         if (!std::filesystem::exists(resultsDir))
             std::filesystem::create_directories(resultsDir);
 
-        // Define the file path within the results directory.
-        std::string filepath = (time == -1)
-                                   ? (resultsDir / "electricPotential.pos").string()
+        std::string filepath = (time == 0.0)
+                                   ? (resultsDir / "electricPotential_time_0.pos").string()
                                    : (resultsDir.string() + "/electricPotential_time_" + std::to_string(time) + ".pos");
-
         std::ofstream posFile(filepath);
-
-        // Ensure the file is successfully opened.
-        if (!posFile.is_open())
-            throw std::runtime_error("Unable to open the file at: " + filepath);
 
         posFile << "View \"Scalar Field\" {\n";
         for (auto const &entry : m_assemblier->getMeshManager().getMeshComponents())
@@ -134,7 +116,7 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
             {
                 if (!entry.nodes.at(i).potential.has_value())
                 {
-                    WARNINGMSG(util::stringify("Electric potential for the tetrahedron ", entry.globalTetraId,
+                    WARNINGMSG(util::stringify("Electic potential for the tetrahedron ", entry.globalTetraId,
                                                " and node ", entry.nodes.at(i).globalNodeId, " is empty"));
                     continue;
                 }
@@ -143,14 +125,13 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
                 auto globalNodeId{entry.nodes.at(i).globalNodeId};
 
                 double value{getScalarFieldValueFromX(globalNodeId - 1)};
-                posFile << "SP(" << node.nodeCoords.x() << ", " << node.nodeCoords.y() << ", " << node.nodeCoords.z()
-                        << "){" << value << "};\n";
+                posFile << std::format("SP({}, {}, {}){{{}}};\n", node.nodeCoords.x(), node.nodeCoords.y(), node.nodeCoords.z(), value);
             }
         }
         posFile << "};\n";
         posFile.close();
 
-        LOGMSG(util::stringify("File '", filepath, "' was successfully created"));
+        LOGMSG(util::stringify("File \'", filepath, "\' was successfully created"));
     }
     catch (std::exception const &ex)
     {
@@ -158,12 +139,14 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
     }
     catch (...)
     {
-        ERRMSG("Unknown error occurred while writing results to the .pos file");
+        ERRMSG("Unknown error was occured while writing results to the .pos file");
     }
 }
 
 void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
 {
+    if (time < 0)
+        throw std::logic_error(util::stringify("Time can't be negative. Passed time is ", time, "."));
     if (m_x.is_null())
     {
         WARNINGMSG("There is nothing to show. Solution vector is empty.");
@@ -173,17 +156,15 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
     try
     {
         std::filesystem::path resultsDir{"results"};
+
+        // Check if the directory exists, and create it if it does not.
         if (!std::filesystem::exists(resultsDir))
             std::filesystem::create_directories(resultsDir);
 
-        std::string filepath = (time == -1)
-                                   ? (resultsDir / "electricField.pos").string()
+        std::string filepath = (time == 0.0)
+                                   ? (resultsDir / "electricField_time_0.pos").string()
                                    : (resultsDir.string() + "/electricField_time_" + std::to_string(time) + ".pos");
-
         std::ofstream posFile(filepath);
-
-        if (!posFile.is_open())
-            throw std::runtime_error("Unable to open the file at: " + filepath);
 
         posFile << "View \"Vector Field\" {\n";
         for (auto const &entry : m_assemblier->getMeshManager().getMeshComponents())
@@ -199,8 +180,9 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
                 z{entry.getTetrahedronCenter().z()};
 
             auto fieldVector{entry.electricField.value()};
-            posFile << "VP(" << x << ", " << y << ", " << z
-                    << "){" << fieldVector.x() << ", " << fieldVector.y() << ", " << fieldVector.z() << "};\n";
+            posFile << std::format("VP({}, {}, {}){{{}, {}, {}}};\n",
+                                   x, y, z,
+                                   fieldVector.x(), fieldVector.y(), fieldVector.z());
         }
 
         posFile << "};\n";
