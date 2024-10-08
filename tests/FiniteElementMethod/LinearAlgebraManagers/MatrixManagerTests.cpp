@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include "FiniteElementMethod/FEMPrinter.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
 
 TEST(MatrixManagerTest, ConstructorWithValidEntries)
@@ -64,9 +63,6 @@ TEST(MatrixManagerTest, AccessValidElement_4)
 {
     std::vector<MatrixEntry> entries = {{0, 0, 10.0}, {1, 2, 5.5}, {2, 1, 7.0}};
     MatrixManager matrixManager(entries);
-
-    FEMPrinter::printMatrix(matrixManager.get());
-
     EXPECT_EQ(matrixManager.at(1, 2), 5.5);
 }
 
@@ -74,9 +70,6 @@ TEST(MatrixManagerTest, AccessValidElement_5)
 {
     std::vector<MatrixEntry> entries = {{2, 2, 10.0}, {1, 2, 5.5}, {2, 1, 7.0}};
     MatrixManager matrixManager(entries);
-
-    FEMPrinter::printMatrix(matrixManager.get());
-
     EXPECT_EQ(matrixManager.at(1, 2), 5.5);
 }
 
