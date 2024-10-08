@@ -61,10 +61,46 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
         // 1. Ensure the matrix is in a state that allows adding or replacing entries.
         matrix->resumeFill();
 
-        // 2. Setting boundary conditions to global stiffness matrix:
+// 2. Setting boundary conditions to global stiffness matrix:
+#ifdef USE_OMP
+        // Convert to an indexed access pattern for parallelization.
+        std::vector<std::pair<GlobalOrdinal, Scalar>> boundaryConditionsVec{boundary_conditions.begin(), boundary_conditions.end()};
+
+        // Obtain a restrict-qualified pointer to the data.
+        auto *__restrict__ bcData = boundaryConditionsVec.data();
+#pragma omp parallel for
+        for (size_t i = 0; i < boundaryConditionsVec.size(); ++i)
+        {
+            // Accessing the data through the restrict-qualified pointer.
+            auto const &[nodeInGmsh, value] = bcData[i];
+            for (short j = 0; j < polynom_order; ++j)
+            {
+                GlobalOrdinal nodeID{(nodeInGmsh - 1) * polynom_order + j};
+
+                // Check for bounds and handle errors within a critical section.
+                if (nodeID >= static_cast<GlobalOrdinal>(matrix->getGlobalNumRows()))
+                {
+#pragma omp critical
+                    {
+                        std::cerr << "Boundary condition refers to node index "
+                                  << nodeID << ", which exceeds the maximum row index of "
+                                  << matrix->getGlobalNumRows() - 1 << "." << std::endl;
+                    }
+                    continue; // Skip this iteration if the node ID is out of bounds.
+                }
+
+// Apply the boundary condition for the node.
+#pragma omp critical
+                {
+                    _setBoundaryConditionForNode(matrix, nodeID, 1);
+                }
+            }
+        }
+#else
+        // Fallback if OpenMP is not enabled.
         for (auto const &[nodeInGmsh, value] : boundary_conditions)
         {
-            for (int j{}; j < polynom_order; ++j)
+            for (short j{}; j < polynom_order; ++j)
             {
                 GlobalOrdinal nodeID{(nodeInGmsh - 1) * polynom_order + j};
 
@@ -74,9 +110,10 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
                                                             ", which exceeds the maximum row index of ",
                                                             matrix->getGlobalNumRows() - 1, "."));
 
-                _setBoundaryConditionForNode(matrix, nodeID, 1); // There is need to be 1, to have value = `value` in `x` vector, while solve Ax=b.
+                _setBoundaryConditionForNode(matrix, nodeID, 1);
             }
         }
+#endif // USE_OMP
 
         // 4. Finilizing filling of the global stiffness matrix.
         matrix->fillComplete();
