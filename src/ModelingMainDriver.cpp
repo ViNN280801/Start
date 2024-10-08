@@ -556,8 +556,6 @@ void ModelingMainDriver::startModeling()
         MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, rank, std::addressof(commSingle));
         LOGMSG(util::stringify("Rank ", rank, " is finalizing MPI and exiting."));
         MPI_Comm_free(std::addressof(commAssembly));
-        MPI_Finalize();
-        exit(EXIT_SUCCESS);
     }
 
     MPI_Comm_free(std::addressof(commAssembly));
@@ -599,6 +597,5 @@ void ModelingMainDriver::startModeling()
 
 #ifdef USE_MPI
     MPI_Comm_free(std::addressof(commSingle));
-    MPI_Finalize();
 #endif
 }
