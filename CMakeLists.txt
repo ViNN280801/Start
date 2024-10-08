@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
+option(SHOW_LOGS_ON "Enable showing all the logs" ON)
 option(START_DEBUG "Compile the project in Start Debug mode" OFF)
 option(START_RELEASE "Compile the project in Start Release mode" OFF)
 # --------{---(@    Setting custom options with default values   @}}>-----
@@ -16,6 +17,12 @@ else()
     message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
 endif()
 
+if(VECTORIZATION_ON)
+    message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
+else()
+    message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled.")
+endif()
+
 if (START_MPI_ON)
     message(STATUS "✅ MPI is enabled for the project.")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MPI")
@@ -23,10 +30,11 @@ else()
     message(STATUS "🚫 MPI is disabled for the project.")
 endif()
 
-if(VECTORIZATION_ON)
-    message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
+if(SHOW_LOGS_ON)
+    message(STATUS "✅ Logging is enabled.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSHOW_LOGS")
 else()
-    message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled as specified by the user.")
+    message(STATUS "🚫 Logging is disabled.")
 endif()
 ##########  °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸  ##########
 
@@ -365,13 +373,11 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")                # Optimize in release mode
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")                            # Compiling as big object file
 else()
-    # Set custom and common flags
-    set(CUSTOM_FLAGS "-DSHOW_LOGS")
     set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
     set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
     set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -Wmisleading-indentation")
 
-    set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG} ${CUSTOM_FLAGS}")
+    set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}")
 
     # Initialize variables for optional flags
     set(ANTI_ALIASING_FLAG "")
