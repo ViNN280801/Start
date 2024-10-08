@@ -133,9 +133,9 @@ if (GPU_CUDA_ON)
     if(NOT CUDA_TOOLKIT_ROOT_DIR)
         # Set to default if not set
         set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
-        message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: ${CUDA_TOOLKIT_ROOT_DIR}")
+        message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: [${CUDA_TOOLKIT_ROOT_DIR}]")
     else()
-        message(STATUS "⚙️  CUDA toolkit root directory specified: ${CUDA_TOOLKIT_ROOT_DIR}")
+        message(STATUS "⚙️  CUDA toolkit root directory specified: [${CUDA_TOOLKIT_ROOT_DIR}]")
     endif()
 
     # ✦ Verify that the directory exists ✦
@@ -145,7 +145,7 @@ if (GPU_CUDA_ON)
     #               Setting CUDA Compiler Path (Optional)         #
     ###############################################################
     set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
-    message(STATUS "⚙️  CUDA compiler set to: ${CMAKE_CUDA_COMPILER}")
+    message(STATUS "⚙️  CUDA compiler set to: [${CMAKE_CUDA_COMPILER}]")
 
     # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
     if (GPU_CUDA_ON)
@@ -155,7 +155,7 @@ if (GPU_CUDA_ON)
     endif()
 
     if (GPU_CUDA_ON)
-        message(STATUS "⚙️  Compiling with CUDA flags: ${CMAKE_CUDA_FLAGS}")
+        message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
     endif()
     ###############################################################
     #                    End of CUDA Setup                        #
@@ -202,7 +202,7 @@ if(WIN32)
     if(NOT GMSH_LIBRARIES)
         message(FATAL_ERROR "❌ GMSH libraries not found. Please ensure GMSH is installed and GMSH_LIB is set.")
     else()
-        message(STATUS "✅ GMSH libraries found: ${GMSH_LIBRARIES}")
+        message(STATUS "✅ GMSH libraries found: [${GMSH_LIBRARIES}]")
     endif()
 
 else()
@@ -418,7 +418,7 @@ else()
             set(VECTORIZATION_FLAGS "-fvectorize -march=native -mtune=native")
             set(CLANG_FLAGS "-Xclang -flarge-source-files")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
-            message(STATUS "🛠️ Clang-specific vectorization flags added: ${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            message(STATUS "🛠️ Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
         # Check for GCC and set specific flags
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -426,7 +426,7 @@ else()
             set(VECTORIZATION_FLAGS "-ftree-vectorize -march=native -mtune=native -mprefer-vector-width=512")
             set(GCC_FLAGS "-flarge-source-files")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
-            message(STATUS "🛠️ GCC-specific vectorization flags added: ${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            message(STATUS "🛠️ GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
         # Check for Intel compiler and set specific flags
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
@@ -434,7 +434,7 @@ else()
             set(VECTORIZATION_FLAGS "-restrict -xHost -vecabi=cmdtarget -qopt-zmm-usage=high")
             set(INTEL_COMPILER_FLAGS "-flarge-source-files")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
-            message(STATUS "🛠️ Intel-specific vectorization flags added: ${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            message(STATUS "🛠️ Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
         endif()
     else()
         message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled.")
@@ -442,7 +442,7 @@ else()
 
     # Append the common and custom flags to CMAKE_CXX_FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
-    message(STATUS "⚙️  Non-MSVC: Added common flags ${FINAL_CPP_FLAGS}")
+    message(STATUS "⚙️  Non-MSVC compiler flags: [${FINAL_CPP_FLAGS}]")
 endif()
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
@@ -454,13 +454,13 @@ endif()
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fp-model strict")
-    message(STATUS "⚙️  Intel: Using strict floating-point rounding with -fp-model strict")
+    message(STATUS "⚙️  Intel: Using strict floating-point rounding with flag: -fp-model strict")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
-    message(STATUS "⚙️  GNU: Using strict floating-point rounding with -frounding-math")
+    message(STATUS "⚙️  GNU: Using strict floating-point rounding with flag: -frounding-math")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:strict")
-    message(STATUS "⚙️  MSVC: Using strict floating-point rounding with /fp:strict")
+    message(STATUS "⚙️  MSVC: Using strict floating-point rounding with flag: /fp:strict")
 else()
     message(WARNING "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding.")
 endif()
@@ -505,7 +505,7 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
-message(STATUS "⚙️  Compiling with C++ flags: ${CMAKE_CXX_FLAGS}")
+message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
