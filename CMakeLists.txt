@@ -7,7 +7,7 @@ option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
 option(SHOW_LOGS_ON "Enable showing all the logs" ON)
 option(START_DEBUG "Compile the project in Start Debug mode" OFF)
-option(START_RELEASE "Compile the project in Start Release mode" OFF)
+option(START_RELEASE "Compile the project in Start Release mode" ON)
 # --------{---(@    Setting custom options with default values   @}}>-----
 
 ##########  °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸  ##########
@@ -147,14 +147,15 @@ if (GPU_CUDA_ON)
     set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
     message(STATUS "⚙️  CUDA compiler set to: ${CMAKE_CUDA_COMPILER}")
 
-    # Add CUDA as a project language
-    enable_language(CUDA)
-
     # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
-    if(GPU_CUDA_ON)
+    if (GPU_CUDA_ON)
         set(CUDA_ARCHITECTURES "52 61 75 86")
         set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
-        message(STATUS "🚀 CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
+        message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
+    endif()
+
+    if (GPU_CUDA_ON)
+        message(STATUS "⚙️  Compiling with CUDA flags: ${CMAKE_CUDA_FLAGS}")
     endif()
     ###############################################################
     #                    End of CUDA Setup                        #
@@ -172,7 +173,10 @@ project(Start
         lack of algorithms for calculating non-standard grids of the electrostatic field generated \
         by plasma particles."
         LANGUAGES CXX)
-
+if (GPU_CUDA_ON)
+    # Add CUDA as a project languages list.
+    enable_language(CUDA)
+endif()
 
 
 ###############################################################
@@ -437,7 +441,7 @@ else()
 
     # Append the common and custom flags to CMAKE_CXX_FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
-    message(STATUS "⚙️ Non-MSVC: Added common flags ${FINAL_CPP_FLAGS}")
+    message(STATUS "⚙️  Non-MSVC: Added common flags ${FINAL_CPP_FLAGS}")
 endif()
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
@@ -449,13 +453,13 @@ endif()
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fp-model strict")
-    message(STATUS "⚙️ Intel: Using strict floating-point rounding with -fp-model strict")
+    message(STATUS "⚙️  Intel: Using strict floating-point rounding with -fp-model strict")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
-    message(STATUS "⚙️ GNU: Using strict floating-point rounding with -frounding-math")
+    message(STATUS "⚙️  GNU: Using strict floating-point rounding with -frounding-math")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:strict")
-    message(STATUS "⚙️ MSVC: Using strict floating-point rounding with /fp:strict")
+    message(STATUS "⚙️  MSVC: Using strict floating-point rounding with /fp:strict")
 else()
     message(WARNING "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding.")
 endif()
@@ -469,10 +473,10 @@ endif()
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
-    message(STATUS "Compiling in DEBUG mode")
+    message(STATUS "⚙️  Compiling in DEBUG mode")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(RELEASE)
-    message(STATUS "Compiling in RELEASE mode")
+    message(STATUS "🚀 Compiling in RELEASE mode")
 else()
     message(WARNING "⚠️ Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif()
@@ -486,10 +490,10 @@ endif()
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(START_DEBUG)
     add_compile_definitions(START_DEBUG)
-    message(STATUS "Compiling in START_DEBUG mode ")
+    message(STATUS "⚙️  Start project compiling mode set to START_DEBUG.")
 elseif(START_RELEASE)
     add_compile_definitions(START_RELEASE)
-    message(STATUS "Compiling in START_RELEASE mode ")
+    message(STATUS "🚀 Start project compiling mode set to START_RELEASE.")
 else()
     message(FATAL_ERROR "⚠️ Neither START_DEBUG nor START_RELEASE is defined.")
 endif()
@@ -499,11 +503,8 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "⚙️ Using C++${CMAKE_CXX_STANDARD} standard.")
-message(STATUS "⚙️ Compiling with C++ flags: ${CMAKE_CXX_FLAGS}")
-if (GPU_CUDA_ON)
-    message(STATUS "⚙️ Compiling with CUDA flags: ${CMAKE_CUDA_FLAGS}")
-endif()
+message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
+message(STATUS "⚙️  Compiling with C++ flags: ${CMAKE_CXX_FLAGS}")
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
