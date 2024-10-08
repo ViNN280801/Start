@@ -99,7 +99,7 @@ if [ "$COMPILE_TESTS" = true ]; then
 
     mkdir -pv "$TESTS_DIR/build" && cd "$TESTS_DIR/build"
     echo "Compiling tests with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D$START_BUILD_TYPE=ON .. && make -j"$NUM_THREADS"
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && make -j"$NUM_THREADS"
 
     if [ $? -ne 0 ]; then
         echo "Compilation failed, exiting..."
@@ -120,7 +120,7 @@ if [ "$INTERMEDIATE" = true ] && [ -n "$INTERMEDIATE_FILE" ]; then
     mkdir -pv intermediateResults/build && cd intermediateResults/build
     echo "Compiling specified intermediate result file: $INTERMEDIATE_FILE"
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D$START_BUILD_TYPE=ON -DINTERMEDIATE_FILE="$FILENAME" .. && make -j$NUM_THREADS
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DINTERMEDIATE_FILE="$FILENAME" .. && make -j$NUM_THREADS
 
     if [ $? -eq 0 ]; then
         echo -e "\e[32;1mFile '$FILENAME' successfully compiled and ran\e[0m"
@@ -140,5 +140,5 @@ if [ "$INTERMEDIATE" = true ] && [ -n "$INTERMEDIATE_FILE" ]; then
 else
     mkdir -pv build && cd build
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -D$START_BUILD_TYPE=ON .. && make -j$NUM_THREADS
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && make -j$NUM_THREADS
 fi
