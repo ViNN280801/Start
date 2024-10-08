@@ -70,9 +70,6 @@ public:
     using NodeData = TetrahedronMeshManager::TetrahedronData::NodeData;
     using TetrahedronData = TetrahedronMeshManager::TetrahedronData;
 
-    /// @brief Default constructor for non-root ranks.
-    TetrahedronMeshManager();
-
     /**
      * @brief Constructor. Fills storage for the volumetric mesh.
      * @details This constructor reads the mesh file once, extracts the node coordinates and tetrahedron
