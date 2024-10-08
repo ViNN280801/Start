@@ -58,50 +58,34 @@ protected:
     }
 };
 
-TEST_F(TetrahedronMeshManagerTest, SingletonPattern)
-{
-    auto &instance1{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
-    auto &instance2{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
-
-    EXPECT_EQ(std::addressof(instance1), std::addressof(instance2)) << "Singleton pattern is violated: multiple instances exist.";
-}
-
-TEST_F(TetrahedronMeshManagerTest, SingletonPatternDifferentFiles)
-{
-    auto &instance1{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
-    auto &instance2{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
-
-    EXPECT_EQ(std::addressof(instance1), std::addressof(instance2)) << "Singleton pattern is violated: multiple instances exist for different files.";
-}
-
 TEST_F(TetrahedronMeshManagerTest, InvalidFilePath)
 {
-    EXPECT_THROW({ TetrahedronMeshManager::getInstance("invalid_path.msh"); }, std::runtime_error) << "Expected runtime_error for invalid file path.";
+    EXPECT_THROW({ TetrahedronMeshManager meshManager("invalid_path.msh"); }, std::runtime_error) << "Expected runtime_error for invalid file path.";
 }
 
 TEST_F(TetrahedronMeshManagerTest, DirectoryPath)
 {
-    EXPECT_THROW({ TetrahedronMeshManager::getInstance("test_directory"); }, std::runtime_error) << "Expected runtime_error for directory path.";
+    EXPECT_THROW({ TetrahedronMeshManager meshManager("test_directory"); }, std::runtime_error) << "Expected runtime_error for directory path.";
 }
 
 TEST_F(TetrahedronMeshManagerTest, EmptyFile)
 {
-    EXPECT_THROW({ TetrahedronMeshManager::getInstance("empty_mesh.msh"); }, std::runtime_error) << "Expected runtime_error for empty file.";
+    EXPECT_THROW({ TetrahedronMeshManager meshManager("empty_mesh.msh"); }, std::runtime_error) << "Expected runtime_error for empty file.";
 }
 
 TEST_F(TetrahedronMeshManagerTest, InvalidExtensionFile)
 {
-    EXPECT_THROW({ TetrahedronMeshManager::getInstance("test.txt"); }, std::runtime_error) << "Expected runtime_error for invalid file extension.";
+    EXPECT_THROW({ TetrahedronMeshManager meshManager("test.txt"); }, std::runtime_error) << "Expected runtime_error for invalid file extension.";
 }
 
 TEST_F(TetrahedronMeshManagerTest, LoadValidMeshData)
 {
-    auto &instance{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
+    TetrahedronMeshManager meshManager("valid_mesh.msh");
 
-    ASSERT_FALSE(instance.empty()) << "Mesh data should not be empty for a valid mesh file.";
-    EXPECT_GT(instance.getNumTetrahedrons(), 0) << "Mesh should contain tetrahedra for a valid mesh file.";
+    ASSERT_FALSE(meshManager.empty()) << "Mesh data should not be empty for a valid mesh file.";
+    EXPECT_GT(meshManager.getNumTetrahedrons(), 0) << "Mesh should contain tetrahedra for a valid mesh file.";
 
-    for (auto const &tetra : instance.getMeshComponents())
+    for (auto const &tetra : meshManager.getMeshComponents())
     {
         EXPECT_FALSE(tetra.electricField.has_value()) << "Electric field should be assigned for each tetrahedron.";
         EXPECT_FALSE(std::all_of(tetra.nodes.begin(), tetra.nodes.end(), [](TetrahedronMeshManager::NodeData const &node)
@@ -112,16 +96,16 @@ TEST_F(TetrahedronMeshManagerTest, LoadValidMeshData)
 
 TEST_F(TetrahedronMeshManagerTest, CalculateTotalVolume)
 {
-    auto &instance{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
+    TetrahedronMeshManager meshManager("valid_mesh.msh");
 
-    double totalVolume{instance.volume()};
+    double totalVolume{meshManager.volume()};
     EXPECT_GT(totalVolume, 0.0) << "Total volume should be greater than 0 for a valid mesh.";
 }
 
 TEST_F(TetrahedronMeshManagerTest, GetTetrahedronCenters)
 {
-    auto &instance{TetrahedronMeshManager::getInstance("valid_mesh.msh")};
+    TetrahedronMeshManager meshManager("valid_mesh.msh");
 
-    auto centers{instance.getTetrahedronCenters()};
-    EXPECT_EQ(centers.size(), instance.getNumTetrahedrons()) << "Number of centers should match number of tetrahedra.";
+    auto centers{meshManager.getTetrahedronCenters()};
+    EXPECT_EQ(centers.size(), meshManager.getNumTetrahedrons()) << "Number of centers should match number of tetrahedra.";
 }
