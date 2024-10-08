@@ -225,24 +225,6 @@ void TetrahedronMeshManager::_constructLocalMesh()
     }
 }
 
-TetrahedronMeshManager::TetrahedronMeshManager()
-{
-    // Initialize MPI rank and size
-    m_rank = 0;
-    m_size = 1;
-#ifdef USE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(m_rank));
-    MPI_Comm_size(MPI_COMM_WORLD, std::addressof(m_size));
-#endif
-
-    // Ensure this constructor is not called on rank 0.
-    if (m_rank == 0)
-        throw std::runtime_error("Default constructor should not be called on the root process (rank 0).");
-
-    _receiveData();
-    _constructLocalMesh();
-}
-
 TetrahedronMeshManager::TetrahedronMeshManager(std::string_view mesh_filename)
 {
     util::check_gmsh_mesh_file(mesh_filename);
