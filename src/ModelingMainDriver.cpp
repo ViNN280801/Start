@@ -226,8 +226,28 @@ void ModelingMainDriver::_saveParticleMovements() const
         }
         else
             throw std::ios_base::failure("Failed to open file for writing");
-
         LOGMSG(util::stringify("Successfully written particle movements to the file ", filepath));
+
+        // Verify JSON file content after saving.
+        std::ifstream infile(filepath);
+        json loadedJson;
+        if (infile.is_open())
+        {
+            infile >> loadedJson;
+            infile.close();
+
+            // Check if the file contains null or is incorrectly formatted.
+            if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
+            {
+                throw std::runtime_error("File content is invalid. Ensure the format is like this:\n"
+                                         "{\n"
+                                         "    \"0\": [{\"x\": 0.0, \"y\": 0.0, \"z\": 0.0}, {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}],\n"
+                                         "    \"1\": [{\"x\": 0.0, \"y\": 1.0, \"z\": 2.0}, {\"x\": 1.0, \"y\": 2.0, \"z\": 3.0}]\n"
+                                         "}");
+            }
+        }
+        else
+            throw std::ios_base::failure("Failed to open file for reading back and check its content.");
     }
     catch (std::ios_base::failure const &e)
     {
@@ -236,6 +256,10 @@ void ModelingMainDriver::_saveParticleMovements() const
     catch (json::exception const &e)
     {
         ERRMSG(util::stringify("JSON error occurred: ", e.what()));
+    }
+    catch (std::runtime_error const &e)
+    {
+        ERRMSG(util::stringify("Error checking the just written file: ", e.what()));
     }
 }
 
@@ -529,46 +553,14 @@ void ModelingMainDriver::startModeling()
     std::shared_ptr<CubicGrid> cubicGrid;
     std::map<GlobalOrdinal, double> boundaryConditions;
     std::shared_ptr<VectorManager> solutionVector;
-
-#ifndef USE_MPI
     _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
-#endif
     /* Ending of the FEM initialization. */
-
-    [[maybe_unused]] int rank{};
-
-#ifdef USE_MPI
-    MPI_Comm commAssembly, commSingle;
-    int numProcs{1};
-
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
-    MPI_Comm_size(MPI_COMM_WORLD, std::addressof(numProcs));
-    MPI_Comm_dup(MPI_COMM_WORLD, std::addressof(commAssembly));
-
-    LOGMSG(util::stringify("Rank ", rank, " started modeling with ", numProcs, " processes using commAssembly."));
-    _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
-    MPI_Barrier(commAssembly);
-    LOGMSG(util::stringify("Rank ", rank, " finished assembly and reached MPI barrier with commAssembly."));
-
-    if (rank == 0)
-        MPI_Comm_split(MPI_COMM_WORLD, 0, rank, std::addressof(commSingle));
-    else
-    {
-        MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, rank, std::addressof(commSingle));
-        LOGMSG(util::stringify("Rank ", rank, " is finalizing MPI and exiting."));
-        MPI_Comm_free(std::addressof(commAssembly));
-    }
-
-    MPI_Comm_free(std::addressof(commAssembly));
-#endif
 
     auto num_threads{_getNumThreads()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
-        LOGMSG(util::stringify("Rank ", rank, " started timestep: ", t));
-
         // 1. Obtain charge densities in all the nodes.
         // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
         // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
@@ -587,16 +579,10 @@ void ModelingMainDriver::startModeling()
         // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
         // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
         _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
-
-        LOGMSG(util::stringify("Rank ", rank, " completed timestep: ", t));
     }
-
-    LOGMSG(util::stringify("Rank ", rank, " completed simulation."));
 
     _updateSurfaceMesh();
     _saveParticleMovements();
 
-#ifdef USE_MPI
-    MPI_Comm_free(std::addressof(commSingle));
-#endif
+    LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), " particles"));
 }
