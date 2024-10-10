@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../include/Particles/Particle.hpp"
+#include "../include/Particle/Particle.hpp"
 
 static constexpr std::array<double, 3> thetaPhi{1, 1, 1};
 
