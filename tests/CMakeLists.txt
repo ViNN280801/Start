@@ -225,8 +225,8 @@ set(GENERATORS_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Generators)
 set(GENERATORS_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Generators)
 set(GEOMETRY_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Geometry)
 set(GEOMETRY_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Geometry)
-set(PARTICLES_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Particles)
-set(PARTICLES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Particles)
+set(PARTICLES_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Particle)
+set(PARTICLES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Particle)
 set(UTILITIES_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Utilities)
 set(UTILITIES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Utilities)
 
@@ -254,7 +254,6 @@ set(FINITE_ELEMENT_METHOD_SOURCES
 )
 set(GENERATORS_SOURCES
     ${GENERATORS_SRC_PATH}/RealNumberGenerator.cpp
-    ${GENERATORS_SRC_PATH}/VolumeCreator.cpp
 )
 set(GEOMETRY_SOURCES
     ${GEOMETRY_SRC_PATH}/MathVector.cpp
@@ -297,7 +296,6 @@ set(FINITE_ELEMENT_METHOD_TEST_SOURCES
 )
 set(GENERATORS_TEST_SOURCES
     Generators/RealNumberGeneratorTests.cpp
-    Generators/VolumeCreatorTests.cpp
 )
 set(GEOMETRY_TEST_SOURCES
     Geometry/MathVectorTests.cpp
@@ -305,7 +303,7 @@ set(GEOMETRY_TEST_SOURCES
     Geometry/RayTriangleIntersectionTests.cpp
 )
 set(PARTICLES_TEST_SOURCES
-    Particles/ParticleTests.cpp
+    Particle/ParticleTests.cpp
 )
 set(UTILITIES_TEST_SOURCES
     Utilities/ConfigParserTests.cpp
