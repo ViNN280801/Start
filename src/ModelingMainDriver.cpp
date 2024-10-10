@@ -584,5 +584,5 @@ void ModelingMainDriver::startModeling()
     _updateSurfaceMesh();
     _saveParticleMovements();
 
-    LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), " particles"));
+    LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
 }
