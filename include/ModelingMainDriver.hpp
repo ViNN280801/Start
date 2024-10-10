@@ -7,10 +7,10 @@
 #include <shared_mutex>
 
 #include "FiniteElementMethod/MatrixEquationSolver.hpp"
-#include "Generators/VolumeCreator.hpp"
 #include "Geometry/CubicGrid.hpp"
 #include "Geometry/Mesh.hpp"
 #include "Particles/Particle.hpp"
+#include "SessionManagement/GmshSessionManager.hpp"
 #include "Utilities/ConfigParser.hpp"
 
 /**
@@ -49,7 +49,7 @@ private:
     MeshTriangleParamVector _triangleMesh;   ///< Triangle mesh params acquired from the mesh file. Surface mesh.
     TriangleVector _triangles;               ///< Triangles extracted from the triangle mesh params `_triangleMesh` (surface mesh). Need to initialize AABB tree.
     AABB_Tree_Triangle _surfaceMeshAABBtree; ///< AABB tree for the surface mesh to effectively detect collisions with surface.
-    GMSHVolumeCreator vc;                    ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
+    GmshSessionManager _gmshSessionManager;  ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
 
     /* All the neccessary data members for the simulation. */
     ParticleVector m_particles;                        ///< Projective particles.
