@@ -560,6 +560,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
 
 if (GPU_CUDA_ON)
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${CUDA_LIBRARIES})
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif()
 if (START_OPENMP_ON)
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${OpenMP_LIBRARIES})
