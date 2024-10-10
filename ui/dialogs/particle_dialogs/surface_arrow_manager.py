@@ -118,7 +118,7 @@ class SurfaceArrowManager:
             self.positions_inside.append(cell_center)
             self.directions_inside.append(rev_normal)
 
-            self.data[hex(id(cell))] = {"cell_center": cell_center, "normal": normal}
+            self.data[i] = {"cell_center": cell_center, "normal": normal}
 
         self.original_positions_outside = list(self.positions_outside)
         self.original_directions_outside = list(self.directions_outside)
@@ -174,6 +174,15 @@ class SurfaceArrowManager:
 
             self.glyph_actor_inside = self.create_glyphs(positions_inside, directions_inside, self.arrow_size)
             self.renderer.AddActor(self.glyph_actor_inside)
+            
+            # Inversing of the normals to specify correct direction.
+            for i, values in self.data.items():
+                normal = values['normal']
+                values['normal'] = (
+                -normal[0] if normal[0] != 0 else normal[0],
+                -normal[1] if normal[1] != 0 else normal[1],
+                -normal[2] if normal[2] != 0 else normal[2]
+            )
 
             self.finalize_surface_selection()
             self.particle_source_dialog.show()
@@ -199,12 +208,11 @@ class SurfaceArrowManager:
         if not self.data:
             return
 
-        surface_address = next(iter(self.data))
-        self.log_console.printInfo(f"Selected surface <{surface_address}> with {self.num_cells} cells inside:")
-        for arrow_address, values in self.data.items():
+        self.log_console.printInfo(f"Selected surface with {self.num_cells} cells inside:")
+        for cell_index, values in self.data.items():
             cellCentre = values['cell_center']
             normal = values['normal']
-            self.log_console.printInfo(f"<{surface_address}> | <{arrow_address}>: [{cellCentre[0]:.2f}, {cellCentre[1]:.2f}, {cellCentre[2]:.2f}] - ({normal[0]:.2f}, {normal[1]:.2f}, {normal[2]:.2f})")
+            self.log_console.printInfo(f"Cell {cell_index}: [{cellCentre[0]:.2f}, {cellCentre[1]:.2f}, {cellCentre[2]:.2f}] - ({normal[0]:.2f}, {normal[1]:.2f}, {normal[2]:.2f})")
 
         self.geditor.deselect()
 
