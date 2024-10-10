@@ -9,7 +9,7 @@
 #include "FiniteElementMethod/MatrixEquationSolver.hpp"
 #include "Geometry/CubicGrid.hpp"
 #include "Geometry/Mesh.hpp"
-#include "Particles/Particle.hpp"
+#include "Particle/Particle.hpp"
 #include "SessionManagement/GmshSessionManager.hpp"
 #include "Utilities/ConfigParser.hpp"
 

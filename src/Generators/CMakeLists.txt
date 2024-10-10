@@ -1,4 +1,5 @@
 set(GENERATORS_SOURCES
+    ParticleGenerator.cpp
     RealNumberGenerator.cpp
 )
 

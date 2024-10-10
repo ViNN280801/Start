@@ -1,5 +1,5 @@
-#ifndef PARTICLES_HPP
-#define PARTICLES_HPP
+#ifndef PARTICLE_HPP
+#define PARTICLE_HPP
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -342,102 +342,7 @@ public:
      */
     [[nodiscard("Check of Particle inequality should not be ignored to ensure correct logic flow")]] friend bool operator!=(Particle const &lhs, Particle const &rhs) { return !(lhs == rhs); }
 };
-
+std::ostream &operator<<(std::ostream &os, Particle const &particle);
 using ParticleVector = std::vector<Particle>;
 
-/**
- * @brief Concept to ensure the Generator is callable and returns a Particle.
- *
- * This concept requires that the Generator type be a callable (such as a function, lambda,
- * or functor) that returns a `Particle` or a type convertible to `Particle`.
- */
-template <typename Generator>
-concept ParticleGenerator = std::invocable<Generator> && std::same_as<std::invoke_result_t<Generator>, Particle>;
-
-/**
- * @brief Creates a specified number of particles using a generator function.
- *
- * This function generates particles by invoking a provided generator function. The generator
- * must return a `Particle` or an object convertible to `Particle`.
- *
- * @tparam Gen Type of the generator function, constrained by the `ParticleGenerator` concept.
- * @param count The number of particles to generate.
- * @param gen A callable (e.g., lambda, function) that generates a `Particle` when invoked.
- * @return ParticleVector A vector containing the generated particles.
- *
- * @note The generator must return a `Particle` object on each invocation.
- * @code
- * ParticleVector particles = createParticles(100, []() {
- *     return Particle(...);  // Return a particle instance
- * });
- * @endcode
- */
-template <ParticleGenerator Gen>
-ParticleVector createParticles(size_t count, Gen gen)
-{
-    ParticleVector particles;
-
-#ifdef USE_OMP
-    particles.reserve(count);
-#pragma omp for simd
-    for (size_t i = 0; i < count; ++i)
-    {
-        particles[i] = gen();
-    }
-#else
-    for (size_t i{}; i < count; ++i)
-        particles.emplace_back(gen());
-#endif
-
-    return particles;
-}
-
-std::ostream &operator<<(std::ostream &os, Particle const &particle);
-
-/// @brief Generates a vector of particles with velocity.
-ParticleVector createParticlesWithVelocities(size_t count, ParticleType type,
-                                             double minx = 0, double miny = 0, double minz = 0,
-                                             double maxx = 100, double maxy = 100, double maxz = 100,
-                                             double minvx = -100, double minvy = -100, double minvz = -100,
-                                             double maxvx = 100, double maxvy = 100, double maxvz = 100);
-ParticleVector createParticlesWithVelocities(size_t count, ParticleType type,
-                                             double x, double y, double z,
-                                             double vx, double vy, double vz);
-ParticleVector createParticlesWithVelocityModule(size_t count, ParticleType type,
-                                                 double x, double y, double z,
-                                                 double v, double theta, double phi);
-
-/**
- * @brief Creates a vector of particles using particle sources as points.
- * @param source A vector of point particle sources.
- * @return A vector of particles created from the given point particle sources.
- * @details This function iterates through the provided point particle sources,
- *          and for each source, it generates the specified number of particles.
- *          Each particle is assigned its type, position, energy, and direction
- *          angles (theta, phi, expansionAngle) based on the source parameters.
- *
- *          1) The function goes through each source.
- *          2) Creates a set number of particles for each source, setting the type, position, energy and directions for each (angles theta, phi, expansionAngle).
- */
-ParticleVector createParticlesFromPointSource(std::vector<point_source_t> const &source);
-
-/**
- * @brief Creates a vector of particles using particle sources as surfaces.
- * @param source A vector of surface particle sources.
- * @return A vector of particles created from the given surface particle sources.
- * @details This function iterates through the provided surface particle sources,
- *          and for each source, it distributes particles evenly across the
- *          specified cell centers. If the number of particles does not divide
- *          evenly among the cells, the remainder is randomly distributed. Each
- *          particle is assigned its type, position, energy, and direction based
- *          on the source parameters and cell normals.
- *
- *          1) The function passes through each surface source.
- *          2) Determines the number of cells and the number of particles per cell.
- *          3) Distributes the remainder of the particles randomly into cells.
- *          4) For each cell and normal, calculates the angles theta and phi necessary to determine the direction of the particles.
- *          5) Creates particles by setting for each type, position, energy and directions (angles theta, phi, expansionAngle).
- */
-ParticleVector createParticlesFromSurfaceSource(std::vector<surface_source_t> const &source);
-
-#endif // !PARTICLES_HPP
+#endif // !PARTICLE_HPP
