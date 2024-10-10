@@ -527,13 +527,13 @@ set(CPP_SOURCES
     src/main.cpp
     src/ModelingMainDriver.cpp
 )
+set(SOURCES ${CPP_SOURCES})
 if (GPU_CUDA_ON)
     set(CUDA_SOURCES
-        # !!! Not to forget place .cu files here !!!
+        # !!! Do not forget place .cu files here !!!
     )
     set(SOURCES ${SOURCES} ${CUDA_SOURCES})
 endif()
-set(SOURCES ${CPP_SOURCES})
 
 set(EXECUTABLE_NAME nia_start_core)
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
