@@ -343,6 +343,164 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
 {
     try
     {
+#ifdef USE_OMP
+        // Check if the requested number of threads exceeds available hardware concurrency.
+        unsigned int availableThreads{std::thread::hardware_concurrency()};
+        auto num_threads{m_config.getNumThreads()};
+
+        // Handle case where numThreads is zero.
+        if (num_threads == 0)
+        {
+            ERRMSG("Error: The number of threads must be greater than 0.");
+            std::exit(EXIT_FAILURE);
+        }
+
+        // Check if requested threads exceed available hardware threads.
+        if (num_threads > availableThreads)
+        {
+            ERRMSG(util::stringify("Error: The number of threads requested (", num_threads,
+                                   ") exceeds the available hardware threads (", availableThreads, ")."));
+            std::exit(EXIT_FAILURE);
+        }
+
+        omp_set_num_threads(num_threads);
+
+        std::vector<std::map<size_t, ParticleVector>> particleTracker_per_thread(num_threads);
+        std::vector<std::map<size_t, double>> tetrahedronChargeDensityMap_per_thread(num_threads);
+        std::vector<std::map<GlobalOrdinal, double>> nodeChargeDensityMap_per_thread(num_threads);
+
+        // First parallel region: process particles
+#pragma omp parallel
+        {
+            int thread_id = omp_get_thread_num();
+
+            // References to per-thread data structures.
+            auto &particleTracker = particleTracker_per_thread[thread_id];
+            auto &tetrahedronChargeDensityMap = tetrahedronChargeDensityMap_per_thread[thread_id];
+            auto &local_nodeChargeDensityMap = nodeChargeDensityMap_per_thread[thread_id];
+
+#pragma omp for schedule(dynamic) nowait
+            for (size_t idx = start_index; idx < end_index; ++idx)
+            {
+                auto &particle = m_particles[idx];
+
+                // Check if particle is settled.
+                {
+                    std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
+                    if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.cend())
+                        continue;
+                }
+
+                auto gridIndex = cubicGrid->getGridIndexByPosition(particle.getCentre());
+                auto meshParams = cubicGrid->getTetrahedronsByGridIndex(gridIndex);
+
+                for (auto const &meshParam : meshParams)
+                {
+                    if (Mesh::isPointInsideTetrahedron(particle.getCentre(), meshParam.tetrahedron))
+                    {
+                        // Access per-thread particleTracker.
+                        particleTracker[meshParam.globalTetraId].emplace_back(particle);
+                    }
+                }
+            } // end of particle loop.
+
+            // Calculate charge density in each tetrahedron for this thread.
+            for (auto const &[globalTetraId, particlesInside] : particleTracker)
+            {
+                double totalCharge = std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0,
+                                                     [](double sum, Particle const &particle)
+                                                     { return sum + particle.getCharge(); });
+                double volume = assemblier->getMeshManager().getVolumeByGlobalTetraId(globalTetraId);
+                double chargeDensity = totalCharge / volume;
+                tetrahedronChargeDensityMap[globalTetraId] = chargeDensity;
+            }
+
+            // Access node-tetrahedron mapping.
+            auto nodeTetrahedronsMap = assemblier->getMeshManager().getNodeTetrahedronsMap();
+
+            // Process nodes and aggregate data from adjacent tetrahedra.
+#pragma omp for schedule(dynamic) nowait
+            for (size_t i = 0; i < nodeTetrahedronsMap.size(); ++i)
+            {
+                auto it = nodeTetrahedronsMap.begin();
+                std::advance(it, i);
+                auto const &nodeId = it->first;
+                auto const &adjacentTetrahedra = it->second;
+
+                double totalCharge = 0.0;
+                double totalVolume = 0.0;
+
+                // Sum up the charge and volume for all tetrahedra of a given node.
+                for (auto const &tetrId : adjacentTetrahedra)
+                {
+                    auto tcd_it = tetrahedronChargeDensityMap.find(tetrId);
+                    if (tcd_it != tetrahedronChargeDensityMap.end())
+                    {
+                        double tetrahedronChargeDensity = tcd_it->second;
+                        double tetrahedronVolume = assemblier->getMeshManager().getVolumeByGlobalTetraId(tetrId);
+
+                        totalCharge += tetrahedronChargeDensity * tetrahedronVolume;
+                        totalVolume += tetrahedronVolume;
+                    }
+                }
+
+                // Calculate and store the charge density for the node.
+                if (totalVolume > 0)
+                {
+                    double nodeChargeDensity = totalCharge / totalVolume;
+                    local_nodeChargeDensityMap[nodeId] = nodeChargeDensity;
+                }
+            }
+        } // end of parallel region.
+
+        // Merge per-thread particleTrackers into global particleTracker.
+        std::map<size_t, ParticleVector> particleTracker;
+        for (const auto &pt : particleTracker_per_thread)
+        {
+            for (const auto &[tetraId, particles] : pt)
+            {
+                particleTracker[tetraId].insert(particleTracker[tetraId].end(), particles.begin(), particles.end());
+            }
+        }
+
+        // Merge per-thread tetrahedronChargeDensityMaps into global tetrahedronChargeDensityMap.
+        std::map<size_t, double> tetrahedronChargeDensityMap;
+        for (const auto &tcdm : tetrahedronChargeDensityMap_per_thread)
+        {
+            tetrahedronChargeDensityMap.insert(tcdm.begin(), tcdm.end());
+        }
+
+        // Merge per-thread nodeChargeDensityMaps into the shared nodeChargeDensityMap.
+        {
+            std::lock_guard<std::mutex> lock(m_nodeChargeDensityMap_mutex);
+            for (const auto &local_map : nodeChargeDensityMap_per_thread)
+            {
+                for (const auto &[nodeId, chargeDensity] : local_map)
+                {
+                    // If the node already exists, average the charge densities.
+                    auto it = nodeChargeDensityMap.find(nodeId);
+                    if (it != nodeChargeDensityMap.end())
+                    {
+                        it->second = (it->second + chargeDensity) / 2.0;
+                    }
+                    else
+                    {
+                        nodeChargeDensityMap[nodeId] = chargeDensity;
+                    }
+                }
+            }
+        }
+
+        // Add the particles from particleTracker to m_particleTracker[t].
+        {
+            std::lock_guard<std::mutex> lock_PIC(m_PICTracker_mutex);
+            for (auto const &[tetraId, particlesInside] : particleTracker)
+            {
+                auto &globalParticles{m_particleTracker[t][tetraId]};
+                globalParticles.insert(globalParticles.end(), particlesInside.begin(), particlesInside.end());
+            }
+        }
+#else
         std::map<size_t, ParticleVector> particleTracker;
         std::map<size_t, double> tetrahedronChargeDensityMap;
 
@@ -396,6 +554,7 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
             auto &globalParticles{m_particleTracker[t][tetraId]};
             globalParticles.insert(globalParticles.begin(), particlesInside.begin(), particlesInside.end());
         }
+#endif // !USE_OMP
     }
     catch (std::exception const &ex)
     {
@@ -446,6 +605,128 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
 {
     try
     {
+#ifdef USE_OMP
+        // OpenMP implementation.
+        MathVector magneticInduction{}; // Assuming induction vector B is 0.
+
+#pragma omp parallel
+        {
+            // Each thread will process a subset of particles.
+#pragma omp for
+            for (size_t idx = start_index; idx < end_index; ++idx)
+            {
+                auto &particle = m_particles[idx];
+
+                // Check if particle is already settled.
+                bool isSettled = false;
+                {
+                    std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
+                    if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.end())
+                        isSettled = true;
+                }
+                if (isSettled)
+                    continue;
+
+                size_t containingTetrahedron = 0;
+
+                {
+                    // Access m_particleTracker[t] safely.
+                    std::lock_guard<std::mutex> lock(m_PICTracker_mutex);
+                    auto it = m_particleTracker.find(t);
+                    if (it != m_particleTracker.end())
+                    {
+                        auto &particleMap = it->second;
+                        for (auto const &[tetraId, particlesInside] : particleMap)
+                        {
+                            if (std::any_of(particlesInside.cbegin(), particlesInside.cend(),
+                                            [&particle](Particle const &storedParticle)
+                                            { return particle.getId() == storedParticle.getId(); }))
+                            {
+                                containingTetrahedron = tetraId;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (auto tetrahedron = assemblier->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron))
+                {
+                    if (tetrahedron->electricField.has_value())
+                    {
+                        // Updating velocity of the particle according to the Lorentz force.
+                        particle.electroMagneticPush(
+                            magneticInduction,
+                            MathVector(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
+                            m_config.getTimeStep());
+                    }
+                }
+
+                Point prev(particle.getCentre());
+
+                {
+                    // Lock m_particlesMovement_mutex when modifying m_particlesMovement.
+                    std::lock_guard<std::mutex> lock(m_particlesMovement_mutex);
+
+                    // Adding only those particles which are inside tetrahedron mesh.
+                    if (cubicGrid->isInsideTetrahedronMesh(prev) && m_particlesMovement.size() <= kdefault_max_numparticles_to_anim)
+                        m_particlesMovement[particle.getId()].emplace_back(prev);
+                }
+
+                particle.updatePosition(m_config.getTimeStep());
+                Ray ray(prev, particle.getCentre());
+
+                if (ray.is_degenerate())
+                    continue;
+
+                // Updating velocity of the particle according to the collision with gas.
+                particle.colide(m_config.getGas(), _gasConcentration, m_config.getScatteringModel(), m_config.getTimeStep());
+
+                // Skip collision detection at initial time.
+                if (t == 0.0)
+                    continue;
+
+                auto intersection = _surfaceMeshAABBtree.any_intersection(ray);
+                if (!intersection)
+                    continue;
+
+                auto triangle = *intersection->second;
+                if (triangle.is_degenerate())
+                    continue;
+
+                auto matchedIt = std::ranges::find_if(_triangleMesh, [triangle](auto const &el)
+                                                      { return triangle == std::get<1>(el); });
+                if (matchedIt != _triangleMesh.cend())
+                {
+                    auto id = _isRayIntersectTriangle(ray, *matchedIt);
+                    if (id)
+                    {
+                        bool stopProcessing = false;
+                        {
+                            std::unique_lock<std::shared_mutex> lock(m_settledParticles_mutex);
+                            ++_settledParticlesCounterMap[id.value()];
+                            _settledParticlesIds.insert(particle.getId());
+
+                            if (_settledParticlesIds.size() >= m_particles.size())
+                            {
+                                m_stop_processing.test_and_set();
+                                stopProcessing = true;
+                            }
+                        }
+
+                        {
+                            std::lock_guard<std::mutex> lock(m_particlesMovement_mutex);
+                            auto intersection_point = RayTriangleIntersection::getIntersectionPoint(ray, triangle);
+                            if (intersection_point)
+                                m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
+                        }
+
+                        if (stopProcessing)
+                            continue;
+                    }
+                }
+            } // end of for loop.
+        } // end of parallel region.
+#else
         MathVector magneticInduction{}; // For brevity assuming that induction vector B is 0.
         std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index,
                       [this, &cubicGrid, assemblier, magneticInduction, t](auto &particle)
@@ -535,6 +816,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               }
                           }
                       });
+#endif // !USE_OMP
     }
     catch (std::exception const &ex)
     {
@@ -556,29 +838,37 @@ void ModelingMainDriver::startModeling()
     _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
     /* Ending of the FEM initialization. */
 
-    auto num_threads{_getNumThreads()};
+    [[maybe_unused]] auto num_threads{_getNumThreads()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
     {
         // 1. Obtain charge densities in all the nodes.
+#ifdef USE_OMP
+        _processParticleTracker(0, m_particles.size(), t, cubicGrid, assemblier, nodeChargeDensityMap);
+#else
         // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
         // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
         // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
         // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
         // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
         _processWithThreads(num_threads, &ModelingMainDriver::_processParticleTracker, std::launch::async, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+#endif
 
         // 2. Solve equation in the main thread.
         _solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
-        // 3. Process surface collision tracking in parallel.
+// 3. Process surface collision tracking in parallel.
+#ifdef USE_OMP
+        _processPIC_and_SurfaceCollisionTracker(0, m_particles.size(), t, cubicGrid, assemblier);
+#else
         // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
         // after particle tracking. It can be deferred until it is needed, allowing for potential optimizations
         // such as saving resources when not required right away. Deferring this task ensures that the function
         // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
         // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
         _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
+#endif
     }
 
     _updateSurfaceMesh();
