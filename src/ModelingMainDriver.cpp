@@ -9,6 +9,7 @@ using json = nlohmann::json;
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "FiniteElementMethod/FEMPrinter.hpp"
+#include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
@@ -120,13 +121,13 @@ void ModelingMainDriver::_initializeParticles()
 {
     if (m_config.isParticleSourcePoint())
     {
-        auto tmp{createParticlesFromPointSource(m_config.getParticleSourcePoints())};
+        auto tmp{ParticleGenerator::fromPointSource(m_config.getParticleSourcePoints())};
         if (!tmp.empty())
             m_particles.insert(m_particles.end(), std::ranges::begin(tmp), std::ranges::end(tmp));
     }
     if (m_config.isParticleSourceSurface())
     {
-        auto tmp{createParticlesFromSurfaceSource(m_config.getParticleSourceSurfaces())};
+        auto tmp{ParticleGenerator::fromSurfaceSource(m_config.getParticleSourceSurfaces())};
         if (!tmp.empty())
             m_particles.insert(m_particles.end(), std::ranges::begin(tmp), std::ranges::end(tmp));
     }

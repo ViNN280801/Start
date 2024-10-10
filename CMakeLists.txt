@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
-option(START_MPI_ON "Enable MPI support for the project" ON)
+option(START_MPI_ON "Enable MPI support for the project" OFF)
 option(SHOW_LOGS_ON "Enable showing all the logs" ON)
 option(START_DEBUG "Compile the project in Start Debug mode" OFF)
 option(START_RELEASE "Compile the project in Start Release mode" ON)
@@ -516,7 +516,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/Cubature
     ${CMAKE_SOURCE_DIR}/include/Generators
     ${CMAKE_SOURCE_DIR}/include/Geometry
-    ${CMAKE_SOURCE_DIR}/include/Particles
+    ${CMAKE_SOURCE_DIR}/include/Particle
     ${CMAKE_SOURCE_DIR}/include/SessionManagement
     ${CMAKE_SOURCE_DIR}/include/Utilities
 )
@@ -553,7 +553,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     FiniteElementMethod
     Generators
     Geometry
-    Particles
+    Particle
     SessionManagers
     Utilities
 )
