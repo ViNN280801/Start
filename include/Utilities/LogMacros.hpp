@@ -74,6 +74,22 @@
     #define WARNINGMSG(desc)
 #endif
 
+#ifdef SHOW_LOGS
+    #define SUCCESSMSGSTR_RELEASE(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(), \
+                                                        ": ", desc, "\n");
+    #define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(),              \
+                                                ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
+                                                "(", std::source_location::current().line(), " line): ",              \
+                                                COMMON_PRETTY_FUNC, ": ", desc, "\n");
+    #ifdef START_RELEASE
+        #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR_RELEASE(desc);
+    #else
+        #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
+    #endif
+#else
+    #define SUCCESSMSG(desc)
+#endif
+
 namespace util
 {
 /**
