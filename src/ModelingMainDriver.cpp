@@ -28,18 +28,18 @@ void ModelingMainDriver::_broadcastTriangleMesh()
     if (rank == 0)
         numTriangles = _triangleMesh.size();
 
-    // Broadcast the number of triangles
+    // Broadcast the number of triangles.
     MPI_Bcast(std::addressof(numTriangles), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-    // Prepare arrays for sending or receiving
+    // Prepare arrays for sending or receiving.
     std::vector<size_t> triangleIds(numTriangles);
-    std::vector<double> triangleCoords(numTriangles * 9); // 9 doubles per triangle
+    std::vector<double> triangleCoords(numTriangles * 9); // 9 doubles per triangle.
     std::vector<double> dS_values(numTriangles);
     std::vector<int> counters(numTriangles);
 
     if (rank == 0)
     {
-        // Prepare data on rank 0
+        // Prepare data on rank 0.
         for (size_t i{}; i < numTriangles; ++i)
         {
             auto const &meshParam{_triangleMesh[i]};
@@ -61,7 +61,7 @@ void ModelingMainDriver::_broadcastTriangleMesh()
         }
     }
 
-    // Broadcast the data arrays
+    // Broadcast the data arrays.
     MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -85,7 +85,7 @@ void ModelingMainDriver::_broadcastTriangleMesh()
     }
 }
 
-void ModelingMainDriver::initializeSurfaceMesh()
+void ModelingMainDriver::_initializeSurfaceMesh()
 {
     int rank{};
 #ifdef USE_MPI
@@ -98,7 +98,7 @@ void ModelingMainDriver::initializeSurfaceMesh()
     _broadcastTriangleMesh();
 }
 
-void ModelingMainDriver::initializeSurfaceMeshAABB()
+void ModelingMainDriver::_initializeSurfaceMeshAABB()
 {
     if (_triangleMesh.empty())
         throw std::runtime_error("Can't construct AABB for triangle mesh - surface mesh is empty");
@@ -116,7 +116,7 @@ void ModelingMainDriver::initializeSurfaceMeshAABB()
     _surfaceMeshAABBtree = AABB_Tree_Triangle(std::cbegin(_triangles), std::cend(_triangles));
 }
 
-void ModelingMainDriver::initializeParticles()
+void ModelingMainDriver::_initializeParticles()
 {
     if (m_config.isParticleSourcePoint())
     {
@@ -135,16 +135,16 @@ void ModelingMainDriver::initializeParticles()
         throw std::runtime_error("Particles are uninitialized, check your configuration file");
 }
 
-void ModelingMainDriver::initialize()
+void ModelingMainDriver::_initialize()
 {
-    initializeSurfaceMesh();
-    initializeSurfaceMeshAABB();
+    _initializeSurfaceMesh();
+    _initializeSurfaceMeshAABB();
 }
 
-void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
-                                       std::shared_ptr<CubicGrid> &cubicGrid,
-                                       std::map<GlobalOrdinal, double> &boundaryConditions,
-                                       std::shared_ptr<VectorManager> &solutionVector)
+void ModelingMainDriver::_initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
+                                        std::shared_ptr<CubicGrid> &cubicGrid,
+                                        std::map<GlobalOrdinal, double> &boundaryConditions,
+                                        std::shared_ptr<VectorManager> &solutionVector)
 {
     // Assembling global stiffness matrix from the mesh file.
     assemblier = std::make_shared<GSMAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
@@ -163,7 +163,7 @@ void ModelingMainDriver::initializeFEM(std::shared_ptr<GSMAssemblier> &assemblie
     solutionVector->clear();
 }
 
-std::optional<size_t> ModelingMainDriver::isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
+std::optional<size_t> ModelingMainDriver::_isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
 {
     // Returning invalid index if ray or triangle is degenerate
     if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
@@ -174,7 +174,7 @@ std::optional<size_t> ModelingMainDriver::isRayIntersectTriangle(Ray const &ray,
                : std::nullopt;
 }
 
-unsigned int ModelingMainDriver::getNumThreads() const
+unsigned int ModelingMainDriver::_getNumThreads() const
 {
     if (auto curThreads{m_config.getNumThreads()}; curThreads < 1 || curThreads > std::thread::hardware_concurrency())
         throw std::runtime_error("The number of threads requested (1) exceeds the number of hardware threads supported by the system (" +
@@ -194,7 +194,7 @@ unsigned int ModelingMainDriver::getNumThreads() const
     return num_threads;
 }
 
-void ModelingMainDriver::saveParticleMovements() const
+void ModelingMainDriver::_saveParticleMovements() const
 {
     try
     {
@@ -238,7 +238,7 @@ void ModelingMainDriver::saveParticleMovements() const
     }
 }
 
-void ModelingMainDriver::updateSurfaceMesh()
+void ModelingMainDriver::_updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
     auto mapEnd{_settledParticlesCounterMap.cend()};
@@ -253,7 +253,7 @@ void ModelingMainDriver::updateSurfaceMesh()
 }
 
 template <typename Function, typename... Args>
-void ModelingMainDriver::processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_policy, Args &&...args)
+void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_policy, Args &&...args)
 {
     // Static assert to ensure the number of threads is greater than 0.
     static_assert(sizeof...(args) > 0, "You must provide at least one argument to pass to the function.");
@@ -306,15 +306,15 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
     }
 
     // Initializing all the objects from the mesh.
-    initialize();
+    _initialize();
 
     // Spawning particles.
-    initializeParticles();
+    _initializeParticles();
 }
 
-void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_index, double t,
-                                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
-                                                std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
+void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
+                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
+                                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
     try
     {
@@ -382,10 +382,10 @@ void ModelingMainDriver::processParticleTracker(size_t start_index, size_t end_i
     }
 }
 
-void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                                       std::shared_ptr<GSMAssemblier> &assemblier,
-                                       std::shared_ptr<VectorManager> &solutionVector,
-                                       std::map<GlobalOrdinal, double> &boundaryConditions, double time)
+void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
+                                        std::shared_ptr<GSMAssemblier> &assemblier,
+                                        std::shared_ptr<VectorManager> &solutionVector,
+                                        std::map<GlobalOrdinal, double> &boundaryConditions, double time)
 {
     try
     {
@@ -416,8 +416,8 @@ void ModelingMainDriver::solveEquation(std::map<GlobalOrdinal, double> &nodeChar
     }
 }
 
-void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier)
+void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
+                                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier)
 {
     try
     {
@@ -486,7 +486,7 @@ void ModelingMainDriver::processPIC_and_SurfaceCollisionTracker(size_t start_ind
                                                               { return triangle == std::get<1>(el); })};
                           if (matchedIt != _triangleMesh.cend())
                           {
-                              auto id{isRayIntersectTriangle(ray, *matchedIt)};
+                              auto id{_isRayIntersectTriangle(ray, *matchedIt)};
                               if (id)
                               {
                                   {
@@ -530,7 +530,7 @@ void ModelingMainDriver::startModeling()
     std::shared_ptr<VectorManager> solutionVector;
 
 #ifndef USE_MPI
-    initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
+    _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
 #endif
     /* Ending of the FEM initialization. */
 
@@ -545,7 +545,7 @@ void ModelingMainDriver::startModeling()
     MPI_Comm_dup(MPI_COMM_WORLD, std::addressof(commAssembly));
 
     LOGMSG(util::stringify("Rank ", rank, " started modeling with ", numProcs, " processes using commAssembly."));
-    initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
+    _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
     MPI_Barrier(commAssembly);
     LOGMSG(util::stringify("Rank ", rank, " finished assembly and reached MPI barrier with commAssembly."));
 
@@ -561,7 +561,7 @@ void ModelingMainDriver::startModeling()
     MPI_Comm_free(std::addressof(commAssembly));
 #endif
 
-    auto num_threads{getNumThreads()};
+    auto num_threads{_getNumThreads()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
@@ -574,10 +574,10 @@ void ModelingMainDriver::startModeling()
         // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
         // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
         // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
-        processWithThreads(num_threads, &ModelingMainDriver::processParticleTracker, std::launch::async, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+        _processWithThreads(num_threads, &ModelingMainDriver::_processParticleTracker, std::launch::async, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
 
         // 2. Solve equation in the main thread.
-        solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
+        _solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
         // 3. Process surface collision tracking in parallel.
         // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
@@ -585,15 +585,15 @@ void ModelingMainDriver::startModeling()
         // such as saving resources when not required right away. Deferring this task ensures that the function
         // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
         // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
-        processWithThreads(num_threads, &ModelingMainDriver::processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
+        _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
 
         LOGMSG(util::stringify("Rank ", rank, " completed timestep: ", t));
     }
 
     LOGMSG(util::stringify("Rank ", rank, " completed simulation."));
 
-    updateSurfaceMesh();
-    saveParticleMovements();
+    _updateSurfaceMesh();
+    _saveParticleMovements();
 
 #ifdef USE_MPI
     MPI_Comm_free(std::addressof(commSingle));

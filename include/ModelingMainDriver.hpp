@@ -61,15 +61,52 @@ private:
     std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
     std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
 
+    /**
+     * @brief Broadcasts the triangle mesh data from the root rank (rank 0) to all other ranks.
+     * @details This method ensures that all processes in the MPI communicator receive the
+     *          triangle mesh data from rank 0. The data includes triangle IDs, vertex coordinates,
+     *          surface areas, and counters. On rank 0, the data is prepared and broadcast to
+     *          all other ranks, which then reconstruct the mesh locally.
+     *
+     * @note This function uses MPI to perform the broadcasting. The triangle mesh on non-root
+     *       ranks is cleared and reconstructed based on the broadcasted data.
+     */
     void _broadcastTriangleMesh();
 
     /* Initializers for all the necessary objects. */
-    void initializeSurfaceMesh();
-    void initializeSurfaceMeshAABB();
-    void initializeParticles();
+    /**
+     * @brief Initializes the surface mesh by loading it from a file on the root rank and broadcasting it.
+     * @details This method loads the surface mesh data on rank 0 using a mesh filename
+     *          retrieved from the configuration. It then calls `_broadcastTriangleMesh()` to
+     *          distribute the data across all ranks, ensuring all processes have a copy of the mesh.
+     * @throws std::runtime_error if the mesh file is missing or cannot be loaded.
+     */
+    void _initializeSurfaceMesh();
+
+    /**
+     * @brief Initializes the Axis-Aligned Bounding Box (AABB) tree for the surface mesh.
+     * @details This method creates an AABB tree using the valid (non-degenerate) triangles
+     *          from the surface mesh. If the mesh is empty or contains only degenerate triangles,
+     *          an exception is thrown.
+     * @throws std::runtime_error if the surface mesh is empty or contains only degenerate triangles,
+     *         preventing AABB construction.
+     * @note This method should be called after `initializeSurfaceMesh()`.
+     */
+    void _initializeSurfaceMeshAABB();
+
+    /**
+     * @brief Initializes particles based on the configuration settings.
+     * @details This method generates particles either from point sources or surface sources,
+     *          depending on the configuration file. The generated particles are appended
+     *          to the existing particle list. If no particles are generated, an exception is thrown.
+     * @throws std::runtime_error if no particles are generated, which may indicate a misconfiguration.
+     * @note This method requires a valid configuration file specifying particle sources.
+     */
+    void _initializeParticles();
+    /* =========================================== */
 
     /// @brief Global initializator. Uses all the initializers above.
-    void initialize();
+    void _initialize();
 
     /**
      * @brief Initializes the Finite Element Method (FEM) components.
@@ -84,10 +121,10 @@ private:
      * @param boundaryConditions A map of boundary conditions to be set.
      * @param solutionVector The solution vector to be initialized.
      */
-    void initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
-                       std::shared_ptr<CubicGrid> &cubicGrid,
-                       std::map<GlobalOrdinal, double> &boundaryConditions,
-                       std::shared_ptr<VectorManager> &solutionVector);
+    void _initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
+                        std::shared_ptr<CubicGrid> &cubicGrid,
+                        std::map<GlobalOrdinal, double> &boundaryConditions,
+                        std::shared_ptr<VectorManager> &solutionVector);
 
     /**
      * @brief Saves the particle movements to a JSON file.
@@ -95,7 +132,7 @@ private:
      * This function saves the contents of m_particlesMovement to a JSON file named "particles_movements.json".
      * It handles exceptions and provides a warning message if the map is empty.
      */
-    void saveParticleMovements() const;
+    void _saveParticleMovements() const;
 
     /**
      * @brief Checks if a given ray intersects with a triangle.
@@ -109,13 +146,13 @@ private:
      * @return An `std::optional<size_t>` containing the ID of the intersected triangle
      *         if the ray intersects, or `std::nullopt` if there is no intersection.
      */
-    std::optional<size_t> isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle);
+    std::optional<size_t> _isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle);
 
     /// @brief Returns count of threads from config. Has initial checkings and warning msg when num threads occupies 80% of all the threads.
-    unsigned int getNumThreads() const;
+    unsigned int _getNumThreads() const;
 
     /// @brief Using HDF5Handler to update the mesh according to the settled particles.
-    void updateSurfaceMesh();
+    void _updateSurfaceMesh();
 
     /**
      * @brief Processes particles in parallel using multiple threads.
@@ -134,7 +171,7 @@ private:
      * @throws std::invalid_argument if num_threads exceeds the number of available hardware threads.
      */
     template <typename Function, typename... Args>
-    void processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_plicy, Args &&...args);
+    void _processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_plicy, Args &&...args);
 
     /**
      * @brief Processes particle tracking within a specified range of particles.
@@ -151,9 +188,9 @@ private:
      * @param assemblier A shared pointer to the GSM assembler that handles particle interactions.
      * @param nodeChargeDensityMap A reference to a map that tracks the charge density at each node.
      */
-    void processParticleTracker(size_t start_index, size_t end_index, double t,
-                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
-                                std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
+    void _processParticleTracker(size_t start_index, size_t end_index, double t,
+                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
+                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
 
     /**
      * @brief Solves the equation for the system using node charge density and boundary conditions.
@@ -167,10 +204,10 @@ private:
      * @param boundaryConditions A reference to a map containing boundary conditions for the system.
      * @param time The current simulation time.
      */
-    void solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                       std::shared_ptr<GSMAssemblier> &assemblier,
-                       std::shared_ptr<VectorManager> &solutionVector,
-                       std::map<GlobalOrdinal, double> &boundaryConditions, double time);
+    void _solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
+                        std::shared_ptr<GSMAssemblier> &assemblier,
+                        std::shared_ptr<VectorManager> &solutionVector,
+                        std::map<GlobalOrdinal, double> &boundaryConditions, double time);
 
     /**
      * @brief Processes particle-in-cell (PIC) and surface collision tracking within a particle range.
@@ -185,8 +222,8 @@ private:
      * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
      * @param assemblier A shared pointer to the GSM assembler that handles particle and surface interactions.
      */
-    void processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
+    void _processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
+                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
 
 public:
     /**
