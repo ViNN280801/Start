@@ -14,6 +14,7 @@ option(START_RELEASE "Compile the project in Start Release mode" ON)
 ##########                    Reporting about custom project flags                         ##########
 if (GPU_CUDA_ON)
     message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CUDA")
 else()
     message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
 endif()
