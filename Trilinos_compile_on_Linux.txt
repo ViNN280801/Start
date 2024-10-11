@@ -57,13 +57,14 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ \
       -DTrilinos_ENABLE_ALL_PACKAGES:BOOL=ON \
       -DTrilinos_ENABLE_Epetra:BOOL=OFF \
       -DTrilinos_ENABLE_EpetraExt:BOOL=OFF \
-      -DKokkos_ENABLE_SERIAL=OFF \
+      -DKokkos_ENABLE_SERIAL=ON \
       -DTrilinos_ENABLE_Kokkos=ON \
       -DKokkos_ENABLE_CUDA=ON \
       -DKokkos_ARCH_AMPERE86=ON \
       -DKokkos_ENABLE_CUDA_LAMBDA=ON \
       -DKokkos_ENABLE_OPENMP=ON \
       ..
+      
 
 -DKokkos_ARCH_AMPERE86=ON this flag u need to adjust according to the ur gpu architecture. This flag is responsible for the RTX 4060 GPU.
 
