@@ -325,6 +325,7 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
 {
     try
     {
+#ifdef USE_MPI
         Teuchos::ParameterList mueluParams;
         mueluParams.set("verbosity", "high");
 
@@ -339,10 +340,16 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
         mueluParams.sublist("coarse: params").set("relaxation: type", "Symmetric Gauss-Seidel");
         mueluParams.sublist("coarse: params").set("relaxation: sweeps", 1);
         mueluParams.sublist("coarse: params").set("relaxation: damping factor", 1.0);
+#endif
 
         // Initialize the preconditioner with parameters
         Teuchos::RCP<MueLu::TpetraOperator<Scalar, LocalOrdinal, GlobalOrdinal, Node>> M;
+
+#ifdef USE_MPI
         M = MueLu::CreateTpetraPreconditioner<Scalar, LocalOrdinal, GlobalOrdinal, Node>(m_A, mueluParams);
+#else
+        M = MueLu::CreateTpetraPreconditioner < Scalar, LocalOrdinal, GlobalOridnal, Node(m_A);
+#endif
 
         auto problem{Teuchos::rcp(new Belos::LinearProblem<Scalar, TpetraMultiVector, TpetraOperator>())};
         problem->setOperator(m_A);
