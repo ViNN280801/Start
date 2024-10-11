@@ -35,7 +35,7 @@ cmake -DTPL_ENABLE_MPI=ON \
 make -j<n> install
 
 
-# CMake compiling command for Debian (checked on Debian 12 bookworm)
+# CMake compiling command for Debian (checked on Debian 12 bookworm). If u want to compile with CUDA u need to verify that you are using GNU GCC 13 
 cd .. && rm -rvf build/
 mkdir -pv build && cd build
 cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ \
@@ -45,6 +45,9 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ \
       -DCMAKE_C_COMPILER=mpicc \
       -DCMAKE_CXX_COMPILER=mpicxx \
       -DCMAKE_Fortran_COMPILER=mpifort \
+      -DFortranCInterface_GLOBAL_SYMBOLS=LOWER \
+      -DFortranCInterface_GLOBAL_SYMBOLS_UNDERSCORE=ON \
+      -DFortranCInterface_GLOBAL_SYMBOLS_UNDERSCORE_UNDER=ON \
       -DTPL_ENABLE_HDF5=ON \
       -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_cpp.so" \
       -DTrilinos_ENABLE_Fortran:BOOL=ON \
@@ -54,7 +57,15 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ \
       -DTrilinos_ENABLE_ALL_PACKAGES:BOOL=ON \
       -DTrilinos_ENABLE_Epetra:BOOL=OFF \
       -DTrilinos_ENABLE_EpetraExt:BOOL=OFF \
+      -DKokkos_ENABLE_SERIAL=OFF \
+      -DTrilinos_ENABLE_Kokkos=ON \
+      -DKokkos_ENABLE_CUDA=ON \
+      -DKokkos_ARCH_AMPERE86=ON \
+      -DKokkos_ENABLE_CUDA_LAMBDA=ON \
+      -DKokkos_ENABLE_OPENMP=ON \
       ..
+
+-DKokkos_ARCH_AMPERE86=ON this flag u need to adjust according to the ur gpu architecture. This flag is responsible for the RTX 4060 GPU.
 
 Link to the precompiled Trilinos (Visual Studio 17 2022. MSVC 14.40.33807):
 https://drive.google.com/file/d/1utiHNigjNQdjRsQYwPAxWlJM8ZNY64tj/view?usp=sharing
