@@ -23,15 +23,23 @@
 #include <array>
 #include <vector>
 
-using Scalar = double;                                                // ST - Scalar Type (type of the data inside the matrix node).
-using LocalOrdinal = int;                                             // LO - indices in local matrix.
-using GlobalOrdinal = long long;                                      // GO - Global Ordinal Type (indices in global matrices).
+using Scalar = double;           // ST - Scalar Type (type of the data inside the matrix node).
+using LocalOrdinal = int;        // LO - indices in local matrix.
+using GlobalOrdinal = long long; // GO - Global Ordinal Type (indices in global matrices).
+
+#ifndef USE_CUDA
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;                 // Using host space to interoperate with data.
 using DeviceType = Kokkos::Device<ExecutionSpace, Kokkos::HostSpace>; // Using CPU.
-using DynRankView = Kokkos::DynRankView<Scalar, DeviceType>;          // Multi-dimensional array template.
-using DynRankViewVector = std::vector<DynRankView>;                   // Vector of multi-dimensional arrays.
-using DynRankViewMatrix = std::vector<DynRankViewVector>;             // Matrix of multi-dimensional arrays.
-using Node = Tpetra::Map<>::node_type;                                // Node type based on Kokkos execution space.
+#else
+using ExecutionSpace = Kokkos::CUDA;                       // Using GPU CUDA.
+using MemorySpace = typename ExecutionSpace::memory_space; // Using device memory space.
+using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
+#endif
+
+using DynRankView = Kokkos::DynRankView<Scalar, DeviceType>; // Multi-dimensional array template.
+using DynRankViewVector = std::vector<DynRankView>;          // Vector of multi-dimensional arrays.
+using DynRankViewMatrix = std::vector<DynRankViewVector>;    // Matrix of multi-dimensional arrays.
+using Node = Tpetra::Map<>::node_type;                       // Node type based on Kokkos execution space.
 using MapType = Tpetra::Map<LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraVectorType = Tpetra::Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraMultiVector = Tpetra::MultiVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
