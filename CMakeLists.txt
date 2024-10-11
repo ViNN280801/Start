@@ -490,6 +490,7 @@ endif()
 # ║ for specific behavior during compilation.                                ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(START_DEBUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     add_compile_definitions(START_DEBUG)
     message(STATUS "⚙️  Start project compiling mode set to START_DEBUG.")
 elseif(START_RELEASE)
