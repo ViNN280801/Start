@@ -6,8 +6,16 @@ set(BOUNDARY_CONDITIONS_SOURCES
     BoundaryConditionsManager.cpp
 )
 
-add_library(FiniteElementMethod_BoundaryConditions ${BOUNDARY_CONDITIONS_SOURCES})
+set(LIB_NAME FiniteElementMethod_BoundaryConditions)
+add_library(${LIB_NAME} ${BOUNDARY_CONDITIONS_SOURCES})
 
-target_include_directories(FiniteElementMethod_BoundaryConditions PRIVATE 
+target_include_directories(${LIB_NAME} PRIVATE 
     ${Trilinos_INCLUDE_DIRS}
 )
+
+if (GPU_CUDA_ON)
+    target_include_directories(${LIB_NAME} PRIVATE ${CUDA_INCLUDE_DIR})
+    target_compile_definitions(${LIB_NAME} PRIVATE __CUDACC__)
+    set_target_properties(${LIB_NAME} PROPERTIES CUDA_STANDARD 14)
+    set_target_properties(${LIB_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+endif()

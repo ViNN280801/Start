@@ -12,3 +12,4 @@ target_link_libraries(Generators PRIVATE
 target_include_directories(Generators PRIVATE
     ${Boost_INCLUDE_DIRS}
 )
+target_compile_features(DataHandling PRIVATE cxx_std_20)

@@ -14,3 +14,4 @@ target_link_libraries(Geometry PRIVATE
 target_include_directories(Geometry PRIVATE
     ${CGAL_INCLUDE_DIRS}
     ${GMSH_INCLUDE_DIRS})
+target_compile_features(DataHandling PRIVATE cxx_std_20)

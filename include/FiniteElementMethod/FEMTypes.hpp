@@ -31,7 +31,7 @@ using GlobalOrdinal = long long; // GO - Global Ordinal Type (indices in global 
 using ExecutionSpace = Kokkos::DefaultExecutionSpace;                 // Using host space to interoperate with data.
 using DeviceType = Kokkos::Device<ExecutionSpace, Kokkos::HostSpace>; // Using CPU.
 #else
-using ExecutionSpace = Kokkos::CUDA;                       // Using GPU CUDA.
+using ExecutionSpace = Kokkos::CudaSpace;                  // Using GPU CUDA.
 using MemorySpace = typename ExecutionSpace::memory_space; // Using device memory space.
 using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 #endif

@@ -8,9 +8,9 @@ set(FEM_SOURCES
 )
 
 if (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+    add_compile_options("/bigobj")
 else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flarge-source-files -Wmisleading-indentation")
+    add_compile_options("-flarge-source-files" "-Wmisleading-indentation")
 endif()
 
 add_subdirectory(BoundaryConditions)

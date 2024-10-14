@@ -14,7 +14,7 @@ option(START_RELEASE "Compile the project in Start Release mode" ON)
 ##########                    Reporting about custom project flags                         ##########
 if (GPU_CUDA_ON)
     message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CUDA")
+    add_compile_options(-DUSE_CUDA)
 else()
     message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
 endif()
@@ -27,7 +27,7 @@ endif()
 
 if(START_OPENMP_ON)
     message(STATUS "✅ OpenMP support enabled for the project.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -DUSE_OMP")
+    add_compile_options(-fopenmp -DUSE_OMP)
 else()
     message(STATUS "🚫 OpenMP support disabled for the project.")
 endif()
@@ -35,14 +35,14 @@ endif()
 if (START_MPI_ON)
     message(STATUS "✅ MPI is enabled for the project.")
     set(DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG "-Wno-cast-function-type")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG} -DUSE_MPI")
+    add_compile_options(${DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG} -DUSE_MPI)
 else()
     message(STATUS "🚫 MPI is disabled for the project.")
 endif()
 
 if(SHOW_LOGS_ON)
     message(STATUS "✅ Logging is enabled.")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSHOW_LOGS")
+    add_compile_options(-DSHOW_LOGS)
 else()
     message(STATUS "🚫 Logging is disabled.")
 endif()
@@ -90,8 +90,22 @@ set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc-13" "C compiler")
 set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++-13" "C++ compiler")
 
 if (GPU_CUDA_ON)
-    set_compiler_if_not_defined(CUDAHOSTCXX CUDAHOSTCXX "/usr/bin/g++-13" "CUDA host C++ compiler")
-    set_compiler_if_not_defined(CUDA_COMPILER CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" "CUDA compiler")
+    set(CUDAHOSTCXX "/usr/bin/g++-11")
+    message(STATUS "⚙️  Using ${CUDAHOSTCXX} as the CUDA host compiler.")
+    set(CMAKE_CUDA_HOST_COMPILER ${CUDAHOSTCXX})
+
+    set(ENV{NVCC_WRAPPER_DEFAULT_COMPILER} ${CUDAHOSTCXX})
+    message(STATUS "⚙️  Setting NVCC_WRAPPER_DEFAULT_COMPILER to ${CUDAHOSTCXX}")
+
+    set_compiler_if_not_defined(CMAKE_CUDA_COMPILER CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" "CUDA compiler")
+
+    set(NVCC_WRAPPER_PATH "/usr/local/bin/nvcc_wrapper")
+    if (EXISTS ${NVCC_WRAPPER_PATH})
+        message(STATUS "⚙️  Using nvcc_wrapper at ${NVCC_WRAPPER_PATH} as the C++ compiler for CUDA-enabled targets.")
+        set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
+    else()
+        message(FATAL_ERROR "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed.")
+    endif()
 endif()
 
 ###############################################################
@@ -106,7 +120,7 @@ set(gxx_major_version ${MAJOR_VERSION})
 if(gcc_major_version STREQUAL "14" OR gxx_major_version STREQUAL "14")
     if (GPU_CUDA_ON)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
-        message(WARNING "⚠️  GCC 14 or G++ 14 detected. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC 14 is not guaranteed!")
+        message(WARNING "⚠️  Using GCC ${gcc_major_version} with CUDA. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC ${gcc_major_version} is not guaranteed!")
     endif()
 endif()
 
@@ -134,7 +148,11 @@ if (GPU_CUDA_ON)
     if(NOT CUDA_TOOLKIT_ROOT_DIR)
         # Set to default if not set
         set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
-        message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: [${CUDA_TOOLKIT_ROOT_DIR}]")
+        set(CUDA_INCLUDE_DIR "${CUDA_TOOLKIT_ROOT_DIR}/include")
+        # add_compile_options(-D__CUDACC__)
+        
+        message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: [${CUDA_TOOLKIT_ROOT_DIR}]. Include directories: [${CUDA_INCLUDE_DIR}]")
+        # message(STATUS "⚙️  Adding flag '-D__CUDACC__' to avoid errors from Kokkos: #error \"KOKKOS_ENABLE_CUDA defined but the compiler is not defining the __CUDACC__ macro as expected\"")
     else()
         message(STATUS "⚙️  CUDA toolkit root directory specified: [${CUDA_TOOLKIT_ROOT_DIR}]")
     endif()
@@ -145,8 +163,6 @@ if (GPU_CUDA_ON)
     ###############################################################
     #               Setting CUDA Compiler Path (Optional)         #
     ###############################################################
-    set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
-    message(STATUS "⚙️  CUDA compiler set to: [${CMAKE_CUDA_COMPILER}]")
 
     # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
     if (GPU_CUDA_ON)
@@ -175,8 +191,21 @@ project(Start
         by plasma particles."
         LANGUAGES CXX)
 if (GPU_CUDA_ON)
-    # Add CUDA as a project languages list.
     enable_language(CUDA)
+endif()
+
+# Global C++ standard setting
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
+message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
+
+# Global CUDA include directories if GPU support is enabled
+if (GPU_CUDA_ON)
+    set(CMAKE_CUDA_STANDARD 14)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
+    include_directories(${CUDA_INCLUDE_DIR})
 endif()
 
 
@@ -398,14 +427,14 @@ if(MSVC)
     add_compile_options(/W4)                                                     # Enable warning level 4
     string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")  # Remove /RTC1 flag
     string(REPLACE "/O2" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")    # Remove /O2 flag from debug
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")                # Optimize in release mode
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")                            # Compiling as big object file
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" "/O2")                # Optimize in release mode
+    add_compile_options(/bigobj)                            # Compiling as big object file
 else()
     set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
     set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
-    set(COMMON_CPP_FLAGS "-Wall -Wpedantic -Wextra -pthread -O3 -Wmisleading-indentation")
+    set(COMMON_CPP_FLAGS "-Wall" "-Wpedantic" "-Wextra" "-pthread" "-O3" "-Wmisleading-indentation")
 
-    set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}")
+    set(FINAL_CPP_FLAGS ${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG})
 
     # Initialize variables for optional flags
     set(ANTI_ALIASING_FLAG "")
@@ -416,25 +445,25 @@ else()
         # Check for Clang and set specific flags
         if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
             set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
-            set(VECTORIZATION_FLAGS "-fvectorize -march=native -mtune=native")
-            set(CLANG_FLAGS "-Xclang -flarge-source-files")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            set(VECTORIZATION_FLAGS "-fvectorize" "-march=native" "-mtune=native")
+            set(CLANG_FLAGS "-Xclang" "-flarge-source-files")
+            add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
             message(STATUS "🛠️ Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
         # Check for GCC and set specific flags
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
-            set(VECTORIZATION_FLAGS "-ftree-vectorize -march=native -mtune=native -mprefer-vector-width=512")
+            set(VECTORIZATION_FLAGS "-ftree-vectorize" "-march=native" "-mtune=native" "-mprefer-vector-width=512")
             set(GCC_FLAGS "-flarge-source-files")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
             message(STATUS "🛠️ GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
         # Check for Intel compiler and set specific flags
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
             set(ANTI_ALIASING_FLAG "-ansi-alias")
-            set(VECTORIZATION_FLAGS "-restrict -xHost -vecabi=cmdtarget -qopt-zmm-usage=high")
+            set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget" "-qopt-zmm-usage=high")
             set(INTEL_COMPILER_FLAGS "-flarge-source-files")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}")
+            add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
             message(STATUS "🛠️ Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
         endif()
     else()
@@ -442,7 +471,7 @@ else()
     endif()
 
     # Append the common and custom flags to CMAKE_CXX_FLAGS
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
+    add_compile_options(${FINAL_CPP_FLAGS})
     message(STATUS "⚙️  Non-MSVC compiler flags: [${FINAL_CPP_FLAGS}]")
 endif()
 
@@ -454,13 +483,13 @@ endif()
 # ║ floating-point rounding flags for strict computation control.            ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fp-model strict")
+    add_compile_options(-fp-model strict)
     message(STATUS "⚙️  Intel: Using strict floating-point rounding with flag: -fp-model strict")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
+    add_compile_options(-frounding-math)
     message(STATUS "⚙️  GNU: Using strict floating-point rounding with flag: -frounding-math")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:strict")
+    add_compile_options(/fp:strict)
     message(STATUS "⚙️  MSVC: Using strict floating-point rounding with flag: /fp:strict")
 else()
     message(WARNING "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding.")
@@ -502,11 +531,6 @@ endif()
 # ╔══════════════════════════════════════════════════════════════════════════╗
 # ║              END OF CONFIGURING OPTIONS                                  ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
-message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -558,6 +582,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     SessionManagers
     Utilities
 )
+target_compile_features(${EXECUTABLE_NAME} PUBLIC cxx_std_20)
 
 if (GPU_CUDA_ON)
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${CUDA_LIBRARIES})
