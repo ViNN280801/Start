@@ -11,4 +11,3 @@ target_link_libraries(DataHandling PRIVATE
 
 target_include_directories(DataHandling PRIVATE
     ${HDF5_INCLUDE_DIRS})
-target_compile_features(DataHandling PRIVATE cxx_std_20)
