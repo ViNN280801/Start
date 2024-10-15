@@ -167,7 +167,7 @@ if (GPU_CUDA_ON)
     set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
     message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
 
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -mno-amx-bf16 -Xcompiler -mno-amx-int8 -Xcompiler -mno-amx-tile")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --extended-lambda -Xcompiler -mno-amx-bf16 -Xcompiler -mno-amx-int8 -Xcompiler -mno-amx-tile")
     message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
     ###############################################################
     #                    End of CUDA Setup                        #
@@ -190,14 +190,19 @@ if (GPU_CUDA_ON)
 endif()
 
 # Global C++ standard setting
-set(CMAKE_CXX_STANDARD 20)
+if (GPU_CUDA_ON)
+    set(CMAKE_CXX_STANDARD 17)
+else()
+    set(CMAKE_CXX_STANDARD 20)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
 
 # Global CUDA include directories if GPU support is enabled
 if (GPU_CUDA_ON)
-    set(CMAKE_CUDA_STANDARD 14)
+    set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    add_compile_options(-D__CUDA_NO_STANDARD_CPP)
     message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
     include_directories(${CUDA_INCLUDE_DIR})
 endif()
@@ -358,11 +363,16 @@ include_directories(${TBB_INCLUDE_DIRS})
 # ║ Set compiler options for warning level and optimizations.                 ║
 # ║ Remove unnecessary flags in debug mode and optimize in release mode.      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
+set(SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG "-Wno-deprecated-declarations")
+message(STATUS "⚙️  Setting flag '${SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG}' to suppress warning: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'")
 set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
+message(STATUS "⚙️  Setting flag '${ENABLE_SQRT_VECTORIZATION_FLAG}' to enable vectorization of square root calculations without setting errno on errors")
 set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
-set(COMMON_CPP_FLAGS "-Wall" "-Wpedantic" "-Wextra" "-pthread" "-O3" "-Wmisleading-indentation")
+message(STATUS "⚙️  Setting flag '${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}' to avoid warnings about exceptions on divide operations")
 
-set(FINAL_CPP_FLAGS ${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG})
+set(COMMON_CPP_FLAGS "-Wall -Wextra -Wpedantic -pthread -O3 -Wmisleading-indentation")
+set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
 
 # Initialize variables for optional flags
 set(ANTI_ALIASING_FLAG "")
@@ -414,8 +424,8 @@ if(VECTORIZATION_ON)
 endif()
 
 # Append the common and custom flags to CMAKE_CXX_FLAGS
-add_compile_options(${FINAL_CPP_FLAGS})
-message(STATUS "⚙️  Compiling with C++ flags: [${FINAL_CPP_FLAGS}]")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS} -mno-amx-tile")
+message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
 # ║           FLOATING-POINT ROUNDING MODE CONFIGURATION                     ║
@@ -521,7 +531,6 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     SessionManagers
     Utilities
 )
-target_compile_features(${EXECUTABLE_NAME} PUBLIC cxx_std_20)
 
 if (GPU_CUDA_ON)
     target_compile_options(${EXECUTABLE_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
@@ -531,3 +540,6 @@ endif()
 if (START_OPENMP_ON)
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${OpenMP_LIBRARIES})
 endif()
+
+add_custom_target(distclean COMMAND rm -rf MakeCache.txt CMakeFiles
+    Makefile cmake_install.cmake CTestTestfile.cmake Testing)

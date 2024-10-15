@@ -2,7 +2,6 @@
 #define TIMER_HPP
 
 #include <chrono>
-#include <concepts>
 #include <functional>
 
 /**

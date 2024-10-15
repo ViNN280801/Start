@@ -1,7 +1,5 @@
-#include <numbers>
-
-#include "Generators/RealNumberGenerator.hpp"
 #include "Particle/Particle.hpp"
+#include "Generators/RealNumberGenerator.hpp"
 
 std::atomic<size_t> Particle::m_nextId{0ul};
 
@@ -202,10 +200,9 @@ bool Particle::colide(Particle target, double n_concentration, std::string_view 
 
 bool Particle::colideHS(Particle target, double n_concentration, double time_step)
 {
-
 	double p_mass{getMass()},
 		t_mass{target.getMass()},
-		sigma{(std::numbers::pi)*std::pow(getRadius() + target.getRadius(), 2)};
+		sigma{(START_PI_NUMBER)*std::pow(getRadius() + target.getRadius(), 2)};
 
 	// Probability of the scattering
 	double Probability{sigma * getVelocityModule() * n_concentration * time_step};
@@ -216,7 +213,7 @@ bool Particle::colideHS(Particle target, double n_concentration, double time_ste
 	if (iscolide)
 	{
 		double xi_cos{rng(-1, 1)}, xi_sin{sqrt(1 - xi_cos * xi_cos)},
-			phi{rng(0, 2 * std::numbers::pi)};
+			phi{rng(0, 2 * START_PI_NUMBER)};
 
 		double x{xi_sin * cos(phi)}, y{xi_sin * sin(phi)}, z{xi_cos},
 			mass_cp{p_mass / (t_mass + p_mass)},
@@ -233,7 +230,6 @@ bool Particle::colideHS(Particle target, double n_concentration, double time_ste
 
 bool Particle::colideVHS(Particle target, double n_concentration, double omega, double time_step)
 {
-
 	double d_reference{(getRadius() + target.getRadius())},
 		mass_constant{getMass() * target.getMass() / (getMass() + target.getMass())},
 		t_mass{target.getMass()}, p_mass{getMass()},
@@ -244,7 +240,7 @@ bool Particle::colideVHS(Particle target, double n_concentration, double omega, 
 								(mass_constant * getVelocityModule() * getVelocityModule()),
 							Exponent)};
 
-	double sigma{std::numbers::pi * d_vhs_2},
+	double sigma{START_PI_NUMBER * d_vhs_2},
 		Probability{sigma * getVelocityModule() * n_concentration * time_step};
 
 	RealNumberGenerator rng;
@@ -252,7 +248,7 @@ bool Particle::colideVHS(Particle target, double n_concentration, double omega, 
 	if (iscolide)
 	{
 		double xi_cos{rng(-1, 1)}, xi_sin{sqrt(1 - xi_cos * xi_cos)},
-			phi{rng(0, 2 * std::numbers::pi)};
+			phi{rng(0, 2 * START_PI_NUMBER)};
 
 		double x{xi_sin * cos(phi)}, y{xi_sin * sin(phi)}, z{xi_cos},
 			mass_cp{p_mass / (t_mass + p_mass)},
@@ -271,7 +267,6 @@ bool Particle::colideVHS(Particle target, double n_concentration, double omega, 
 bool Particle::colideVSS(Particle target, double n_concentration, double omega,
 						 double alpha, double time_step)
 {
-
 	double d_reference{(getRadius() + target.getRadius())},
 		mass_constant{getMass() * target.getMass() / (getMass() + target.getMass())},
 		t_mass{target.getMass()},
@@ -283,7 +278,7 @@ bool Particle::colideVSS(Particle target, double n_concentration, double omega,
 								(mass_constant * getVelocityModule() * getVelocityModule()),
 							Exponent)};
 
-	double sigma{std::numbers::pi * d_vhs_2},
+	double sigma{START_PI_NUMBER * d_vhs_2},
 		Probability{sigma * getVelocityModule() * n_concentration * time_step};
 
 	RealNumberGenerator rng;
@@ -291,7 +286,7 @@ bool Particle::colideVSS(Particle target, double n_concentration, double omega,
 	if (iscolide)
 	{
 		double xi_cos{2 * std::pow(rng(), 1. / alpha) - 1.}, xi_sin{sqrt(1 - xi_cos * xi_cos)},
-			phi{rng(0, 2 * std::numbers::pi)};
+			phi{rng(0, 2 * START_PI_NUMBER)};
 
 		double x{xi_sin * cos(phi)}, y{xi_sin * sin(phi)}, z{xi_cos},
 			mass_cp{p_mass / (t_mass + p_mass)},

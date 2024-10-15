@@ -5,9 +5,19 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <source_location>
 #include <sstream>
 #include <string_view>
+
+#if __cplusplus >= 202002L
+    #include <source_location>
+    using SourceLocation = std::source_location;
+#else
+    struct SourceLocation {
+        static constexpr SourceLocation current() noexcept { return {}; }
+        constexpr const char* file_name() const noexcept { return "NOT FOR THE RELEASE!!! unknown file"; }
+        constexpr int line() const noexcept { return -1; }
+    };
+#endif
 
 #include "Utilities/PreprocessorUtils.hpp"
 
@@ -15,12 +25,12 @@
     #define ERRMSG_ABS_PATH(desc) std::cerr << util::stringify("\033[1;31mError:\033[0m\033[1m ",                    \
                                                             util::getCurTime(),                                      \
                                                             ": ",                                                    \
-                                                            std::source_location::current().file_name(),             \
-                                                            "(", std::source_location::current().line(), " line): ", \
+                                                            SourceLocation::current().file_name(),             \
+                                                            "(", SourceLocation::current().line(), " line): ", \
                                                             COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
     #define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ",                    \
-                                                            std::source_location::current().file_name(),             \
-                                                            "(", std::source_location::current().line(), " line): ", \
+                                                            SourceLocation::current().file_name(),             \
+                                                            "(", SourceLocation::current().line(), " line): ", \
                                                             COMMON_PRETTY_FUNC, ": ", desc, "\n");
     #define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
 #endif
@@ -32,8 +42,8 @@
         #define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
     #else
         #define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(),            \
-                                            ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                            "(", std::source_location::current().line(), " line): ",              \
+                                            ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
+                                            "(", SourceLocation::current().line(), " line): ",              \
                                             COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
         #define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
     #endif
@@ -48,8 +58,8 @@
         #define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
     #else
         #define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), ": ",                          \
-                                            EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                            "(", std::source_location::current().line(), " line): ",        \
+                                            EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
+                                            "(", SourceLocation::current().line(), " line): ",        \
                                             COMMON_PRETTY_FUNC, ": ", desc, "\n");
         #define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
     #endif
@@ -64,8 +74,8 @@
         #define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
     #else
         #define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(),          \
-                                                ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                                "(", std::source_location::current().line(), " line): ",              \
+                                                ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
+                                                "(", SourceLocation::current().line(), " line): ",              \
                                                 COMMON_PRETTY_FUNC, ": ", desc, "\n");
         #define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
     #endif
@@ -80,8 +90,8 @@
         #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
     #else
         #define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(),          \
-                                                ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                                "(", std::source_location::current().line(), " line): ",              \
+                                                ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
+                                                "(", SourceLocation::current().line(), " line): ",              \
                                                 COMMON_PRETTY_FUNC, ": ", desc, "\n");
         #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
     #endif
@@ -91,7 +101,8 @@
 
 namespace util
 {
-/**
+#if __cplusplus >= 202002L
+    /**
      * @brief Concept that specifies all types that can be convert to "std::string_view" type
      * For example, "char", "const char *", "std::string", etc.
      * @tparam T The type to check for convertibility to std::string_view.
@@ -110,6 +121,14 @@ namespace util
             os << a
         } -> std::same_as<std::ostream &>;
     };
+#else
+    // Fallback implementation for C++17 using SFINAE
+    template <typename T>
+    using StringConvertible = std::enable_if_t<std::is_convertible_v<T, std::string_view>>;
+
+    template <typename T>
+    using Printable = std::enable_if_t<std::is_same_v<decltype(std::declval<std::ostream&>() << std::declval<T>()), std::ostream&>>;
+#endif
 
     /**
      * @brief Gets the current system time in the specified format.
@@ -120,6 +139,7 @@ namespace util
      */
     std::string getCurTime(std::string_view format = "%H:%M:%S");
 
+#if __cplusplus >= 202002L
     /**
      * @brief Generates string with specified multiple args
      * @tparam args arguments of type that can be convert to string
@@ -132,6 +152,15 @@ namespace util
         (oss << ... << std::forward<Args>(args));
         return oss.str();
     }
+#else
+    template <typename... Args>
+    std::string stringify(Args &&...args)
+    {
+        std::ostringstream oss;
+        (oss << ... << args);
+        return oss.str();
+    }
+#endif
 }
 
 #endif // !LOGMACROS_HPP

@@ -1,8 +1,14 @@
 #ifndef PARTICLESGENERATOR_HPP
 #define PARTICLESGENERATOR_HPP
 
+#if __cplusplus < 202002L
+#include <type_traits>
+#include <utility> // for std::declval
+#endif
+
 #include "Particle/Particle.hpp"
 
+#if _cplusplus >= 202002L
 /**
  * @brief Concept to ensure the Generator is callable and returns a Particle.
  *
@@ -11,6 +17,14 @@
  */
 template <typename Generator>
 concept ParticleGeneratorConcept = std::invocable<Generator> && std::same_as<std::invoke_result_t<Generator>, Particle>;
+#else
+template <typename Generator>
+constexpr bool ParticleGeneratorConcept_v = std::is_invocable_r_v<Particle, Generator>;
+
+// SFINAE check for C++17
+template <typename Generator>
+using ParticleGeneratorConcept = std::enable_if_t<ParticleGeneratorConcept_v<Generator>, bool>;
+#endif
 
 /**
  * @brief The ParticleGenerator class provides various methods to generate particles with different properties.
@@ -63,7 +77,13 @@ private:
      * });
      * @endcode
      */
-    template <ParticleGeneratorConcept Gen>
+    template <
+#if __cplusplus >= 202002L
+        ParticleGeneratorConcept Gen
+#else
+        typename Gen, typename = ParticleGeneratorConcept<Gen>
+#endif
+        >
     static ParticleVector _generate(size_t count, Gen gen)
     {
         ParticleVector particles;
