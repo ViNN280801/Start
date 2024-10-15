@@ -15,13 +15,7 @@
 class TetrahedronMeshManager final
 {
 private:
-#ifdef _WIN32
-#define TETRAHEDRON_DATA_VISIBILITY public
-#else
-#define TETRAHEDRON_DATA_VISIBILITY private
-#endif
-
-    TETRAHEDRON_DATA_VISIBILITY : struct TetrahedronData
+    struct TetrahedronData
     {
         struct NodeData
         {
@@ -44,7 +38,6 @@ private:
         Point getTetrahedronCenter() const;
     };
 
-private:
     std::vector<TetrahedronData> m_meshComponents; ///< Array of all the tetrahedrons from the mesh.
 
     int m_rank; ///< Rank of the current MPI process (for distributed mesh processing).
@@ -186,7 +179,10 @@ public:
 
     /// @brief Checks and returns result of the checking if there is no tetrahedra in the mesh.
     [[nodiscard("It's necessary to check if the mesh is empty to avoid null operations.")]]
-    constexpr bool empty() const { return m_meshComponents.empty(); }
+    constexpr bool empty() const
+    {
+        return m_meshComponents.empty();
+    }
 
     /// @brief Returns total volume of the mesh.
     [[nodiscard("The total volume is essential for global calculations over the mesh.")]]

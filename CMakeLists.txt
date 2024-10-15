@@ -90,7 +90,7 @@ set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc-13" "C compiler")
 set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++-13" "C++ compiler")
 
 if (GPU_CUDA_ON)
-    set(CUDAHOSTCXX "/usr/bin/g++-11")
+    set(CUDAHOSTCXX "/usr/bin/g++")
     message(STATUS "⚙️  Using ${CUDAHOSTCXX} as the CUDA host compiler.")
     set(CMAKE_CUDA_HOST_COMPILER ${CUDAHOSTCXX})
 
@@ -212,65 +212,29 @@ endif()
 ###############################################################
 #                     GMSH Setup                              #
 ###############################################################
-if(WIN32)
-    find_path(GMSH_INC NAMES gmsh.h
-        HINTS $ENV{GMSH_INC}
-        PATH_SUFFIXES include)
+find_path(GMSH_INC NAMES gmsh.h
+    HINTS /usr/include /usr/local/include)
 
-    if(NOT GMSH_INC)
-        message(FATAL_ERROR "❌ GMSH include directory not found. Please ensure GMSH is installed and GMSH_INC is set.")
-    else()
-        message(STATUS "✅ GMSH include directories found at: [${GMSH_INC}]")
-    endif()
+find_library(GMSH_LIBRARIES NAMES gmsh
+    HINTS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
 
-    include_directories(${GMSH_INC})
-
-    find_library(GMSH_LIBRARIES NAMES gmsh
-        HINTS $ENV{GMSH_LIB} 
-        PATH_SUFFIXES lib)
-
-    if(NOT GMSH_LIBRARIES)
-        message(FATAL_ERROR "❌ GMSH libraries not found. Please ensure GMSH is installed and GMSH_LIB is set.")
-    else()
-        message(STATUS "✅ GMSH libraries found: [${GMSH_LIBRARIES}]")
-    endif()
-
+if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
+    message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
 else()
-    find_path(GMSH_INC NAMES gmsh.h
-        HINTS /usr/include /usr/local/include)
-
-    find_library(GMSH_LIBRARIES NAMES gmsh
-        HINTS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
-
-    if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
-        message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
-    else()
-        message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
-    endif()
-
-    include_directories(${GMSH_INC})
+    message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
 endif()
+
+include_directories(${GMSH_INC})
 ###############################################################
 #                     CGAL Setup                              #
 ###############################################################
-if(WIN32)
-    find_package(CGAL REQUIRED)
-    if(CGAL_FOUND)
-        set(CGAL_NAMESPACE CGAL::CGAL)
-        message(STATUS "✅ CGAL found: Include directories at [${CGAL_INCLUDE_DIRS}], Libraries at [${CGAL_LIBRARIES}]")
-    else()
-        message(FATAL_ERROR "❌ CGAL not found. Please ensure CGAL is installed.")
-    endif()
-    include_directories(${CGAL_INCLUDE_DIRS})
-else()
-    find_path(CGAL_INCLUDE_DIR NAMES CGAL/AABB_tree.h
-        HINTS /usr/include /usr/local/include
-        PATH_SUFFIXES CGAL)
+find_path(CGAL_INCLUDE_DIR NAMES CGAL/AABB_tree.h
+    HINTS /usr/include /usr/local/include
+    PATH_SUFFIXES CGAL)
 
-    message(STATUS "✅ CGAL include directory: [${CGAL_INCLUDE_DIR}]")
+message(STATUS "✅ CGAL include directory: [${CGAL_INCLUDE_DIR}]")
 
-    include_directories(${CGAL_INCLUDE_DIR})
-endif()
+include_directories(${CGAL_INCLUDE_DIR})
 ###############################################################
 #                     OpenMP Setup                            #
 ###############################################################
@@ -286,31 +250,16 @@ link_directories(${OpenMP_LIBRARY_DIRS})
 ###############################################################
 #                     JSON Setup                              #
 ###############################################################
-if(WIN32)
-    find_path(JSON_INC NAMES json.hpp
-        HINTS $ENV{JSON_INC}
-        PATH_SUFFIXES include)
+find_path(JSON_INC NAMES json.hpp
+    HINTS /usr/include /usr/local/include /usr/include/nlohmann /usr/include/boost)
 
-    if(NOT JSON_INC)
-        message(FATAL_ERROR "❌ JSON include directory not found. Please ensure JSON_INC is set.")
-    else()
-        message(STATUS "✅ JSON include directory found at: [${JSON_INC}]")
-    endif()
-
-    include_directories(${JSON_INC})
+if(NOT JSON_INC)
+    message(FATAL_ERROR "❌ JSON include directory not found on Linux/Unix.")
 else()
-    find_path(JSON_INC NAMES json.hpp
-        HINTS /usr/include /usr/local/include /usr/include/nlohmann /usr/include/boost)
-
-    if(NOT JSON_INC)
-        message(FATAL_ERROR "❌ JSON include directory not found on Linux/Unix.")
-    else()
-        message(STATUS "✅ JSON include directory found at: [${JSON_INC}]")
-    endif()
-
-    include_directories(${JSON_INC})
+    message(STATUS "✅ JSON include directory found at: [${JSON_INC}]")
 endif()
 
+include_directories(${JSON_INC})
 ###############################################################
 #                     MPI Setup                               #
 ###############################################################
@@ -440,6 +389,20 @@ else()
     set(ANTI_ALIASING_FLAG "")
     set(VECTORIZATION_FLAGS "")
 
+    # Checking support of the AVX, AVX2 and AVX-512
+    execute_process(
+        COMMAND lscpu
+        OUTPUT_VARIABLE CPU_INFO
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if (CPU_INFO MATCHES "avx512")
+        set(VECTOR_WIDTH 512)
+    elseif (CPU_INFO MATCHES "avx" OR CPU_INFO MATCHES "avx2")
+        set(VECTOR_WIDTH 256)
+    else()
+        set(VECTOR_WIDTH 128)
+    endif()
+
     # Check if vectorization is enabled
     if(VECTORIZATION_ON)
         # Check for Clang and set specific flags
@@ -448,14 +411,16 @@ else()
             set(VECTORIZATION_FLAGS "-fvectorize" "-march=native" "-mtune=native")
             set(CLANG_FLAGS "-Xclang" "-flarge-source-files")
             add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+            add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
             message(STATUS "🛠️ Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
         # Check for GCC and set specific flags
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
-            set(VECTORIZATION_FLAGS "-ftree-vectorize" "-march=native" "-mtune=native" "-mprefer-vector-width=512")
+            set(VECTORIZATION_FLAGS "-ftree-vectorize" "-march=native" "-mtune=native")
             set(GCC_FLAGS "-flarge-source-files")
             add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+            # add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
             message(STATUS "🛠️ GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
         # Check for Intel compiler and set specific flags
@@ -466,8 +431,7 @@ else()
             add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
             message(STATUS "🛠️ Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
         endif()
-    else()
-        message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled.")
+        message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")
     endif()
 
     # Append the common and custom flags to CMAKE_CXX_FLAGS
