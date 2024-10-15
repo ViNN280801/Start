@@ -80,8 +80,6 @@ function(set_compiler_if_not_defined env_var cmake_var default_value description
         string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION_MATCH ${COMPILER_VERSION})
         string(REGEX MATCH "[0-9]+" MAJOR_VERSION ${VERSION_MATCH})
         set(MAJOR_VERSION ${MAJOR_VERSION} PARENT_SCOPE)
-    else()
-        message(WARNING "Failed to detect ${description} version: ${COMPILER_ERROR}")
     endif()
 endfunction()
 
@@ -90,7 +88,7 @@ set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc-13" "C compiler")
 set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++-13" "C++ compiler")
 
 if (GPU_CUDA_ON)
-    set(CUDAHOSTCXX "/usr/bin/g++")
+    set(CUDAHOSTCXX "/usr/bin/g++-13")
     message(STATUS "⚙️  Using ${CUDAHOSTCXX} as the CUDA host compiler.")
     set(CMAKE_CUDA_HOST_COMPILER ${CUDAHOSTCXX})
 
@@ -165,15 +163,12 @@ if (GPU_CUDA_ON)
     ###############################################################
 
     # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
-    if (GPU_CUDA_ON)
-        set(CUDA_ARCHITECTURES "52 61 75 86")
-        set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
-        message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
-    endif()
+    set(CUDA_ARCHITECTURES "52 61 75 86")
+    set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
+    message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
 
-    if (GPU_CUDA_ON)
-        message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
-    endif()
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -mno-amx-bf16 -Xcompiler -mno-amx-int8 -Xcompiler -mno-amx-tile")
+    message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
     ###############################################################
     #                    End of CUDA Setup                        #
     ###############################################################
@@ -198,7 +193,6 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
-message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
 
 # Global CUDA include directories if GPU support is enabled
 if (GPU_CUDA_ON)
@@ -275,26 +269,18 @@ link_directories(${MPI_LIBRARY_DIRS})
 ###############################################################
 #                     GMP Setup                               #
 ###############################################################
-if(MSVC)
-    find_package(GMP REQUIRED)
-    if(GMP_FOUND)
-        message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARIES}]")
-    else()
-        message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed and available.")
-    endif()
+find_path(GMP_INCLUDE_DIR gmp.h
+    HINTS /usr/include/x86_64-linux-gnu /usr/include/CGAL)
+
+find_library(GMP_LIBRARY NAMES gmp libgmp
+    HINTS /usr/lib/x86_64-linux-gnu)
+
+if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
+    message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
 else()
-    find_path(GMP_INCLUDE_DIR gmp.h
-        HINTS /usr/include/x86_64-linux-gnu /usr/include/CGAL)
-
-    find_library(GMP_LIBRARY NAMES gmp libgmp
-        HINTS /usr/lib/x86_64-linux-gnu)
-
-    if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
-        message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
-    else()
-        message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
-    endif()
+    message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
 endif()
+
 include_directories(${GMP_INCLUDE_DIR})
 link_libraries(${GMP_LIBRARY})
 
@@ -368,82 +354,74 @@ include_directories(${TBB_INCLUDE_DIRS})
 # ╔═══════════════════════════════════════════════════════════════════════════╗
 # ║           COMPILER AND BUILD TYPE CONFIGURATION                           ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-# ╔═► MSVC Specific Compile Options ◄═════════════════════════════════════════╗
-# ║ If MSVC is used, set compiler options for warning level and optimizations.║
+# ╔═► Specific Compile Options ◄══════════════════════════════════════════════╗
+# ║ Set compiler options for warning level and optimizations.                 ║
 # ║ Remove unnecessary flags in debug mode and optimize in release mode.      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-if(MSVC)
-    add_compile_options(/W4)                                                     # Enable warning level 4
-    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")  # Remove /RTC1 flag
-    string(REPLACE "/O2" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")    # Remove /O2 flag from debug
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" "/O2")                # Optimize in release mode
-    add_compile_options(/bigobj)                            # Compiling as big object file
+set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
+set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
+set(COMMON_CPP_FLAGS "-Wall" "-Wpedantic" "-Wextra" "-pthread" "-O3" "-Wmisleading-indentation")
+
+set(FINAL_CPP_FLAGS ${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG})
+
+# Initialize variables for optional flags
+set(ANTI_ALIASING_FLAG "")
+set(VECTORIZATION_FLAGS "")
+
+# Checking support of the AVX, AVX2 and AVX-512
+execute_process(
+    COMMAND lscpu
+    OUTPUT_VARIABLE CPU_INFO
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if (CPU_INFO MATCHES "avx512")
+    set(VECTOR_WIDTH 512)
+elseif (CPU_INFO MATCHES "avx" OR CPU_INFO MATCHES "avx2")
+    set(VECTOR_WIDTH 256)
 else()
-    set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
-    set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
-    set(COMMON_CPP_FLAGS "-Wall" "-Wpedantic" "-Wextra" "-pthread" "-O3" "-Wmisleading-indentation")
-
-    set(FINAL_CPP_FLAGS ${COMMON_CPP_FLAGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG})
-
-    # Initialize variables for optional flags
-    set(ANTI_ALIASING_FLAG "")
-    set(VECTORIZATION_FLAGS "")
-
-    # Checking support of the AVX, AVX2 and AVX-512
-    execute_process(
-        COMMAND lscpu
-        OUTPUT_VARIABLE CPU_INFO
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (CPU_INFO MATCHES "avx512")
-        set(VECTOR_WIDTH 512)
-    elseif (CPU_INFO MATCHES "avx" OR CPU_INFO MATCHES "avx2")
-        set(VECTOR_WIDTH 256)
-    else()
-        set(VECTOR_WIDTH 128)
-    endif()
-
-    # Check if vectorization is enabled
-    if(VECTORIZATION_ON)
-        # Check for Clang and set specific flags
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-            set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
-            set(VECTORIZATION_FLAGS "-fvectorize" "-march=native" "-mtune=native")
-            set(CLANG_FLAGS "-Xclang" "-flarge-source-files")
-            add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
-            add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
-            message(STATUS "🛠️ Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
-
-        # Check for GCC and set specific flags
-        elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
-            set(VECTORIZATION_FLAGS "-ftree-vectorize" "-march=native" "-mtune=native")
-            set(GCC_FLAGS "-flarge-source-files")
-            add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
-            # add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
-            message(STATUS "🛠️ GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
-
-        # Check for Intel compiler and set specific flags
-        elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-            set(ANTI_ALIASING_FLAG "-ansi-alias")
-            set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget" "-qopt-zmm-usage=high")
-            set(INTEL_COMPILER_FLAGS "-flarge-source-files")
-            add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
-            message(STATUS "🛠️ Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
-        endif()
-        message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")
-    endif()
-
-    # Append the common and custom flags to CMAKE_CXX_FLAGS
-    add_compile_options(${FINAL_CPP_FLAGS})
-    message(STATUS "⚙️  Non-MSVC compiler flags: [${FINAL_CPP_FLAGS}]")
+    set(VECTOR_WIDTH 128)
 endif()
+
+# Check if vectorization is enabled
+if(VECTORIZATION_ON)
+    # Check for Clang and set specific flags
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
+        set(VECTORIZATION_FLAGS "-fvectorize")
+        set(CLANG_FLAGS "-Xclang" "-flarge-source-files")
+        add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+        add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
+        message(STATUS "🛠️ Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
+
+    # Check for GCC and set specific flags
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
+        set(VECTORIZATION_FLAGS "-ftree-vectorize")
+        set(GCC_FLAGS "-flarge-source-files")
+        add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+        add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
+        message(STATUS "🛠️ GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
+
+    # Check for Intel compiler and set specific flags
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+        set(ANTI_ALIASING_FLAG "-ansi-alias")
+        set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget" "-qopt-zmm-usage=high")
+        set(INTEL_COMPILER_FLAGS "-flarge-source-files")
+        add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+        message(STATUS "🛠️ Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
+    endif()
+    message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")
+endif()
+
+# Append the common and custom flags to CMAKE_CXX_FLAGS
+add_compile_options(${FINAL_CPP_FLAGS})
+message(STATUS "⚙️  Compiling with C++ flags: [${FINAL_CPP_FLAGS}]")
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
 # ║           FLOATING-POINT ROUNDING MODE CONFIGURATION                     ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 # ╔═► Configure compiler-specific floating-point rounding ◄══════════════════╗
-# ║ Detect the compiler being used (Intel, GNU, MSVC) and apply appropriate  ║
+# ║ Detect the compiler being used (Intel, GNU) and apply appropriate        ║
 # ║ floating-point rounding flags for strict computation control.            ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
@@ -452,9 +430,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-frounding-math)
     message(STATUS "⚙️  GNU: Using strict floating-point rounding with flag: -frounding-math")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options(/fp:strict)
-    message(STATUS "⚙️  MSVC: Using strict floating-point rounding with flag: /fp:strict")
 else()
     message(WARNING "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding.")
 endif()
@@ -549,6 +524,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
 target_compile_features(${EXECUTABLE_NAME} PUBLIC cxx_std_20)
 
 if (GPU_CUDA_ON)
+    target_compile_options(${EXECUTABLE_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${CUDA_LIBRARIES})
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif()
