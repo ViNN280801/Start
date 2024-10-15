@@ -40,29 +40,32 @@ cd .. && rm -rvf build/
 mkdir -pv build && cd build
 cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/ \
       -DCMAKE_BUILD_TYPE:STRING=RELEASE \
-      -DTPL_ENABLE_MPI:BOOL=ON \
-      -DHDF5_PREFER_PARALLEL=ON \
       -DCMAKE_C_COMPILER=mpicc \
       -DCMAKE_CXX_COMPILER=mpicxx \
       -DCMAKE_Fortran_COMPILER=mpifort \
       -DFortranCInterface_GLOBAL_SYMBOLS=LOWER \
-      -DFortranCInterface_GLOBAL_SYMBOLS_UNDERSCORE=ON \
-      -DFortranCInterface_GLOBAL_SYMBOLS_UNDERSCORE_UNDER=ON \
+      -DTPL_ENABLE_MPI=ON \
+      -DTPL_ENABLE_CUDA=ON \
       -DTPL_ENABLE_HDF5=ON \
+      -DHDF5_PREFER_PARALLEL=ON \
       -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_cpp.so" \
-      -DTrilinos_ENABLE_Fortran:BOOL=ON \
-      -DTrilinos_ENABLE_PyTrilinos:BOOL=ON \
-      -DTrilinos_ENABLE_Intrepid:BOOL=OFF \
-      -DTrilinos_ENABLE_TESTS:BOOL=OFF \
-      -DTrilinos_ENABLE_ALL_PACKAGES:BOOL=ON \
-      -DTrilinos_ENABLE_Epetra:BOOL=OFF \
-      -DTrilinos_ENABLE_EpetraExt:BOOL=OFF \
-      -DKokkos_ENABLE_SERIAL=ON \
+      -DTrilinos_ENABLE_ALL_PACKAGES=ON \
+      -DTrilinos_ENABLE_CUDA=ON \
+      -DTrilinos_ENABLE_Fortran=ON \
+      -DTrilinos_ENABLE_PyTrilinos=ON \
       -DTrilinos_ENABLE_Kokkos=ON \
+      -DTrilinos_ENABLE_KokkosKernels=ON \
+      -DTrilinos_ENABLE_Intrepid=OFF \
+      -DTrilinos_ENABLE_TESTS=OFF \
+      -DTrilinos_ENABLE_Epetra=OFF \
+      -DTrilinos_ENABLE_EpetraExt=OFF \
+      -DTpetra_INST_CUDA=ON \
+      -DKokkos_ENABLE_SERIAL=ON \
       -DKokkos_ENABLE_CUDA=ON \
       -DKokkos_ARCH_AMPERE86=ON \
       -DKokkos_ENABLE_CUDA_LAMBDA=ON \
       -DKokkos_ENABLE_OPENMP=ON \
+      -DKokkos_ENABLE_CUDA_UVM=ON \
       ..
       
 
