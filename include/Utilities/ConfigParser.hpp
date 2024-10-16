@@ -123,15 +123,15 @@ public:
     constexpr double getTemperature() const { return m_config.temperature; }
     constexpr double getPressure() const { return m_config.pressure; }
     constexpr ParticleType getGas() const { return m_config.gas; }
-    STARTCONSTEXPR std::string_view getMeshFilename() const { return m_config.mshfilename.data(); }
-    STARTCONSTEXPR std::string_view getScatteringModel() const { return m_config.model.data(); }
+    STARTCONSTEXPRFUNC std::string_view getMeshFilename() const { return m_config.mshfilename.data(); }
+    STARTCONSTEXPRFUNC std::string_view getScatteringModel() const { return m_config.model.data(); }
     constexpr std::vector<point_source_t> const &getParticleSourcePoints() const { return m_config.particleSourcePoints; }
     constexpr std::vector<surface_source_t> const &getParticleSourceSurfaces() const { return m_config.particleSourceSurfaces; }
-    constexpr bool isParticleSourcePoint() const { return !m_config.particleSourcePoints.empty(); }
-    constexpr bool isParticleSourceSurface() const { return !m_config.particleSourceSurfaces.empty(); }
+    STARTCONSTEXPRFUNC bool isParticleSourcePoint() const { return !m_config.particleSourcePoints.empty(); }
+    STARTCONSTEXPRFUNC bool isParticleSourceSurface() const { return !m_config.particleSourceSurfaces.empty(); }
     constexpr double getEdgeSize() const { return m_config.edgeSize; }
     constexpr short getDesiredCalculationAccuracy() const { return m_config.desiredAccuracy; }
-    STARTCONSTEXPR std::string_view getSolverName() const { return m_config.solverName; }
+    STARTCONSTEXPRFUNC std::string_view getSolverName() const { return m_config.solverName; }
     constexpr int getMaxIterations() const { return m_config.maxIterations; }
     constexpr double getConvergenceTolerance() const { return m_config.convergenceTolerance; }
     constexpr int getVerbosity() const { return m_config.verbosity; }
@@ -140,7 +140,7 @@ public:
     constexpr int getBlockSize() const { return m_config.blockSize; }
     constexpr int getMaxRestarts() const { return m_config.maxRestarts; }
     constexpr bool getFlexibleGMRES() const { return m_config.flexibleGMRES; }
-    STARTCONSTEXPR std::string_view getOrthogonalization() const { return m_config.orthogonalization; }
+    STARTCONSTEXPRFUNC std::string_view getOrthogonalization() const { return m_config.orthogonalization; }
     constexpr bool getAdaptiveBlockSize() const { return m_config.adaptiveBlockSize; }
     constexpr int getConvergenceTestFrequency() const { return m_config.convergenceTestFrequency; }
     constexpr std::vector<std::pair<std::vector<size_t>, double>> const &getBoundaryConditions() const { return m_config.boundaryConditions; }

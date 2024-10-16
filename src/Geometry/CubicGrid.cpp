@@ -107,7 +107,6 @@ bool CubicGrid::isInsideTetrahedronMesh(Point const &point) const
 
     // One cube grid component can return multiple tetrahedra, so we need to fill the vector of checkings with results of checkings.
     boost::dynamic_bitset<> checks(tetrahedrons.size());
-    size_t i{};
 
 #ifdef USE_OMP
 #pragma omp parallel for

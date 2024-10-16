@@ -109,7 +109,7 @@ public:
 
     /// @brief Returns count of the tetrahedra in the mesh.
     [[nodiscard("Knowing the number of tetrahedrons is important for mesh operations.")]]
-    constexpr size_t getNumTetrahedrons() const
+    STARTCONSTEXPRFUNC size_t getNumTetrahedrons() const
     {
         return m_meshComponents.size();
     }
@@ -179,14 +179,14 @@ public:
 
     /// @brief Checks and returns result of the checking if there is no tetrahedra in the mesh.
     [[nodiscard("It's necessary to check if the mesh is empty to avoid null operations.")]]
-    constexpr bool empty() const
+    STARTCONSTEXPRFUNC bool empty() const
     {
         return m_meshComponents.empty();
     }
 
     /// @brief Returns total volume of the mesh.
     [[nodiscard("The total volume is essential for global calculations over the mesh.")]]
-    constexpr double volume() const
+    STARTCONSTEXPRFUNC double volume() const
     {
         return std::accumulate(m_meshComponents.cbegin(), m_meshComponents.cend(), 0.0, [](double sum, auto const &meshData)
                                { return sum + meshData.tetrahedron.volume(); });
