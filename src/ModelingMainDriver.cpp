@@ -123,13 +123,13 @@ void ModelingMainDriver::_initializeParticles()
     {
         auto tmp{ParticleGenerator::fromPointSource(m_config.getParticleSourcePoints())};
         if (!tmp.empty())
-            m_particles.insert(m_particles.end(), std::ranges::begin(tmp), std::ranges::end(tmp));
+            m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
     }
     if (m_config.isParticleSourceSurface())
     {
         auto tmp{ParticleGenerator::fromSurfaceSource(m_config.getParticleSourceSurfaces())};
         if (!tmp.empty())
-            m_particles.insert(m_particles.end(), std::ranges::begin(tmp), std::ranges::end(tmp));
+            m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
     }
 
     if (m_particles.empty())
@@ -575,7 +575,11 @@ void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeCha
     {
         auto nonChangebleNodes{m_config.getNonChangeableNodes()};
         for (auto const &[nodeId, nodeChargeDensity] : nodeChargeDensityMap)
+#if __cplusplus >= 202002L
             if (std::ranges::find(nonChangebleNodes, nodeId) == nonChangebleNodes.cend())
+#else
+            if (std::find(nonChangebleNodes.cbegin(), nonChangebleNodes.cend(), nodeId) == nonChangebleNodes.cend())
+#endif
                 boundaryConditions[nodeId] = nodeChargeDensity;
         BoundaryConditionsManager::set(solutionVector->get(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
 
@@ -693,8 +697,13 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                 if (triangle.is_degenerate())
                     continue;
 
+#if __cplusplus >= 202002L
                 auto matchedIt = std::ranges::find_if(_triangleMesh, [triangle](auto const &el)
                                                       { return triangle == std::get<1>(el); });
+#else
+                auto matchedIt = std::find_if(_triangleMesh.cbegin(), _triangleMesh.cend(), [triangle](auto const &el)
+                                              { return triangle == std::get<1>(el); });
+#endif
                 if (matchedIt != _triangleMesh.cend())
                 {
                     auto id = _isRayIntersectTriangle(ray, *matchedIt);
@@ -741,8 +750,13 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                           size_t containingTetrahedron{};
                           for (auto const &[tetraId, particlesInside] : m_particleTracker[t])
                           {
+#if __cplusplus >= 202002L
                               if (std::ranges::find_if(particlesInside, [particle](Particle const &storedParticle)
                                                        { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
+#else
+                              if (std::find_if(particlesInside, [particle](Particle const &storedParticle)
+                                                       { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
+#endif
                               {
                                   containingTetrahedron = tetraId;
                                   break;
@@ -788,8 +802,13 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                           if (triangle.is_degenerate())
                               return;
 
+#if __cplusplus >= 202002L
                           auto matchedIt{std::ranges::find_if(_triangleMesh, [triangle](auto const &el)
                                                               { return triangle == std::get<1>(el); })};
+#else
+                          auto matchedIt{std::find_if(_triangleMesh, [triangle](auto const &el)
+                                                              { return triangle == std::get<1>(el); })};
+#endif
                           if (matchedIt != _triangleMesh.cend())
                           {
                               auto id{_isRayIntersectTriangle(ray, *matchedIt)};
@@ -841,8 +860,17 @@ void ModelingMainDriver::startModeling()
     [[maybe_unused]] auto num_threads{_getNumThreads()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
+#if __cplusplus >= 202002L
     for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
+#else
+    for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test_and_set(); t += m_config.getTimeStep())
+#endif
     {
+#if __cplusplus < 202002L
+        // Clear the flag immediately so it doesn't stay set.
+        m_stop_processing.clear();
+#endif
+
         // 1. Obtain charge densities in all the nodes.
 #ifdef USE_OMP
         _processParticleTracker(0, m_particles.size(), t, cubicGrid, assemblier, nodeChargeDensityMap);
