@@ -63,6 +63,8 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
 
 // 2. Setting boundary conditions to global stiffness matrix:
 #ifdef USE_OMP
+        std::atomic<bool> exceptionOccurred(false);
+
         // Convert to an indexed access pattern for parallelization.
         std::vector<std::pair<GlobalOrdinal, Scalar>> boundaryConditionsVec{boundary_conditions.begin(), boundary_conditions.end()};
 
@@ -82,11 +84,11 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
                 {
 #pragma omp critical
                     {
+                        exceptionOccurred = true;
                         std::cerr << "Boundary condition refers to node index "
                                   << nodeID << ", which exceeds the maximum row index of "
                                   << matrix->getGlobalNumRows() - 1 << "." << std::endl;
                     }
-                    continue; // Skip this iteration if the node ID is out of bounds.
                 }
 
 // Apply the boundary condition for the node.
@@ -96,6 +98,9 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
                 }
             }
         }
+
+        if (exceptionOccurred)
+            throw std::out_of_range("Boundary condition out of range.");
 #else
         // Fallback if OpenMP is not enabled.
         for (auto const &[nodeInGmsh, value] : boundary_conditions)
