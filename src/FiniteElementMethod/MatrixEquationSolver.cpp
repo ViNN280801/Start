@@ -1,4 +1,3 @@
-#include <format>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -127,7 +126,11 @@ void MatrixEquationSolver::writeElectricPotentialsToPosFile(double time)
                 auto globalNodeId{entry.nodes.at(i).globalNodeId};
 
                 double value{getScalarFieldValueFromX(globalNodeId - 1)};
-                posFile << std::format("SP({}, {}, {}){{{}}};\n", node.nodeCoords.x(), node.nodeCoords.y(), node.nodeCoords.z(), value);
+                posFile << "SP("
+                        << node.nodeCoords.x() << ", "
+                        << node.nodeCoords.y() << ", "
+                        << node.nodeCoords.z() << "){"
+                        << value << "};\n";
             }
         }
         posFile << "};\n";
@@ -182,9 +185,13 @@ void MatrixEquationSolver::writeElectricFieldVectorsToPosFile(double time)
                 z{entry.getTetrahedronCenter().z()};
 
             auto fieldVector{entry.electricField.value()};
-            posFile << std::format("VP({}, {}, {}){{{}, {}, {}}};\n",
-                                   x, y, z,
-                                   fieldVector.x(), fieldVector.y(), fieldVector.z());
+            posFile << "VP("
+                    << x << ", "
+                    << y << ", "
+                    << z << "){"
+                    << fieldVector.x() << ", "
+                    << fieldVector.y() << ", "
+                    << fieldVector.z() << "};\n";
         }
 
         posFile << "};\n";
@@ -351,7 +358,8 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
         M = MueLu::CreateTpetraPreconditioner < Scalar, LocalOrdinal, GlobalOridnal, Node(m_A);
 #endif
 
-        auto problem{Teuchos::rcp(new Belos::LinearProblem<Scalar, TpetraMultiVector, TpetraOperator>())};
+        Teuchos::RCP<Belos::LinearProblem<Scalar, TpetraMultiVector, TpetraOperator>> problem{
+            Teuchos::rcp(new Belos::LinearProblem<Scalar, TpetraMultiVector, TpetraOperator>(m_A, m_x, m_rhs))};
         problem->setOperator(m_A);
         problem->setLHS(m_x);
         problem->setRHS(m_rhs);
@@ -361,13 +369,14 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
             throw std::runtime_error("Failed to set up the linear problem.");
 
         Belos::SolverFactory<Scalar, TpetraMultiVector, TpetraOperator> factory;
-        auto solver{factory.create(solverName.data(), solverParams)};
+        Teuchos::RCP<Belos::SolverManager<Scalar, TpetraMultiVector, TpetraOperator>> solver{
+            factory.create(solverName.data(), solverParams)};
         solver->setProblem(problem);
 
         Belos::ReturnType result{solver->solve()};
         if (result == Belos::Converged)
         {
-            SUCCESSMSG("Belos solver successfully converged.");
+            SUCCESSMSG(util::stringify("Belos solver successfully converged in ", solver->getNumIters(), "iterations"));
         }
         else
             throw std::runtime_error("Belos solver failed to converge.");
