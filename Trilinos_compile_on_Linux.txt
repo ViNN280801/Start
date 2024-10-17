@@ -38,7 +38,7 @@ make -j<n> install
 # CMake compiling command for Debian (checked on Debian 12 bookworm). If u want to compile with CUDA u need to verify that you are using GNU GCC 13 
 cd .. && rm -rvf build/
 mkdir -pv build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ \
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
       -DCMAKE_BUILD_TYPE=RELEASE \
       -DBUILD_SHARED_LIBS=ON \
       -DCMAKE_C_COMPILER=mpicc \
@@ -69,6 +69,7 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ \
       -DTrilinos_ENABLE_TESTS=OFF \
       -DTrilinos_ENABLE_Epetra=OFF \
       -DTrilinos_ENABLE_EpetraExt=OFF \
+      -DTrilinos_ENABLE_EXAMPLES=ON \
       -DTpetraCore_ENABLE_CUDA=ON \
       -DTpetraCore_ENABLE_Kokkos=ON \
       -DTpetraCore_ENABLE_KokkosKernels=ON \
