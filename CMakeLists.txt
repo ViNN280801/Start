@@ -165,7 +165,7 @@ if (GPU_CUDA_ON)
     ###############################################################
 
     # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
-    set(CUDA_ARCHITECTURES "52 61 75 86")
+    set(CUDA_ARCHITECTURES "52 61 75 86 89")
     set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
     message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
 
