@@ -2,10 +2,18 @@
 #define FEM_TYPES_HPP
 
 #include <BelosSolverFactory.hpp>
-#include <Intrepid2_Types.hpp>
+#include <BelosTpetraAdapter.hpp>
+#include <Intrepid2_CellTools.hpp>
+#include <Intrepid2_DefaultCubatureFactory.hpp>
+#include <Intrepid2_FunctionSpaceTools.hpp>
+#include <Intrepid2_HGRAD_TET_C1_FEM.hpp>
+#include <Intrepid2_HGRAD_TET_C2_FEM.hpp>
+#include <Intrepid2_HGRAD_TET_Cn_FEM.hpp>
+#include <Kokkos_Core.hpp>
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 #include <MueLu_TpetraOperator.hpp>
 #include <Shards_CellTopology.hpp>
+#include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_RCP.hpp>
 #include <Tpetra_Core.hpp>
