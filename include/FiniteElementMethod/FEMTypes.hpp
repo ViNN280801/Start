@@ -38,8 +38,6 @@ using MemorySpace = Kokkos::HostSpace;                // Host memory.
 
 using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>; // Device type according to the macro `USE_CUDA`.
 using DynRankView = Kokkos::DynRankView<Scalar, DeviceType>;    // Multi-dimensional array template.
-using DynRankViewVector = std::vector<DynRankView>;             // Vector of multi-dimensional arrays.
-using DynRankViewMatrix = std::vector<DynRankViewVector>;       // Matrix of multi-dimensional arrays.
 using Node = Tpetra::Map<>::node_type;                          // Node type based on Kokkos execution space.
 using MapType = Tpetra::Map<LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraVectorType = Tpetra::Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
