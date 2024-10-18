@@ -14,7 +14,7 @@ option(START_RELEASE "Compile the project in Start Release mode" ON)
 ##########                    Reporting about custom project flags                         ##########
 if (GPU_CUDA_ON)
     message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
-    add_compile_options(-DUSE_CUDA
+    add_compile_options(-DUSE_CUDA)
 else()
     message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
 endif()
@@ -221,23 +221,6 @@ else()
     message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
 
 endif()
-include_directories(${OpenMP_INCLUDE_PATH})
-link_directories(${OpenMP_LIBRARY_DIRS})
-
-###############################################################
-#                     JSON Setup                              #
-###############################################################
-if(WIN32)
-    find_path(JSON_INC NAMES json.hpp
-        HINTS $ENV{JSON_INC}
-        PATH_SUFFIXES include)
-
-    if(NOT JSON_INC)
-        message(FATAL_ERROR "❌ JSON include directory not found. Please ensure JSON_INC is set.")
-    else()
-        message(STATUS "✅ JSON include directory found at: [${JSON_INC}]")
-    endif()
-
 include_directories(${GMSH_INC})
 ###############################################################
 #                     CGAL Setup                              #
@@ -559,5 +542,5 @@ if (START_OPENMP_ON)
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${OpenMP_LIBRARIES})
 endif()
 
-add_custom_target(distclean COMMAND rm -rf MakeCache.txt CMakeFiles
+add_custom_target(distclean COMMAND rm -rf MakeCache.txt CMakeFiles 
     Makefile cmake_install.cmake CTestTestfile.cmake Testing)

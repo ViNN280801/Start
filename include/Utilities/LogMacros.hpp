@@ -31,7 +31,6 @@
     #define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ",              \
                                                             SourceLocation::current().file_name(),             \
                                                             "(", SourceLocation::current().line(), " line): ", \
-
                                                             COMMON_PRETTY_FUNC, ": ", desc, "\n");
     #define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
 #endif
