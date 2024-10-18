@@ -205,3 +205,13 @@ or
 
 `vim ~/.bashrc`
 and write down the vars within, then write `:wq`.
+
+#### CUDA Environment Variables
+
+`export CUDA_VISIBLE_DEVICES=0` or any other number of the GPU you want to use. See [this](https://stackoverflow.com/questions/39649102/how-do-i-select-which-gpu-to-run-a-job-on) source for more info.
+
+Briefly:
+
+Just add the following lines to your `.bashrc` file:
+
+`export CUDA_VISIBLE_DEVICES=0` if you have only one GPU.
