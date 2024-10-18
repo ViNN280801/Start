@@ -300,8 +300,13 @@ void TetrahedronMeshManager::print() const noexcept
 
 std::optional<TetrahedronMeshManager::TetrahedronData> TetrahedronMeshManager::getMeshDataByTetrahedronId(size_t globalTetrahedronId) const
 {
+#if __cplusplus >= 202002L
     auto it{std::ranges::find_if(m_meshComponents, [globalTetrahedronId](const TetrahedronData &data)
                                  { return data.globalTetraId == globalTetrahedronId; })};
+#else
+    auto it{std::find_if(m_meshComponents.cbegin(), m_meshComponents.cend(), [globalTetrahedronId](const TetrahedronData &data)
+                                 { return data.globalTetraId == globalTetrahedronId; })};
+#endif
     if (it != m_meshComponents.cend())
         return *it;
     return std::nullopt;
@@ -309,8 +314,13 @@ std::optional<TetrahedronMeshManager::TetrahedronData> TetrahedronMeshManager::g
 
 void TetrahedronMeshManager::assignNablaPhi(size_t tetrahedronId, size_t nodeId, Point const &gradient)
 {
+#if __cplusplus >= 202002L
     auto it{std::ranges::find_if(m_meshComponents, [tetrahedronId](const TetrahedronData &data)
                                  { return data.globalTetraId == tetrahedronId; })};
+#else
+    auto it{std::find_if(m_meshComponents.begin(), m_meshComponents.end(), [tetrahedronId](const TetrahedronData &data)
+                                 { return data.globalTetraId == tetrahedronId; })};
+#endif
     if (it != m_meshComponents.cend())
     {
         for (auto &node : it->nodes)
@@ -334,8 +344,13 @@ void TetrahedronMeshManager::assignPotential(size_t nodeId, double potential)
 
 void TetrahedronMeshManager::assignElectricField(size_t tetrahedronId, Point const &electricField)
 {
+#if __cplusplus >= 202002L
     auto it{std::ranges::find_if(m_meshComponents, [tetrahedronId](const TetrahedronData &data)
                                  { return data.globalTetraId == tetrahedronId; })};
+#else
+    auto it{std::find_if(m_meshComponents.begin(), m_meshComponents.end(), [tetrahedronId](const TetrahedronData &data)
+                                 { return data.globalTetraId == tetrahedronId; })};
+#endif
     if (it != m_meshComponents.end())
     {
         it->electricField = electricField;

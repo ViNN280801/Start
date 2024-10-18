@@ -219,7 +219,6 @@ if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
     message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
 else()
     message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
-
 endif()
 include_directories(${GMSH_INC})
 ###############################################################
