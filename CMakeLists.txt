@@ -14,7 +14,7 @@ option(START_RELEASE "Compile the project in Start Release mode" ON)
 ##########                    Reporting about custom project flags                         ##########
 if (GPU_CUDA_ON)
     message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
-    add_compile_options(-DUSE_CUDA)
+    add_compile_options(-DUSE_CUDA
 else()
     message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
 endif()
@@ -28,6 +28,7 @@ endif()
 if(START_OPENMP_ON)
     message(STATUS "✅ OpenMP support enabled for the project.")
     add_compile_options(-fopenmp -DUSE_OMP)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -DUSE_OMP")
 else()
     message(STATUS "🚫 OpenMP support disabled for the project.")
 endif()
@@ -218,7 +219,24 @@ if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
     message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
 else()
     message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
+
 endif()
+include_directories(${OpenMP_INCLUDE_PATH})
+link_directories(${OpenMP_LIBRARY_DIRS})
+
+###############################################################
+#                     JSON Setup                              #
+###############################################################
+if(WIN32)
+    find_path(JSON_INC NAMES json.hpp
+        HINTS $ENV{JSON_INC}
+        PATH_SUFFIXES include)
+
+    if(NOT JSON_INC)
+        message(FATAL_ERROR "❌ JSON include directory not found. Please ensure JSON_INC is set.")
+    else()
+        message(STATUS "✅ JSON include directory found at: [${JSON_INC}]")
+    endif()
 
 include_directories(${GMSH_INC})
 ###############################################################
@@ -253,6 +271,7 @@ if(NOT JSON_INC)
     message(FATAL_ERROR "❌ JSON include directory not found on Linux/Unix.")
 else()
     message(STATUS "✅ JSON include directory found at: [${JSON_INC}]")
+
 endif()
 
 include_directories(${JSON_INC})
@@ -437,6 +456,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-frounding-math)
     message(STATUS "⚙️  GNU: Using strict floating-point rounding with flag: -frounding-math")
+
 else()
     message(WARNING "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding.")
 endif()
@@ -466,6 +486,7 @@ endif()
 # ║ for specific behavior during compilation.                                ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(START_DEBUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     add_compile_definitions(START_DEBUG)
     message(STATUS "🛠️ Start project compiling mode set to START_DEBUG.")
 elseif(START_RELEASE)

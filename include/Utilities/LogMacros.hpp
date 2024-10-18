@@ -22,15 +22,16 @@
 #include "Utilities/PreprocessorUtils.hpp"
 
 #ifdef SHOW_LOGS
-    #define ERRMSG_ABS_PATH(desc) std::cerr << util::stringify("\033[1;31mError:\033[0m\033[1m ",                    \
-                                                            util::getCurTime(),                                      \
-                                                            ": ",                                                    \
+    #define ERRMSG_ABS_PATH(desc) std::cerr << util::stringify("\033[1;31mError:\033[0m\033[1m ",              \
+                                                            util::getCurTime(),                                \
+                                                            ": ",                                              \
                                                             SourceLocation::current().file_name(),             \
                                                             "(", SourceLocation::current().line(), " line): ", \
                                                             COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
-    #define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ",                    \
+    #define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ",              \
                                                             SourceLocation::current().file_name(),             \
                                                             "(", SourceLocation::current().line(), " line): ", \
+
                                                             COMMON_PRETTY_FUNC, ": ", desc, "\n");
     #define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
 #endif
@@ -41,7 +42,7 @@
                                                         ": ", desc, "\n");
         #define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
     #else
-        #define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(),            \
+        #define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(),      \
                                             ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
                                             "(", SourceLocation::current().line(), " line): ",              \
                                             COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
@@ -57,7 +58,7 @@
                                                         ": ", desc, "\n");
         #define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
     #else
-        #define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), ": ",                          \
+        #define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), ": ",                    \
                                             EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
                                             "(", SourceLocation::current().line(), " line): ",        \
                                             COMMON_PRETTY_FUNC, ": ", desc, "\n");
@@ -73,7 +74,7 @@
                                                         ": ", desc, "\n");
         #define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
     #else
-        #define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(),          \
+        #define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(),    \
                                                 ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
                                                 "(", SourceLocation::current().line(), " line): ",              \
                                                 COMMON_PRETTY_FUNC, ": ", desc, "\n");
@@ -90,8 +91,10 @@
         #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
     #else
         #define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(),          \
-                                                ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
-                                                "(", SourceLocation::current().line(), " line): ",              \
+                                                ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()),       \
+                                                "(", SourceLocation::current().line(), " line): ",                    \
+                                                ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
+                                                "(", std::source_location::current().line(), " line): ",              \
                                                 COMMON_PRETTY_FUNC, ": ", desc, "\n");
         #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
     #endif

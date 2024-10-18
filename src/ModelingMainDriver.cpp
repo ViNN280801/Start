@@ -704,6 +704,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                 auto matchedIt = std::find_if(_triangleMesh.cbegin(), _triangleMesh.cend(), [triangle](auto const &el)
                                               { return triangle == std::get<1>(el); });
 #endif
+              
                 if (matchedIt != _triangleMesh.cend())
                 {
                     auto id = _isRayIntersectTriangle(ray, *matchedIt);

@@ -17,13 +17,16 @@
  */
 template <typename Generator>
 concept ParticleGeneratorConcept = std::invocable<Generator> && std::same_as<std::invoke_result_t<Generator>, Particle>;
+
 #else
+
 template <typename Generator>
 constexpr bool ParticleGeneratorConcept_v = std::is_invocable_r_v<Particle, Generator>;
 
 // SFINAE check for C++17
 template <typename Generator>
 using ParticleGeneratorConcept = std::enable_if_t<ParticleGeneratorConcept_v<Generator>, bool>;
+
 #endif
 
 /**

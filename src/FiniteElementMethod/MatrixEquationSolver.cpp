@@ -348,10 +348,8 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
         mueluParams.sublist("coarse: params").set("relaxation: sweeps", 1);
         mueluParams.sublist("coarse: params").set("relaxation: damping factor", 1.0);
 #endif
-
-        // Initialize the preconditioner with parameters
+        // Initialize the preconditioner with parameters.
         Teuchos::RCP<MueLu::TpetraOperator<Scalar, LocalOrdinal, GlobalOrdinal, Node>> M;
-
 #ifdef USE_MPI
         M = MueLu::CreateTpetraPreconditioner<Scalar, LocalOrdinal, GlobalOrdinal, Node>(m_A, mueluParams);
 #else
