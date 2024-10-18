@@ -1,16 +1,28 @@
 #include <algorithm>
+
+#if __cplusplus >= 202002L
 #include <ranges>
+#endif
 
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
 
+#if __cplusplus >= 202002L
 MatrixManager::MatrixManager(std::span<MatrixEntry const> matrix_entries) : m_entries(matrix_entries.begin(), matrix_entries.end())
+#else
+MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m_entries(matrix_entries)
+#endif
 {
     if (matrix_entries.empty())
         throw std::invalid_argument("Matrix entries can't be empty");
 
+#if __cplusplus >= 202002L
     if (std::ranges::any_of(matrix_entries, [](MatrixEntry const &entry)
                             { return entry.row < 0 || entry.col < 0; }))
+#else
+    if (std::any_of(matrix_entries.cbegin(), matrix_entries.cend(), [](MatrixEntry const &entry)
+                    { return entry.row < 0 || entry.col < 0; }))
+#endif
         throw std::out_of_range("Matrix entries cannot have negative row or column indices");
 
     // 1. Collect global row indices
@@ -42,7 +54,7 @@ MatrixManager::MatrixManager(std::span<MatrixEntry const> matrix_entries) : m_en
 
     for (const auto &rowEntry : graphEntries)
     {
-        auto localIndex {globalToLocalRow(rowEntry.first)};
+        auto localIndex{globalToLocalRow(rowEntry.first)};
         if (localIndex == Teuchos::OrdinalTraits<LocalOrdinal>::invalid())
         {
             continue; // Skip rows not owned by this process

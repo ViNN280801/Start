@@ -133,14 +133,8 @@ double util::calculateConcentration(std::string_view config)
 
 bool util::exists(std::string_view filename)
 {
-#ifdef __unix__
     struct stat buf;
     return (stat(filename.data(), std::addressof(buf)) == 0);
-#endif
-#ifdef _WIN32
-    struct _stat buf;
-    return (_stat(filename.data(), std::addressof(buf)) == 0);
-#endif
 }
 
 void util::removeFile(std::string_view filename) { std::filesystem::remove(filename); }

@@ -2,7 +2,10 @@
 #include <chrono>
 #include <functional>
 #include <iostream>
+
+#if __cplusplus >= 202002L
 #include <ranges>
+#endif
 
 #include "Generators/RealNumberGenerator.hpp"
 
@@ -32,7 +35,16 @@ std::vector<double> RealNumberGenerator::get_sequence(size_t count, double from,
     if (count == 0ul)
         return {};
 
-    std::vector<double> v(count);
-    std::ranges::generate(v, std::bind(std::uniform_real_distribution<double>(from, to), m_engine));
-    return v;
+    auto dist{std::uniform_real_distribution<double>(from, to)};
+    auto gen{std::bind(dist, m_engine)};
+
+    std::vector<double> sequence(count);
+
+#if __cplusplus >= 202002L
+    std::ranges::generate(sequence, gen);
+#else
+    std::generate(sequence.begin(), sequence.end(), gen);
+#endif
+
+    return sequence;
 }

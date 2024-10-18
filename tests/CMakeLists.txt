@@ -1,5 +1,196 @@
 # tests/CMakeLists.txt
 
+option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
+option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
+option(START_MPI_ON "Enable MPI support for the project" ON)
+option(SHOW_LOGS_ON "Enable showing all the logs" ON)
+option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
+option(START_RELEASE "Compile the project in Start Release mode" ON)
+
+# ══► Helper function to check, set, and print compiler information ◄══
+function(set_compiler_if_not_defined env_var cmake_var default_value description)
+    if(NOT ${cmake_var})
+        if(NOT DEFINED ENV{${env_var}})
+            set(ENV{${env_var}} ${default_value})
+            message(STATUS "Default ${description} set to ${default_value}")
+        else()
+            message(STATUS "Using environment variable ${env_var}: $ENV{${env_var}}")
+        endif()
+        set(${cmake_var} $ENV{${env_var}} PARENT_SCOPE)
+    else()
+        message(STATUS "CMake ${description} set from command line: ${${cmake_var}}")
+    endif()
+
+    # ✦ Print version information ✦
+    execute_process(
+        COMMAND ${${cmake_var}} --version
+        OUTPUT_VARIABLE COMPILER_VERSION
+        ERROR_VARIABLE COMPILER_ERROR
+        RESULT_VARIABLE COMPILER_RESULT
+    )
+    if(COMPILER_RESULT EQUAL 0)
+        message(STATUS "${description} version: ${COMPILER_VERSION}")
+
+        # Extract the major version from the compiler output (assuming it's in a format like "gcc (Ubuntu 14.0.0) ...")
+        string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION_MATCH ${COMPILER_VERSION})
+        string(REGEX MATCH "[0-9]+" MAJOR_VERSION ${VERSION_MATCH})
+        set(MAJOR_VERSION ${MAJOR_VERSION} PARENT_SCOPE)
+    endif()
+endfunction()
+
+if (GPU_CUDA_ON)
+    message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
+    add_compile_options(-DUSE_CUDA)
+
+    set(CUDAHOSTCXX "/usr/bin/g++-13")
+    message(STATUS "⚙️  Using ${CUDAHOSTCXX} as the CUDA host compiler.")
+    set(CMAKE_CUDA_HOST_COMPILER ${CUDAHOSTCXX})
+
+    set(ENV{NVCC_WRAPPER_DEFAULT_COMPILER} ${CUDAHOSTCXX})
+    message(STATUS "⚙️  Setting NVCC_WRAPPER_DEFAULT_COMPILER to ${CUDAHOSTCXX}")
+
+    set_compiler_if_not_defined(CMAKE_CUDA_COMPILER CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" "CUDA compiler")
+
+    set(NVCC_WRAPPER_PATH "/usr/local/bin/nvcc_wrapper")
+    if (EXISTS ${NVCC_WRAPPER_PATH})
+        message(STATUS "⚙️  Using nvcc_wrapper at ${NVCC_WRAPPER_PATH} as the C++ compiler for CUDA-enabled targets.")
+        set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
+
+        set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA "--expt-extended-lambda -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
+        message(STATUS "⚙️  Added flags [${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}] to the C++ compile flags to suppress some warnings from Trilinos")
+    else()
+        message(FATAL_ERROR "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed.")
+    endif()
+
+    ###############################################################
+    #                 CUDA Toolkit Directory Setup                #
+    ###############################################################
+    # ══► Function to check if a directory exists and handle errors ◄══
+    function(check_directory_exists dir description)
+        if(NOT EXISTS ${dir})
+            message(FATAL_ERROR "❌ ${description} not found at [${dir}]. Please make sure it's installed or correctly configured.")
+        else()
+            message(STATUS "✅ ${description} located at [${dir}]")
+        endif()
+    endfunction()
+    ###############################################################
+    #           Setting CUDA Toolkit Directory and Compiler        #
+    ###############################################################
+
+    # ──► Check if CUDA_TOOLKIT_ROOT_DIR is set by the user ◄──
+    if(NOT CUDA_TOOLKIT_ROOT_DIR)
+        # Set to default if not set
+        set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
+        set(CUDA_INCLUDE_DIR "${CUDA_TOOLKIT_ROOT_DIR}/include")
+        
+        message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: [${CUDA_TOOLKIT_ROOT_DIR}]. Include directories: [${CUDA_INCLUDE_DIR}]")
+    else()
+        message(STATUS "⚙️  CUDA toolkit root directory specified: [${CUDA_TOOLKIT_ROOT_DIR}]")
+    endif()
+
+    # ✦ Verify that the directory exists ✦
+    check_directory_exists(${CUDA_TOOLKIT_ROOT_DIR} "CUDA toolkit root directory")
+
+    ###############################################################
+    #               Setting CUDA Compiler Path (Optional)         #
+    ###############################################################
+
+    # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
+    set(CUDA_ARCHITECTURES "52 61 75 86 89")
+    set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
+    message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
+    
+    set(SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG "-Wno-deprecated-declarations")
+    message(STATUS "⚙️  Setting flag '${SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG}' to suppress warning: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG} -Wno-maybe-uninitialized -Wno-parentheses")
+
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda -Xcompiler -mno-amx-bf16 -Xcompiler -mno-amx-int8 -Xcompiler -mno-amx-tile")
+    message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
+    ###############################################################
+    #                    End of CUDA Setup                        #
+    ###############################################################
+
+    enable_language(CUDA)
+
+    set(CMAKE_CUDA_STANDARD 20)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
+    include_directories(${CUDA_INCLUDE_DIR})
+else()
+    message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
+endif()
+
+if(VECTORIZATION_ON)
+    message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
+else()
+    message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled.")
+endif()
+
+if(START_OPENMP_ON)
+    message(STATUS "✅ OpenMP support enabled for the project.")
+    add_compile_options(-fopenmp -DUSE_OMP)
+else()
+    message(STATUS "🚫 OpenMP support disabled for the project.")
+endif()
+
+if (START_MPI_ON)
+    message(STATUS "✅ MPI is enabled for the project.")
+    set(DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG "-Wno-cast-function-type")
+    add_compile_options(${DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG} -DUSE_MPI)
+else()
+    message(STATUS "🚫 MPI is disabled for the project.")
+endif()
+
+# Initialize variables for optional flags
+set(ANTI_ALIASING_FLAG "")
+set(VECTORIZATION_FLAGS "")
+
+# Checking support of the AVX, AVX2 and AVX-512
+execute_process(
+    COMMAND lscpu
+    OUTPUT_VARIABLE CPU_INFO
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if (CPU_INFO MATCHES "avx512")
+    set(VECTOR_WIDTH 512)
+elseif (CPU_INFO MATCHES "avx" OR CPU_INFO MATCHES "avx2")
+    set(VECTOR_WIDTH 256)
+else()
+    set(VECTOR_WIDTH 128)
+endif()
+
+# Check if vectorization is enabled
+if(VECTORIZATION_ON)
+    # Check for Clang and set specific flags
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
+        set(VECTORIZATION_FLAGS "-fvectorize")
+        set(CLANG_FLAGS "-Xclang" "-flarge-source-files")
+        add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+        add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
+        message(STATUS "⚙️  Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
+
+    # Check for GCC and set specific flags
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
+        set(VECTORIZATION_FLAGS "-ftree-vectorize")
+        set(GCC_FLAGS "-flarge-source-files")
+        add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+        add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
+        message(STATUS "⚙️  GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
+
+    # Check for Intel compiler and set specific flags
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+        set(ANTI_ALIASING_FLAG "-ansi-alias")
+        set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget" "-qopt-zmm-usage=high")
+        set(INTEL_COMPILER_FLAGS "-flarge-source-files")
+        add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+        message(STATUS "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
+    endif()
+    message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")
+endif()
+
 cmake_minimum_required(VERSION 3.14)
 project(Tests)
 
@@ -36,67 +227,33 @@ include_directories(${HDF5_INCLUDE_DIRS})
 ###############################################################
 #                     GMSH Setup                              #
 ###############################################################
-if(WIN32)
-    find_path(GMSH_INC NAMES gmsh.h
-        HINTS $ENV{GMSH_INC}
-        PATH_SUFFIXES include)
+find_path(GMSH_INC NAMES gmsh.h
+    HINTS /usr/include /usr/local/include)
 
-    if(NOT GMSH_INC)
-        message(FATAL_ERROR "❌ GMSH include directory not found. Please ensure GMSH is installed and GMSH_INC is set.")
-    else()
-        message(STATUS "✅ GMSH include directories found at: [${GMSH_INC}]")
-    endif()
+find_library(GMSH_LIBRARIES NAMES gmsh
+    HINTS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
 
-    include_directories(${GMSH_INC})
-
-    find_library(GMSH_LIBRARIES NAMES gmsh
-        HINTS $ENV{GMSH_LIB} 
-        PATH_SUFFIXES lib)
-
-    if(NOT GMSH_LIBRARIES)
-        message(FATAL_ERROR "❌ GMSH libraries not found. Please ensure GMSH is installed and GMSH_LIB is set.")
-    else()
-        message(STATUS "✅ GMSH libraries found: ${GMSH_LIBRARIES}")
-    endif()
-
+if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
+    message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
 else()
-    find_path(GMSH_INC NAMES gmsh.h
-        HINTS /usr/include /usr/local/include)
-
-    find_library(GMSH_LIBRARIES NAMES gmsh
-        HINTS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
-
-    if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
-        message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
-    else()
-        message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
-    endif()
-
-    include_directories(${GMSH_INC})
+    message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
 endif()
+
+include_directories(${GMSH_INC})
 
 ###############################################################
 #                     GMP Setup                               #
 ###############################################################
-if(MSVC)
-    find_package(GMP REQUIRED)
-    if(GMP_FOUND)
-        message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARIES}]")
-    else()
-        message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed and available.")
-    endif()
+find_path(GMP_INCLUDE_DIR gmp.h
+    HINTS /usr/include/x86_64-linux-gnu /usr/include/CGAL)
+
+find_library(GMP_LIBRARY NAMES gmp libgmp
+    HINTS /usr/lib/x86_64-linux-gnu)
+
+if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
+    message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
 else()
-    find_path(GMP_INCLUDE_DIR gmp.h
-        HINTS /usr/include/x86_64-linux-gnu /usr/include/CGAL)
-
-    find_library(GMP_LIBRARY NAMES gmp libgmp
-        HINTS /usr/lib/x86_64-linux-gnu)
-
-    if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
-        message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
-    else()
-        message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
-    endif()
+    message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
 endif()
 include_directories(${GMP_INCLUDE_DIR})
 link_libraries(${GMP_LIBRARY})
@@ -395,6 +552,16 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE ${INCLUDE_DIRECTORIES})
+
+if (START_OPENMP_ON)
+    target_link_libraries(${TARGET_NAME} PRIVATE ${OpenMP_LIBRARIES})
+endif()
+if (GPU_CUDA_ON)
+    target_compile_options(${TARGET_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
+    target_link_libraries(${TARGET_NAME} PRIVATE ${CUDA_LIBRARIES})
+    set_target_properties(${TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+endif()
+
 
 include(CTest)
 enable_testing()

@@ -1,6 +1,13 @@
 #ifndef BASISSELECTOR_HPP
 #define BASISSELECTOR_HPP
 
+#include <Intrepid2_CellTools.hpp>
+#include <Intrepid2_DefaultCubatureFactory.hpp>
+#include <Intrepid2_FunctionSpaceTools.hpp>
+#include <Intrepid2_HGRAD_TET_C1_FEM.hpp>
+#include <Intrepid2_HGRAD_TET_C2_FEM.hpp>
+#include <Intrepid2_HGRAD_TET_Cn_FEM.hpp>
+
 #include <memory>
 
 #include "CellSelectorException.hpp"
@@ -30,7 +37,13 @@ public:
      * @return The selected basis corresponding to the cell type and polynomial order.
      * @throw CellSelectorException If the cell type is not supported.
      */
-    template <DeviceTypeConcept DeviceType>
+    template <
+#if __cplusplus >= 202002L
+        DeviceTypeConcept DeviceType
+#else
+        typename DeviceType, typename = std::enable_if_t<DeviceTypeConcept_v<DeviceType>>
+#endif
+        >
     static std::unique_ptr<Intrepid2::Basis<DeviceType>> get(CellType cellType, int polynom_order)
     {
         FEMCheckers::checkPolynomOrder(polynom_order);

@@ -15,15 +15,26 @@
 ## Dependencies
 
 - **Programming Languages:** C++, Python
-- **Libraries and Tools:**
-  - [Python 3.7](https://www.python.org/downloads/)
+- **C++ Libraries and Tools:**
   - [GCC 13](https://gcc.gnu.org/gcc-13/) (GNU Compiler Collection)
-  - G++ 13 (GNU C++ Compiler)
-  - PyQt5
   - [HDF5](https://github.com/HDFGroup/hdf5)
+  - [CGAL](https://www.cgal.org/)
   - [Gmsh](https://gmsh.info/)
-  - [VTK](https://vtk.org/download/)
+  - [Boost](https://www.boost.org/)
+  - [GMP](https://gmplib.org/)
+  - TBB
+  - [json](https://github.com/nlohmann/json)
+  - [OpenMP](https://www.openmp.org/) (optional)
+  - [MPI](https://docs.open-mpi.org/en/v5.0.x/installing-open-mpi/quickstart.html) (optional)
+  - [CUDA](https://developer.nvidia.com/cuda-toolkit) (optional)
   - [Trilinos](https://trilinos.github.io/)
+
+
+- **Python Libraries:**
+  - [Python 3.7](https://www.python.org/downloads/)
+  - [PyQt5](https://pypi.org/project/PyQt5/)
+  - [VTK](https://vtk.org/download/)
+  - [json](https://pypi.org/project/nlohmann-json/)
 
 The program uses C++20 features, so ensure your compiler supports this standard.
 
@@ -177,3 +188,30 @@ FEM accuracy is the parameter that manages count of cubature points for the more
 |      18      |           715            |
 |      19      |           715            |
 |      20      |           1001           |
+
+### Variables to set within `.bashrc` to work with OpenMP and CUDA
+
+#### OpenMP Environment Variables
+
+`OMP_PROC_BIND=spread`: This setting controls how OpenMP threads are distributed across the cores. By setting it to spread, OpenMP threads are distributed across as many processors as possible, which can help maximize memory bandwidth usage and avoid oversubscribing a single core. This setting is optimal for multi-threaded parallelism.
+
+`OMP_PLACES=threads`: This variable specifies the places on which OpenMP threads can execute. Setting it to threads means that each OpenMP thread is bound to a separate processing unit (core), which further enhances the parallel efficiency of the program by distributing the workload across available CPU cores.
+
+`export OMP_PROC_BIND=spread`
+
+`export OMP_PLACES=threads`
+
+or
+
+`vim ~/.bashrc`
+and write down the vars within, then write `:wq`.
+
+#### CUDA Environment Variables
+
+`export CUDA_VISIBLE_DEVICES=0` or any other number of the GPU you want to use. See [this](https://stackoverflow.com/questions/39649102/how-do-i-select-which-gpu-to-run-a-job-on) source for more info.
+
+Briefly:
+
+Just add the following lines to your `.bashrc` file:
+
+`export CUDA_VISIBLE_DEVICES=0` if you have only one GPU.

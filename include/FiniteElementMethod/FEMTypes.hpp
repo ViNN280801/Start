@@ -20,18 +20,27 @@
 #include <Tpetra_CrsMatrix.hpp>
 #include <Tpetra_Map.hpp>
 #include <Tpetra_Vector.hpp>
+
 #include <array>
 #include <vector>
 
-using Scalar = double;                                                // ST - Scalar Type (type of the data inside the matrix node).
-using LocalOrdinal = int;                                             // LO - indices in local matrix.
-using GlobalOrdinal = long long;                                      // GO - Global Ordinal Type (indices in global matrices).
-using ExecutionSpace = Kokkos::DefaultExecutionSpace;                 // Using host space to interoperate with data.
-using DeviceType = Kokkos::Device<ExecutionSpace, Kokkos::HostSpace>; // Using CPU.
-using DynRankView = Kokkos::DynRankView<Scalar, DeviceType>;          // Multi-dimensional array template.
-using DynRankViewVector = std::vector<DynRankView>;                   // Vector of multi-dimensional arrays.
-using DynRankViewMatrix = std::vector<DynRankViewVector>;             // Matrix of multi-dimensional arrays.
-using Node = Tpetra::Map<>::node_type;                                // Node type based on Kokkos execution space.
+using Scalar = double;           // ST - Scalar Type (type of the data inside the matrix node).
+using LocalOrdinal = int;        // LO - indices in local matrix.
+using GlobalOrdinal = long long; // GO - Global Ordinal Type (indices in global matrices).
+
+#ifdef USE_CUDA
+using ExecutionSpace = Kokkos::Cuda;   // Using GPU CUDA.
+using MemorySpace = Kokkos::CudaSpace; // Using CUDA device memory.
+#else
+using ExecutionSpace = Kokkos::DefaultExecutionSpace; // Using CPU.
+using MemorySpace = Kokkos::HostSpace;                // Host memory.
+#endif
+
+using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>; // Device type according to the macro `USE_CUDA`.
+using DynRankView = Kokkos::DynRankView<Scalar, DeviceType>;    // Multi-dimensional array template.
+using DynRankViewVector = std::vector<DynRankView>;             // Vector of multi-dimensional arrays.
+using DynRankViewMatrix = std::vector<DynRankViewVector>;       // Matrix of multi-dimensional arrays.
+using Node = Tpetra::Map<>::node_type;                          // Node type based on Kokkos execution space.
 using MapType = Tpetra::Map<LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraVectorType = Tpetra::Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraMultiVector = Tpetra::MultiVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
@@ -41,7 +50,8 @@ using TetrahedronIndices = std::array<LocalOrdinal, 4ul>;
 using TetrahedronIndicesVector = std::vector<TetrahedronIndices>;
 using Commutator = Teuchos::RCP<Teuchos::Comm<int> const>;
 
-// ***** *****   Concepts for types    ***** ***** //
+#if __cplusplus >= 202002L // C++20 and above
+// ***** Concepts for types using C++20 concepts ***** //
 /**
  * @brief Concept that ensures the type is a valid Kokkos execution space.
  *
@@ -106,6 +116,28 @@ concept DeviceTypeConcept = requires {
     Kokkos::is_execution_space_v<typename T::execution_space>;
     Kokkos::is_memory_space_v<typename T::memory_space>;
 };
-// *********************************************** //
+#else // C++17 - Fallback with static_assert and SFINAE ***** //
+#include <type_traits>
+
+template <typename T>
+constexpr bool ExecutionSpaceConcept_v = Kokkos::is_execution_space_v<T>;
+
+template <typename T>
+using ExecutionSpaceConcept = std::enable_if_t<ExecutionSpaceConcept_v<T>, bool>;
+
+template <typename T>
+constexpr bool MemorySpaceConcept_v = Kokkos::is_memory_space_v<T>;
+
+template <typename T>
+using MemorySpaceConcept = std::enable_if_t<MemorySpaceConcept_v<T>, bool>;
+
+template <typename T>
+constexpr bool DeviceTypeConcept_v = Kokkos::is_execution_space_v<typename T::execution_space> &&
+                                     Kokkos::is_memory_space_v<typename T::memory_space>;
+
+template <typename T>
+using DeviceTypeConcept = std::enable_if_t<DeviceTypeConcept_v<T>, bool>;
+
+#endif // __cplusplus check
 
 #endif // !FEM_TYPES_HPP

@@ -1,7 +1,9 @@
 #ifndef MATRIXMANAGER_HPP
 #define MATRIXMANAGER_HPP
 
+#if __cplusplus >= 202002L
 #include <span>
+#endif
 
 #include "FiniteElementMethod/FEMTypes.hpp"
 
@@ -36,6 +38,7 @@ private:
     std::vector<MatrixEntry> m_entries;      ///< Entries of the matrix: [row][col]=<value>. So-called "triplets": row number, column number and value.
 
 public:
+#if __cplusplus >= 202002L
     /**
      * @brief Constructor for the MatrixManager class using a list of matrix entries.
      *
@@ -56,6 +59,28 @@ public:
      * @throws std::runtime_error if there is any issue during the matrix or graph construction process.
      */
     MatrixManager(std::span<MatrixEntry const> matrix_entries);
+#else
+    /**
+     * @brief Constructor for the MatrixManager class using a list of matrix entries.
+     *
+     * This constructor initializes the MatrixManager with a set of global stiffness matrix entries.
+     * It processes the matrix entries (row, col, value) to build the Tpetra compressed row storage (CRS) matrix.
+     * The constructor follows these steps:
+     * - Collects unique global row-column entries to construct the CRS graph.
+     * - Initializes the Tpetra map based on the global node count.
+     * - Creates the Tpetra CRS graph using the number of entries per row.
+     * - Inserts the global indices into the graph and finalizes it.
+     * - Initializes the global stiffness matrix and prepares it for further operations.
+     *
+     * @param matrix_entries A span of MatrixEntry structures containing the row, column, and value information
+     *                       for the non-zero entries in the global stiffness matrix.
+     *
+     * @note This constructor assumes that the matrix is sparse and the number of non-zero entries is significantly
+     *       smaller than the total number of possible entries in a full matrix.
+     * @throws std::runtime_error if there is any issue during the matrix or graph construction process.
+     */
+    MatrixManager(std::vector<MatrixEntry> const &matrix_entries);
+#endif
 
     /**
      * @brief Getter for the matrix.
