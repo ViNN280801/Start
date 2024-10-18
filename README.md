@@ -205,9 +205,3 @@ or
 
 `vim ~/.bashrc`
 and write down the vars within, then write `:wq`.
-
-#### CUDA Unified Memory Allocation for Device
-
-`CUDA_MANAGED_FORCE_DEVICE_ALLOC=1`
-
-This environment variable forces all CUDA-managed memory to be allocated on the device (GPU) rather than the host (CPU). This allocation method can improve performance on multi-GPU systems and avoids performance penalties associated with memory migration between the host and device. It ensures that managed memory remains in the GPU memory space, which is particularly helpful for applications that predominantly run on the GPU.
