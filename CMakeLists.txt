@@ -193,17 +193,19 @@ if (GPU_CUDA_ON)
 endif()
 
 # Global C++ standard setting
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
 
 # Global CUDA include directories if GPU support is enabled
 if (GPU_CUDA_ON)
+    set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
     include_directories(${CUDA_INCLUDE_DIR})
 endif()
+
+message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
 
 
 ###############################################################
