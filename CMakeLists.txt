@@ -363,15 +363,15 @@ include_directories(${TBB_INCLUDE_DIRS})
 # ║ Set compiler options for warning level and optimizations.                 ║
 # ║ Remove unnecessary flags in debug mode and optimize in release mode.      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-set(SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG "-Wno-deprecated-declarations")
-message(STATUS "⚙️  Setting flag '${SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG}' to suppress warning: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'")
+set(SUPRESS_SOME_WARNINGS "-Wno-deprecated-declarations -Wno-unused-parameter -Wno-implicit-fallthrough")
+message(STATUS "⚙️  Setting flag '${SUPRESS_SOME_WARNINGS}' to suppress warning: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'")
 set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
 message(STATUS "⚙️  Setting flag '${ENABLE_SQRT_VECTORIZATION_FLAG}' to enable vectorization of square root calculations without setting errno on errors")
 set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
 message(STATUS "⚙️  Setting flag '${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}' to avoid warnings about exceptions on divide operations")
 
 set(COMMON_CPP_FLAGS "-Wall -Wextra -Wpedantic -pthread -O3 -Wmisleading-indentation")
-set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${SUPPRESS_DEPRECATED_DECLARATIONS_WARNING_FLAG} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}")
+set(FINAL_CPP_FLAGS "${COMMON_CPP_FLAGS} ${SUPRESS_SOME_WARNINGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
 
 # Initialize variables for optional flags
