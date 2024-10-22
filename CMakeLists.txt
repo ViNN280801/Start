@@ -324,11 +324,11 @@ message (STATUS "⚙️  C++ extensions set to OFF, because of Kokkos requiremen
 ###############################################################
 if(NOT "$ENV{TRILINOS_DIR}" STREQUAL "")
     set(TRILINOS_DIR "$ENV{TRILINOS_DIR}")
-    find_package(Trilinos REQUIRED PATHS "${TRILINOS_DIR}")
+    find_package(Trilinos REQUIRED Belos Intrepid2 Kokkos KokkosKernels MueLu Shards Teuchos Tpetra PATHS "${TRILINOS_DIR}")
     message(STATUS "✅ Trilinos directory set to custom environment variable: [${TRILINOS_DIR}]")
 else()
     set(TRILINOS_DIR "/usr/local/lib/cmake/Trilinos")
-    find_package(Trilinos REQUIRED PATHS "${TRILINOS_DIR}")
+    find_package(Trilinos REQUIRED Belos Intrepid2 Kokkos KokkosKernels MueLu Shards Teuchos Tpetra PATHS "${TRILINOS_DIR}")
     message(STATUS "✅ Trilinos directory set to default location: [${TRILINOS_DIR}]")
 endif()
 
