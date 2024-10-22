@@ -90,5 +90,44 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
 
 -DKokkos_ARCH_AMPERE86=ON this flag u need to adjust according to the ur gpu architecture. This flag is responsible for the RTX 4060 GPU.
 
+Building without CUDA but with OpenMP and MPI:
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
+      -DCMAKE_BUILD_TYPE=RELEASE \
+      -DBUILD_SHARED_LIBS=ON \
+      -DCMAKE_C_COMPILER=mpicc \
+      -DCMAKE_CXX_COMPILER=mpicxx \
+      -DCMAKE_Fortran_COMPILER=mpifort \
+      -DFortranCInterface_GLOBAL_SYMBOLS=LOWER \
+      -DKOKKOSKERNELS_ENABLE_TPL_BLAS=ON \
+      -DKOKKOSKERNELS_ENABLE_TPL_LAPACK=ON \
+      -DTPL_ENABLE_BLAS=ON \
+      -DTPL_ENABLE_LAPACK=ON \
+      -DTPL_ENABLE_Boost=ON \
+      -DTPL_ENABLE_Pthread=ON \
+      -DTPL_ENABLE_MPI=ON \
+      -DTPL_ENABLE_HDF5=ON \
+      -DTPL_ENABLE_X11=ON \
+      -DHDF5_PREFER_PARALLEL=ON \
+      -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so;/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_cpp.so" \
+      -DTrilinos_ENABLE_ALL_PACKAGES=ON \
+      -DTrilinos_ENABLE_OpenMP=ON \
+      -DTrilinos_ENABLE_Fortran=ON \
+      -DTrilinos_ENABLE_Kokkos=ON \
+      -DTrilinos_ENABLE_KokkosKernels=ON \
+      -DTrilinos_ENABLE_Intrepid=OFF \
+      -DTrilinos_ENABLE_TESTS=OFF \
+      -DTrilinos_ENABLE_Epetra=OFF \
+      -DTrilinos_ENABLE_EpetraExt=OFF \
+      -DTpetraCore_ENABLE_Kokkos=ON \
+      -DTpetraCore_ENABLE_KokkosKernels=ON \
+      -DTpetraCore_ENABLE_MPI=ON \
+      -DTpetra_INST_SERIAL=ON \
+      -DTpetra_INST_OPENMP=ON \
+      -DTpetra_ENABLE_DEPRECATED_CODE=OFF \
+      -DTeuchos_ENABLE_THREAD_SAFE=ON \
+      -DKokkos_ENABLE_SERIAL=ON \
+      -DKokkos_ENABLE_OPENMP=ON \
+      ..
+
 Link to the precompiled Trilinos (Visual Studio 17 2022. MSVC 14.40.33807):
 https://drive.google.com/file/d/1utiHNigjNQdjRsQYwPAxWlJM8ZNY64tj/view?usp=sharing
