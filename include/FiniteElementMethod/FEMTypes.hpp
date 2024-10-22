@@ -28,17 +28,36 @@ using Scalar = double;           // ST - Scalar Type (type of the data inside th
 using LocalOrdinal = int;        // LO - indices in local matrix.
 using GlobalOrdinal = long long; // GO - Global Ordinal Type (indices in global matrices).
 
-#ifdef USE_CUDA
-using ExecutionSpace = Kokkos::Cuda;   // Using GPU CUDA.
-using MemorySpace = Kokkos::CudaSpace; // Using CUDA device memory.
-#else
-using ExecutionSpace = Kokkos::DefaultExecutionSpace; // Using CPU.
-using MemorySpace = Kokkos::HostSpace;                // Host memory.
-#endif
+using ExecutionSpaceHost = Kokkos::DefaultHostExecutionSpace;               // Using CPU.
+using MemorySpaceHost = Kokkos::HostSpace;                                  // Host memory.
+using DeviceTypeHost = Kokkos::Device<ExecutionSpaceHost, MemorySpaceHost>; // Host device.
+using DynRankViewHost = Kokkos::DynRankView<Scalar, DeviceTypeHost>;        // Multi-dimensional array template for the host.
+using NodeHost = Tpetra::Map<>::node_type;                                  // For CPU (OpenMP or Serial).
 
-using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>; // Device type according to the macro `USE_CUDA`.
-using DynRankView = Kokkos::DynRankView<Scalar, DeviceType>;    // Multi-dimensional array template.
-using Node = Tpetra::Map<>::node_type;                          // Node type based on Kokkos execution space.
+#ifdef USE_CUDA
+
+using ExecutionSpaceDevice = Kokkos::Cuda;                                        // Using GPU CUDA.
+using MemorySpaceDevice = Kokkos::CudaSpace;                                      // Using CUDA device memory.
+using DeviceTypeDevice = Kokkos::Device<ExecutionSpaceDevice, MemorySpaceDevice>; // Device type according to the macro `USE_CUDA`.
+using DynRankViewDevice = Kokkos::DynRankView<Scalar, DeviceTypeDevice>;          // Multi-dimensional array template for the device.
+using NodeDevice = Tpetra::KokkosClassic::DefaultNode::DefaultNodeType;           // For GPU.
+
+using ExecutionSpace = ExecutionSpaceDevice;
+using MemorySpace = MemorySpaceDevice;
+using DeviceType = DeviceTypeDevice;
+using DynRankView = DynRankViewDevice;
+using Node = NodeDevice;
+
+#else
+
+using ExecutionSpace = ExecutionSpaceHost;
+using MemorySpace = MemorySpaceHost;
+using DeviceType = DeviceTypeHost;
+using DynRankView = DynRankViewHost;
+using Node = NodeHost;
+
+#endif // !USE_CUDA
+
 using MapType = Tpetra::Map<LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraVectorType = Tpetra::Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
 using TpetraMultiVector = Tpetra::MultiVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>;
@@ -114,7 +133,7 @@ concept DeviceTypeConcept = requires {
     Kokkos::is_execution_space_v<typename T::execution_space>;
     Kokkos::is_memory_space_v<typename T::memory_space>;
 };
-#else // C++17 - Fallback with static_assert and SFINAE ***** //
+#else
 #include <type_traits>
 
 template <typename T>

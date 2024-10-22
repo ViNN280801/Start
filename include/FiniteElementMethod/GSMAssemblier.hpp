@@ -34,7 +34,7 @@ private:
      *                     Each tetrahedron is represented by its four vertices, and each vertex has three coordinates (x, y, z).
      * @throw std::runtime_error if an error occurs during the extraction of vertices.
      */
-    DynRankView _getTetrahedronVertices();
+    DynRankViewHost _getTetrahedronVertices();
 
     /**
      * @brief Retrieves matrix entries from calculated local stiffness matrices.

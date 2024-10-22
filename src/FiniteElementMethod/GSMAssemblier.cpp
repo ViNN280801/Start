@@ -6,13 +6,11 @@
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "Generators/RealNumberGenerator.hpp"
 
-DynRankView GSMAssemblier::_getTetrahedronVertices()
+DynRankViewHost GSMAssemblier::_getTetrahedronVertices()
 {
     try
     {
-        DynRankView vertices("vertices", m_meshManager.getNumTetrahedrons(), FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
-        Kokkos::deep_copy(vertices, 0.0);
-
+        DynRankViewHost vertices("vertices", m_meshManager.getNumTetrahedrons(), FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         size_t i{};
         for (auto const &meshParam : m_meshManager.getMeshComponents())
         {
@@ -36,7 +34,7 @@ DynRankView GSMAssemblier::_getTetrahedronVertices()
         ERRMSG("Unknown error");
     }
     WARNINGMSG("Returning empty multidimensional array with vertices of the all tetrahedrons from the mesh");
-    return DynRankView();
+    return DynRankViewHost();
 }
 
 std::vector<MatrixEntry> GSMAssemblier::_getMatrixEntries()
@@ -54,10 +52,15 @@ std::vector<MatrixEntry> GSMAssemblier::_getMatrixEntries()
         globalNodeIndicesPerElement.emplace_back(nodes);
     }
 
-    // 1. Getting all LSMs.
+// 1. Getting all LSMs.
+#ifdef USE_CUDA
+    auto localStiffnessMatrices_device{_computeLocalStiffnessMatrices()};
+    auto localStiffnessMatrices{Kokkos::create_mirror_view_and_copy(MemorySpaceHost(), localStiffnessMatrices_device)}; // Transfering LSMs from device to host.
+#else
     auto localStiffnessMatrices{_computeLocalStiffnessMatrices()};
+#endif
 
-    // 3. Filling matrix entries.
+    // 2. Filling matrix entries.
     std::vector<MatrixEntry> matrixEntries;
     try
     {
@@ -98,60 +101,77 @@ DynRankView GSMAssemblier::_computeLocalStiffnessMatrices()
 {
     try
     {
+        auto const numTetrahedrons{m_meshManager.getNumTetrahedrons()};
+        auto const numBasisFunctions{m_cubature_manager.getCountBasisFunctions()};
+        auto const numCubaturePoints{m_cubature_manager.getCountCubaturePoints()};
+
+        auto const &cubPoints{m_cubature_manager.getCubaturePoints()};
+        auto const &cubWeights{m_cubature_manager.getCubatureWeights()};
+
         // 1. Calculating basis gradients.
-        DynRankView referenceBasisGrads("referenceBasisGrads", m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
-        Kokkos::deep_copy(referenceBasisGrads, 0.0);
+        DynRankView referenceBasisGrads("referenceBasisGrads", numBasisFunctions, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         auto basis{BasisSelector::template get<DeviceType>(CellType::Tetrahedron, m_polynom_order)};
-        basis->getValues(referenceBasisGrads, m_cubature_manager.getCubaturePoints(), Intrepid2::OPERATOR_GRAD);
+        basis->getValues(referenceBasisGrads, cubPoints, Intrepid2::OPERATOR_GRAD);
+
+#ifdef USE_CUDA
+        auto vertices{Kokkos::create_mirror_view_and_copy(MemorySpaceDevice(), _getTetrahedronVertices())}; // From host to device.
+#else
+        DynRankView vertices(_getTetrahedronVertices());
+#endif
 
         // 2. Computing cell jacobians, inversed jacobians and jacobian determinants to get cell measure.
-        DynRankView jacobians("jacobians", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
-        Kokkos::deep_copy(jacobians, 0.0);
-        Intrepid2::CellTools<DeviceType>::setJacobian(jacobians, m_cubature_manager.getCubaturePoints(), _getTetrahedronVertices(), CellSelector::get(CellType::Tetrahedron));
+        DynRankView jacobians("jacobians", numTetrahedrons, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
+        Intrepid2::CellTools<DeviceType>::setJacobian(jacobians, cubPoints, vertices, CellSelector::get(CellType::Tetrahedron));
 
-        DynRankView invJacobians("invJacobians", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
-        Kokkos::deep_copy(invJacobians, 0.0);
+        DynRankView invJacobians("invJacobians", numTetrahedrons, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Intrepid2::CellTools<DeviceType>::setJacobianInv(invJacobians, jacobians);
 
-        DynRankView jacobiansDet("jacobiansDet", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountCubaturePoints());
-        Kokkos::deep_copy(jacobiansDet, 0.0);
+        DynRankView jacobiansDet("jacobiansDet", numTetrahedrons, numCubaturePoints);
         Intrepid2::CellTools<DeviceType>::setJacobianDet(jacobiansDet, jacobians);
-        DynRankView cellMeasures("cellMeasures", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountCubaturePoints());
-        Kokkos::deep_copy(cellMeasures, 0.0);
-        Intrepid2::FunctionSpaceTools<DeviceType>::computeCellMeasure(cellMeasures, jacobiansDet, m_cubature_manager.getCubatureWeights());
+
+        DynRankView cellMeasures("cellMeasures", numTetrahedrons, numCubaturePoints);
+        Intrepid2::FunctionSpaceTools<DeviceType>::computeCellMeasure(cellMeasures, jacobiansDet, cubWeights);
 
         // 3. Transforming reference basis gradients to physical frame.
-        DynRankView transformedBasisGradients("transformedBasisGradients", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
-        Kokkos::deep_copy(transformedBasisGradients, 0.0);
+        DynRankView transformedBasisGradients("transformedBasisGradients", numTetrahedrons, numBasisFunctions, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Intrepid2::FunctionSpaceTools<DeviceType>::HGRADtransformGRAD(transformedBasisGradients, invJacobians, referenceBasisGrads);
 
         // 4. Multiply transformed basis gradients by cell measures to get weighted gradients.
-        DynRankView weightedBasisGrads("weightedBasisGrads", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountCubaturePoints(), FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
-        Kokkos::deep_copy(weightedBasisGrads, 0.0);
+        DynRankView weightedBasisGrads("weightedBasisGrads", numTetrahedrons, numBasisFunctions, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
         Intrepid2::FunctionSpaceTools<DeviceType>::multiplyMeasure(weightedBasisGrads, cellMeasures, transformedBasisGradients);
 
         // 5. Integrate to get local stiffness matrices for workset cells.
-        DynRankView localStiffnessMatrices("localStiffnessMatrices", m_meshManager.getNumTetrahedrons(), m_cubature_manager.getCountBasisFunctions(), m_cubature_manager.getCountBasisFunctions());
-        Kokkos::deep_copy(localStiffnessMatrices, 0.0);
+        DynRankView localStiffnessMatrices("localStiffnessMatrices", numTetrahedrons, numBasisFunctions, numBasisFunctions);
         Intrepid2::FunctionSpaceTools<DeviceType>::integrate(localStiffnessMatrices, weightedBasisGrads, transformedBasisGradients);
 
-        // Filling map with basis grads on each node on each tetrahedron.
-        for (size_t localTetraId{}; localTetraId < m_meshManager.getNumTetrahedrons(); ++localTetraId)
+#ifdef USE_CUDA
+        auto localStiffnessMatrices_host{Kokkos::create_mirror_view_and_copy(MemorySpaceHost(), localStiffnessMatrices)}; // From device to host.
+        auto weightedBasisGrads_host{Kokkos::create_mirror_view_and_copy(MemorySpaceHost(), weightedBasisGrads)};         // From device to host.
+#endif
+
+        // 6. Filling map with basis grads on each node on each tetrahedron.
+        for (size_t localTetraId{}; localTetraId < numTetrahedrons; ++localTetraId)
         {
             auto globalTetraId{m_meshManager.getGlobalTetraId(localTetraId)};
-
-            auto const &nodes {m_meshManager.getTetrahedronNodes(localTetraId)};
-            if (m_cubature_manager.getCountBasisFunctions() > nodes.size())
+            auto const &nodes{m_meshManager.getTetrahedronNodes(localTetraId)};
+            if (numBasisFunctions > nodes.size())
             {
                 ERRMSG("Basis function count exceeds the number of nodes.");
             }
 
-            for (short localNodeId{}; localNodeId < m_cubature_manager.getCountBasisFunctions(); ++localNodeId)
+            for (short localNodeId{}; localNodeId < numBasisFunctions; ++localNodeId)
             {
                 auto globalNodeId{m_meshManager.getGlobalNodeId(localTetraId, localNodeId)};
+
+#ifdef USE_CUDA
+                Point grad(weightedBasisGrads_host(localTetraId, localNodeId, 0, 0),
+                           weightedBasisGrads_host(localTetraId, localNodeId, 0, 1),
+                           weightedBasisGrads_host(localTetraId, localNodeId, 0, 2));
+#else
                 Point grad(weightedBasisGrads(localTetraId, localNodeId, 0, 0),
                            weightedBasisGrads(localTetraId, localNodeId, 0, 1),
                            weightedBasisGrads(localTetraId, localNodeId, 0, 2));
+#endif
 
                 // As we have polynom order = 1, that all the values from the ∇φ in all cub points are the same, so we can add only 1 row from each ∇φ.
                 m_meshManager.assignNablaPhi(globalTetraId, globalNodeId, grad);

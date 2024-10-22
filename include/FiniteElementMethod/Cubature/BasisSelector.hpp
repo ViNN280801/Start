@@ -26,6 +26,11 @@
 class BasisSelector
 {
 public:
+#if __cplusplus >= 202002L
+    template <DeviceTypeConcept DeviceType>
+#else
+    template <typename DeviceType, typename = std::enable_if_t<DeviceTypeConcept_v<DeviceType>>>
+#endif
     /**
      * @brief Selects the appropriate basis for the given cell type and polynomial order.
      *
@@ -37,13 +42,6 @@ public:
      * @return The selected basis corresponding to the cell type and polynomial order.
      * @throw CellSelectorException If the cell type is not supported.
      */
-    template <
-#if __cplusplus >= 202002L
-        DeviceTypeConcept DeviceType
-#else
-        typename DeviceType, typename = std::enable_if_t<DeviceTypeConcept_v<DeviceType>>
-#endif
-        >
     static std::unique_ptr<Intrepid2::Basis<DeviceType>> get(CellType cellType, int polynom_order)
     {
         FEMCheckers::checkPolynomOrder(polynom_order);

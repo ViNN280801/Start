@@ -20,14 +20,11 @@ void CubatureManager::_initializeCubature(CellType cell_type, short desired_accu
         auto cubature{cubFactory.create<DeviceType>(cellTopology, desired_accuracy)}; // Generating cubature function.
         m_count_cubature_points = cubature->getNumPoints();                           // Getting number of cubature points.
 
-        // 1. Allocating memory for cubature points and weights.
+        // 3. Allocating memory for cubature points and weights.
         m_cubature_points = DynRankView("cubPoints", m_count_cubature_points, FEM_LIMITS_DEFAULT_SPACE_DIMENSION); // Matrix: m_count_cubature_points x Dimensions.
         m_cubature_weights = DynRankView("cubWeights", m_count_cubature_points);                                   // Vector: m_count_cubature_points.
 
-        Kokkos::deep_copy(m_cubature_points, 0.0);
-        Kokkos::deep_copy(m_cubature_weights, 0.0);
-
-        // 2. Getting cubature points and weights.
+        // 4. Getting cubature points and weights.
         cubature->getCubature(m_cubature_points, m_cubature_weights);
     }
     catch (std::exception const &ex)
