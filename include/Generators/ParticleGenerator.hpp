@@ -8,7 +8,7 @@
 
 #include "Particle/Particle.hpp"
 
-#if _cplusplus >= 202002L
+#if __cplusplus >= 202002L
 /**
  * @brief Concept to ensure the Generator is callable and returns a Particle.
  *
