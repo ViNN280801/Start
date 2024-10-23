@@ -28,7 +28,14 @@
   - [MPI](https://docs.open-mpi.org/en/v5.0.x/installing-open-mpi/quickstart.html) (optional)
   - [CUDA](https://developer.nvidia.com/cuda-toolkit) (optional)
   - [Trilinos](https://trilinos.github.io/)
-
+    - [Belos](https://trilinos.github.io/belos.html): Belos is used for solving large sparse linear systems that arise during the finite element analysis. It provides iterative solvers such as GMRES or CG, which are crucial for efficiently handling systems involving global stiffness matrices.
+    - [Intrepid2](https://trilinos.github.io/intrepid2.html): For defining basis functions and performing operations such as calculating gradients and integrating over finite elements. It plays a central role in the assembly of local stiffness matrices and transforming physical coordinates in the finite element methods.
+    - [Kokkos](https://trilinos.github.io/kokkos.html): Kokkos provides a performance-portable framework to run the finite element assembly and matrix-vector operations on different hardware architectures (CPUs, GPUs): It is essential for the parallel execution of these operations, ensuring that application scales efficiently across various systems.
+    - [KokkosKernels](https://github.com/kokkos/kokkos-kernels): This package complements Kokkos by offering specialized linear algebra and sparse matrix operations optimized for parallelism. This project utilize KokkosKernels for performing matrix-vector operations and solving sparse systems that are fundamental to finite element method (FEM) workflow.
+    - [MueLu](https://trilinos.github.io/muelu.html): MueLu serves as a multigrid preconditioner in the project, improving the convergence of iterative solvers like those in Belos. This is particularly important for solving the large, complex systems of equations that arise during finite element analysis.
+    - [Shards](https://trilinos.github.io/shards.html): Helps manage the geometric definitions of the finite elements (such as tetrahedrons), providing a way to handle different element topologies and ensuring correct integration over them during stiffness matrix assembly.
+    - [Teuchos](https://trilinos.github.io/teuchos.html): Provides utility tools for memory management (smart pointers), parameter lists, and numerical utilities, which project rely on for efficient memory handling and managing solver parameters throughout the finite element computations.
+    - [Tpetra](https://trilinos.github.io/tpetra.html): Tpetra is used for parallel distributed matrix and vector operations. Project leveraging it for storing and manipulating the global stiffness matrix and solution vectors in a distributed memory environment, ensuring scalability and parallelism across distributed systems like MPI clusters.
 
 - **Python Libraries:**
   - [Python 3.7](https://www.python.org/downloads/)
