@@ -413,7 +413,6 @@ set(GENERATORS_SOURCES
     ${GENERATORS_SRC_PATH}/RealNumberGenerator.cpp
 )
 set(GEOMETRY_SOURCES
-    ${GEOMETRY_SRC_PATH}/MathVector.cpp
     ${GEOMETRY_SRC_PATH}/Mesh.cpp
     ${GEOMETRY_SRC_PATH}/RayTriangleIntersection.cpp
 )
