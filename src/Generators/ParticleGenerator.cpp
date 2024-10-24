@@ -45,14 +45,18 @@ ParticleVector ParticleGenerator::fromPointSource(std::vector<point_source_t> co
     ParticleVector particles;
     for (auto const &sourceData : source)
     {
-        std::array<double, 3> thetaPhi = {sourceData.expansionAngle, sourceData.phi, sourceData.theta};
         ParticleType type{util::getParticleTypeFromStrRepresentation(sourceData.type)};
+        if (type == ParticleType::Unknown)
+            throw std::invalid_argument("Unknown particle type received");
 
+        std::array<double, 3> thetaPhi = {sourceData.expansionAngle, sourceData.phi, sourceData.theta};
         for (size_t i{}; i < sourceData.count; ++i)
+        {
             particles.emplace_back(type,
                                    Point(sourceData.baseCoordinates.at(0), sourceData.baseCoordinates.at(1), sourceData.baseCoordinates.at(2)),
                                    sourceData.energy,
                                    thetaPhi);
+        }
     }
     return particles;
 }
@@ -65,6 +69,10 @@ ParticleVector ParticleGenerator::fromSurfaceSource(std::vector<surface_source_t
 
     for (auto const &sourceData : source)
     {
+        ParticleType type{util::getParticleTypeFromStrRepresentation(sourceData.type)};
+        if (type == ParticleType::Unknown)
+            throw std::invalid_argument("Unknown particle type received");
+
         size_t num_cells{sourceData.baseCoordinates.size()},
             particles_per_cell{sourceData.count / num_cells},
             remainder_particles_count{sourceData.count % num_cells};
@@ -80,7 +88,6 @@ ParticleVector ParticleGenerator::fromSurfaceSource(std::vector<surface_source_t
             cell_particle_count[i]++;
 
         size_t cell_index{};
-        ParticleType type{util::getParticleTypeFromStrRepresentation(sourceData.type)};
         for (auto const &item : sourceData.baseCoordinates)
         {
             auto const &cell_centre_str{item.first};
