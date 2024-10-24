@@ -50,7 +50,7 @@ private:
     static size_t isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle);
     static std::optional<std::tuple<size_t, Point>>
     getIntersectionPointImpl(Ray const &ray, MeshTriangleParam const &triangle);
-    static double calcTetrahedronVolume(MathVector const &a, MathVector const &b, MathVector const &c, MathVector const &d);
+    static double calcTetrahedronVolume(MathVector<double> const &a, MathVector<double> const &b, MathVector<double> const &c, MathVector<double> const &d);
 
 public:
     /**

@@ -611,7 +611,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
     {
 #ifdef USE_OMP
         // OpenMP implementation.
-        MathVector magneticInduction{}; // Assuming induction vector B is 0.
+        MagneticInduction magneticInduction{}; // Assuming induction vector B is 0.
 
 #pragma omp parallel
         {
@@ -660,7 +660,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                         // Updating velocity of the particle according to the Lorentz force.
                         particle.electroMagneticPush(
                             magneticInduction,
-                            MathVector(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
+                            ElectricField(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
                             m_config.getTimeStep());
                     }
                 }
@@ -704,7 +704,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                 auto matchedIt = std::find_if(_triangleMesh.cbegin(), _triangleMesh.cend(), [triangle](auto const &el)
                                               { return triangle == std::get<1>(el); });
 #endif
-              
+
                 if (matchedIt != _triangleMesh.cend())
                 {
                     auto id = _isRayIntersectTriangle(ray, *matchedIt);
@@ -737,7 +737,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
             } // end of for loop.
         } // end of parallel region.
 #else
-        MathVector magneticInduction{}; // For brevity assuming that induction vector B is 0.
+        MagneticInduction magneticInduction{}; // For brevity assuming that induction vector B is 0.
         std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index,
                       [this, &cubicGrid, assemblier, magneticInduction, t](auto &particle)
                       {
@@ -768,7 +768,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               if (tetrahedron->electricField.has_value())
                                   // Updating velocity of the particle according to the Lorentz force.
                                   particle.electroMagneticPush(magneticInduction,
-                                                               MathVector(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
+                                                               ElectricField(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
                                                                m_config.getTimeStep());
 
                           Point prev(particle.getCentre());

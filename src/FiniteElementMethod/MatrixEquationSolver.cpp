@@ -61,11 +61,11 @@ void MatrixEquationSolver::calculateElectricField()
         // E_cell = Σ(φi⋅∇φi), where i - global index of the node.
         for (auto const &tetrahedronData : m_assemblier->getMeshManager().getMeshComponents())
         {
-            MathVector electricField{};
+            ElectricField electricField{};
             for (auto const &node : tetrahedronData.nodes)
             {
                 if (node.potential && node.nablaPhi)
-                    electricField += MathVector(node.nablaPhi.value().x(), node.nablaPhi.value().y(), node.nablaPhi.value().z()) *
+                    electricField += ElectricField(node.nablaPhi.value().x(), node.nablaPhi.value().y(), node.nablaPhi.value().z()) *
                                      node.potential.value();
                 else
                 {

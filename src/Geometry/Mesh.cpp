@@ -1,7 +1,6 @@
 #include <gmsh.h>
 #include <limits>
 
-#include "Geometry/MathVector.hpp"
 #include "Geometry/Mesh.hpp"
 #include "Utilities/Utilities.hpp"
 
@@ -100,7 +99,7 @@ Mesh::getIntersectionPointImpl(Ray const &ray, MeshTriangleParam const &triangle
     return std::make_tuple(std::get<0>(triangle), *ip);
 }
 
-double Mesh::calcTetrahedronVolume(MathVector const &a, MathVector const &b, MathVector const &c, MathVector const &d) { return std::abs((c - a).crossProduct(d - a).dotProduct(b - a)) / 6.0; }
+double Mesh::calcTetrahedronVolume(MathVector<double> const &a, MathVector<double> const &b, MathVector<double> const &c, MathVector<double> const &d) { return std::abs((c - a).crossProduct(d - a).dotProduct(b - a)) / 6.0; }
 
 void Mesh::setMeshSize(double meshSizeFactor) { gmsh::option::setNumber("Mesh.MeshSizeFactor", meshSizeFactor); }
 
@@ -139,9 +138,9 @@ MeshTriangleParamVector Mesh::getMeshParams(std::string_view msh_filename)
                 xyz2{{xyz[(nodes[1] - 1) * 3], xyz[(nodes[1] - 1) * 3 + 1], xyz[(nodes[1] - 1) * 3 + 2]}},
                 xyz3{{xyz[(nodes[2] - 1) * 3], xyz[(nodes[2] - 1) * 3 + 1], xyz[(nodes[2] - 1) * 3 + 2]}};
 
-            double dS{MathVector::calculateTriangleArea(MathVector(xyz1[0], xyz1[1], xyz1[2]),
-                                                        MathVector(xyz2[0], xyz2[1], xyz2[2]),
-                                                        MathVector(xyz3[0], xyz3[1], xyz3[2]))};
+            double dS{MathVector<double>::calculateTriangleArea(MathVector<double>(xyz1[0], xyz1[1], xyz1[2]),
+                                                                MathVector<double>(xyz2[0], xyz2[1], xyz2[2]),
+                                                                MathVector<double>(xyz3[0], xyz3[1], xyz3[2]))};
 
             result.emplace_back(std::make_tuple(triangleId,
                                                 Triangle(Point(xyz1[0], xyz1[1], xyz1[2]),
