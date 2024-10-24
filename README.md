@@ -14,7 +14,7 @@
 
 ## Dependencies
 
-- **Programming Languages:** C++, Python
+- **Programming Languages:** C++17/20, Python 3.7+
 - **C++ Libraries and Tools:**
   - [GCC 13](https://gcc.gnu.org/gcc-13/) (GNU Compiler Collection)
   - [HDF5](https://github.com/HDFGroup/hdf5)
@@ -43,7 +43,7 @@
   - [VTK](https://vtk.org/download/)
   - [json](https://pypi.org/project/nlohmann-json/)
 
-The program uses C++20 features, so ensure your compiler supports this standard.
+The program uses C++20 features, so ensure your compiler supports this standard. But minimal requirements for the C++ standard is C++17.
 
 ### HDF5 installation example
 
