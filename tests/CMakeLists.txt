@@ -410,6 +410,7 @@ set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
 )
 set(GENERATORS_SOURCES
+    ${GENERATORS_SRC_PATH}/ParticleGenerator.cpp
     ${GENERATORS_SRC_PATH}/RealNumberGenerator.cpp
 )
 set(GEOMETRY_SOURCES
@@ -451,6 +452,7 @@ set(FINITE_ELEMENT_METHOD_TEST_SOURCES
     FiniteElementMethod/FEMCheckersTests.cpp
 )
 set(GENERATORS_TEST_SOURCES
+    Generators/ParticleGeneratorTests.cpp
     Generators/RealNumberGeneratorTests.cpp
 )
 set(GEOMETRY_TEST_SOURCES
