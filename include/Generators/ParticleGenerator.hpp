@@ -90,15 +90,32 @@ private:
                 ParticleVector particles;
 
 #ifdef USE_OMP
+                // Reserve space in the vector (ensures memory allocation, but not element construction)
                 particles.reserve(count);
-#pragma omp parallel for simd
-                for (size_t i = 0; i < count; ++i)
+
+#pragma omp parallel
                 {
-                        particles[i] = gen();
+                        // Local vector to accumulate particles for each thread.
+                        ParticleVector localParticles;
+
+#pragma omp for
+                        for (size_t i = 0; i < count; ++i)
+                        {
+                                // Generate a particle and push to the local vector
+                                Particle p = gen();
+#pragma omp critical
+                                {
+                                        particles.push_back(p); // Use critical section to avoid race conditions
+                                }
+                        }
                 }
 #else
-                for (size_t i{}; i < count; ++i)
+                // Non-parallel case
+                particles.reserve(count);
+                for (size_t i = 0; i < count; ++i)
+                {
                         particles.emplace_back(gen());
+                }
 #endif
 
                 return particles;
