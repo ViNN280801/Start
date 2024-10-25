@@ -56,12 +56,10 @@ TEST_F(ParticleGeneratorTest, DirtyZeroParticleCountVelocities)
     size_t particleCount = 0;
     ParticleType type = ParticleType::Ne;
 
-    ParticleVector particles = ParticleGenerator::byVelocities(
+    EXPECT_ANY_THROW(ParticleGenerator::byVelocities(
         particleCount, type,
         0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0);
-
-    EXPECT_TRUE(particles.empty());
+        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0));
 }
 
 TEST_F(ParticleGeneratorTest, DirtyNegativePositionRange)
@@ -161,12 +159,11 @@ TEST_F(ParticleGeneratorTest, DirtyByVelocityModuleZeroParticles)
     size_t particleCount = 0;
     ParticleType type = ParticleType::O2;
 
-    ParticleVector particles = ParticleGenerator::byVelocityModule(
-        particleCount, type,
-        0.0, 0.0, 0.0,
-        50.0, M_PI, M_PI / 2);
-
-    EXPECT_TRUE(particles.empty());
+    EXPECT_THROW(ParticleGenerator::byVelocityModule(
+                     particleCount, type,
+                     0.0, 0.0, 0.0,
+                     50.0, M_PI, M_PI / 2),
+                 std::logic_error);
 }
 
 TEST_F(ParticleGeneratorTest, DirtyByVelocityModuleZeroVelocity)
@@ -207,16 +204,6 @@ TEST_F(ParticleGeneratorTest, CleanFromPointSource)
 }
 
 // === Dirty Tests for fromPointSource === //
-
-TEST_F(ParticleGeneratorTest, DirtyFromPointSourceZeroParticles)
-{
-    std::vector<point_source_t> pointSources = {
-        {"Ar", 0, 10.0, 1.0, 1.0, 2.0, {0.0, 0.0, 0.0}} // Zero particles
-    };
-
-    ParticleVector particles = ParticleGenerator::fromPointSource(pointSources);
-    EXPECT_TRUE(particles.empty());
-}
 
 TEST_F(ParticleGeneratorTest, DirtyFromPointSourceNegativeEnergy)
 {
@@ -277,16 +264,6 @@ TEST_F(ParticleGeneratorTest, CleanFromSurfaceSource)
 
 // === Dirty Tests for fromSurfaceSource === //
 
-TEST_F(ParticleGeneratorTest, DirtyFromSurfaceSourceZeroParticles)
-{
-    std::vector<surface_source_t> surfaceSources = {
-        {"Ar", 0, 10.0, {{"0,0,0", {0.0, 0.0, 1.0}}}} // Zero particles
-    };
-
-    ParticleVector particles = ParticleGenerator::fromSurfaceSource(surfaceSources);
-    EXPECT_TRUE(particles.empty());
-}
-
 TEST_F(ParticleGeneratorTest, DirtyFromSurfaceSourceNegativeEnergy)
 {
     std::vector<surface_source_t> surfaceSources = {
@@ -322,4 +299,24 @@ TEST_F(ParticleGeneratorTest, DirtyFromSurfaceSourceZeroEnergy)
     {
         EXPECT_DOUBLE_EQ(p.getEnergy_eV(), 0.0);
     }
+}
+
+TEST_F(ParticleGeneratorTest, DirtyFromPointSourceZeroParticles)
+{
+    std::vector<point_source_t> pointSources = {
+        {"Au", 50, 10.0, 1.0, 1.0, 2.0, {0.0, 0.0, 0.0}},
+        {"W", 0, 20.0, 2.0, 2.0, 3.0, {10.0, 10.0, 10.0}} // Zero particles
+    };
+
+    EXPECT_ANY_THROW(ParticleGenerator::fromPointSource(pointSources));
+}
+
+TEST_F(ParticleGeneratorTest, DirtyFromSurfaceSourceZeroParticles)
+{
+    std::vector<surface_source_t> surfaceSources = {
+        {"Ag", 10000, 0.0, {{"0,0,0", {0.0, 0.0, 1.0}}}},
+        {"He", 0, 0.0, {{"0,0,0", {0.0, 0.0, 1.0}}}} // Zero count of particles
+    };
+
+    EXPECT_ANY_THROW(ParticleGenerator::fromSurfaceSource(surfaceSources));
 }
