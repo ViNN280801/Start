@@ -364,7 +364,7 @@ include_directories(${TBB_INCLUDE_DIRS})
 # ║ Remove unnecessary flags in debug mode and optimize in release mode.      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 set(SUPRESS_SOME_WARNINGS "-Wno-deprecated-declarations -Wno-unused-parameter -Wno-implicit-fallthrough")
-message(STATUS "⚙️  Setting flag '${SUPRESS_SOME_WARNINGS}' to suppress warning: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'")
+message(STATUS "⚙️  Setting flags [${SUPRESS_SOME_WARNINGS}] to suppress warnings like: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'")
 set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
 message(STATUS "⚙️  Setting flag '${ENABLE_SQRT_VECTORIZATION_FLAG}' to enable vectorization of square root calculations without setting errno on errors")
 set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
