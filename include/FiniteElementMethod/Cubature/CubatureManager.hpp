@@ -11,9 +11,9 @@
  * The `CubatureManager` class is responsible for initializing and managing cubature (integration) points
  * and weights for different cell types in finite element analysis. It uses a specified polynomial order
  * and accuracy to generate the appropriate cubature data.
- * 
+ *
  * Table example for TETRAHEDRON cell type:
- * 
+ *
  * | FEM accuracy | Count of cubature points |
  * | :----------: | :----------------------: |
  * |      1       |            1             |
@@ -40,8 +40,8 @@
 class CubatureManager
 {
 private:
-    DynRankView m_cubature_points;          ///< Multi-dimensional array holding cubature points (integration points).
-    DynRankView m_cubature_weights;         ///< Multi-dimensional array holding cubature weights.
+    DynRankView m_cubature_points;      ///< Multi-dimensional array holding cubature points (integration points).
+    DynRankView m_cubature_weights;     ///< Multi-dimensional array holding cubature weights.
     unsigned short m_count_cubature_points; ///< Number of cubature points.
     unsigned short m_count_basis_functions; ///< Number of basis functions.
 
@@ -67,8 +67,8 @@ public:
      */
     CubatureManager(CellType cell_type, short desired_accuracy, short polynom_order);
 
-    constexpr DynRankView const &getCubaturePoints() const { return m_cubature_points; }
-    constexpr DynRankView const &getCubatureWeights() const { return m_cubature_weights; }
+    constexpr auto const &getCubaturePoints() const { return m_cubature_points; }
+    constexpr auto const &getCubatureWeights() const { return m_cubature_weights; }
     constexpr unsigned short getCountCubaturePoints() const { return m_count_cubature_points; }
     constexpr unsigned short getCountBasisFunctions() const { return m_count_basis_functions; }
 };
