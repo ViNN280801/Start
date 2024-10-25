@@ -3,10 +3,6 @@
 #include <utility>
 #include <vector>
 
-#ifdef USE_OMP
-#include <omp.h>
-#endif
-
 #if __cplusplus >= 202002L
 #include <ranges>
 #endif
@@ -34,18 +30,9 @@ CubicGrid::CubicGrid(TetrahedronMeshManager const &meshData, double edgeSize)
         throw std::runtime_error("The grid is too small, you risk to overflow your memory with it");
 
         // 4. Mapping each tetrahedron with cells using parallelization
-#ifdef USE_OMP
-    std::vector<std::unordered_map<size_t, std::vector<GridIndex>>> localMaps(omp_get_max_threads());
-
-#pragma omp parallel for
-#endif
     for (size_t i = 0; i < m_meshData.getMeshComponents().size(); ++i)
     {
         const auto &tetrahedronData = m_meshData.getMeshComponents()[i];
-        int threadId = 0;
-#ifdef USE_OMP
-        threadId = omp_get_thread_num();
-#endif
         for (short x = 0; x < m_divisionsX; ++x)
         {
             for (short y = 0; y < m_divisionsY; ++y)
@@ -61,24 +48,11 @@ CubicGrid::CubicGrid(TetrahedronMeshManager const &meshData, double edgeSize)
                         m_commonBbox.zmin() + (z + 1) * edgeSize);
 
                     if (CGAL::do_overlap(cellBox, tetrahedronData.tetrahedron.bbox()))
-                    {
-#ifdef USE_OMP
-                        localMaps[threadId][tetrahedronData.globalTetraId].emplace_back(x, y, z);
-#else
                         m_tetrahedronCells[tetrahedronData.globalTetraId].emplace_back(x, y, z);
-#endif
-                    }
                 }
             }
         }
     }
-
-#ifdef USE_OMP
-    // 5*. Merge the results from each thread-local map into the shared map
-    for (const auto &localMap : localMaps)
-        for (const auto &[tetrId, cells] : localMap)
-            m_tetrahedronCells[tetrId].insert(m_tetrahedronCells[tetrId].end(), cells.begin(), cells.end());
-#endif
 }
 
 GridIndex CubicGrid::getGridIndexByPosition(double x, double y, double z) const
@@ -108,9 +82,6 @@ bool CubicGrid::isInsideTetrahedronMesh(Point const &point) const
     // One cube grid component can return multiple tetrahedra, so we need to fill the vector of checkings with results of checkings.
     boost::dynamic_bitset<> checks(tetrahedrons.size());
 
-#ifdef USE_OMP
-#pragma omp parallel for
-#endif
     for (size_t i = 0; i < tetrahedrons.size(); ++i)
         checks[i] = Mesh::isPointInsideTetrahedron(point, tetrahedrons[i].tetrahedron);
 
@@ -122,30 +93,14 @@ std::vector<TetrahedronMeshManager::TetrahedronData> CubicGrid::getTetrahedronsB
 {
     std::vector<TetrahedronMeshManager::TetrahedronData> meshParams;
 
-#ifdef USE_OMP
-    // To access m_tetrahedronCells in parallel, we use iterators and store them in a local vector first
-    std::vector<std::pair<size_t, std::vector<GridIndex>>> tetrahedronCellsCopy;
-    tetrahedronCellsCopy.reserve(m_tetrahedronCells.size());
-    for (auto const &item : m_tetrahedronCells)
-        tetrahedronCellsCopy.push_back(item);
-
-#pragma omp parallel for shared(meshParams)
-    for (size_t i = 0; i < tetrahedronCellsCopy.size(); ++i)
-    {
-        const auto &[tetrId, cells] = tetrahedronCellsCopy[i];
-#else
     for (auto const &[tetrId, cells] : m_tetrahedronCells)
     {
-#endif
 #if __cplusplus >= 202002L
         if (std::ranges::find(cells.begin(), cells.end(), index) != cells.end())
 #else
         if (std::find(cells.begin(), cells.end(), index) != cells.end())
 #endif
         {
-#ifdef USE_OMP
-#pragma omp critical
-#endif
             meshParams.push_back(m_meshData.getMeshDataByTetrahedronId(tetrId).value());
         }
     }
