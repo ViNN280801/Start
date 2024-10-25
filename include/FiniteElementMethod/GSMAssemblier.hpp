@@ -27,11 +27,11 @@ private:
      * @brief Retrieves the vertices of all tetrahedrons in the mesh.
      *
      * This function extracts the coordinates of the vertices for each tetrahedron
-     * in the mesh and stores them in a multi-dimensional array (DynRankView).
+     * in the mesh and stores them in a multi-dimensional array (Dynamic Rank View).
      * The dimensions of the array are [number of tetrahedrons] x [4 vertices] x [3 coordinates (x, y, z)].
      *
-     * @return DynRankView A multi-dimensional array containing the vertices of all tetrahedrons.
-     *                     Each tetrahedron is represented by its four vertices, and each vertex has three coordinates (x, y, z).
+     * @return A multi-dimensional array containing the vertices of all tetrahedrons.
+     *         Each tetrahedron is represented by its four vertices, and each vertex has three coordinates (x, y, z).
      * @throw std::runtime_error if an error occurs during the extraction of vertices.
      */
     DynRankViewHost _getTetrahedronVertices();
