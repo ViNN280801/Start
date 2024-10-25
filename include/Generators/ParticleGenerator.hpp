@@ -87,37 +87,27 @@ private:
 #endif
         static ParticleVector _generate(size_t count, Gen gen)
         {
-                ParticleVector particles;
+                if (count == 0)
+                        throw std::logic_error("There is no need to generate 0 objects");
+
+                ParticleVector particles(count);
 
 #ifdef USE_OMP
-                // Reserve space in the vector (ensures memory allocation, but not element construction)
-                particles.reserve(count);
+                // Selecting chunk size to correctly handle different cases.
+                size_t chunkSize{1000};
+                if (count <= 5000)
+                        chunkSize = 500;
+                else if (count <= 1000)
+                        chunkSize = 100;
+                else if (count <= 100)
+                        chunkSize = 10;
+                else
+                        chunkSize = 1;
 
-#pragma omp parallel
-                {
-                        // Local vector to accumulate particles for each thread.
-                        ParticleVector localParticles;
-
-#pragma omp for
-                        for (size_t i = 0; i < count; ++i)
-                        {
-                                // Generate a particle and push to the local vector
-                                Particle p = gen();
-#pragma omp critical
-                                {
-                                        particles.push_back(p); // Use critical section to avoid race conditions
-                                }
-                        }
-                }
-#else
-                // Non-parallel case
-                particles.reserve(count);
-                for (size_t i = 0; i < count; ++i)
-                {
-                        particles.emplace_back(gen());
-                }
+#pragma omp parallel for simd schedule(static, chunkSize)
 #endif
-
+                for (size_t i = 0; i < count; ++i)
+                        particles[i] = gen();
                 return particles;
         }
 

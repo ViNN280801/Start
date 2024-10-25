@@ -50,6 +50,14 @@ ParticleVector ParticleGenerator::fromPointSource(std::vector<point_source_t> co
             throw std::invalid_argument("Unknown particle type received");
 
         std::array<double, 3> thetaPhi = {sourceData.expansionAngle, sourceData.phi, sourceData.theta};
+
+        if (sourceData.count == 0)
+            throw std::logic_error("There is no need to generate 0 objects");
+        if (sourceData.energy == 0)
+        {
+            WARNINGMSG("Be careful! Point source with zero energy is used.");
+        }
+
         for (size_t i{}; i < sourceData.count; ++i)
         {
             particles.emplace_back(type,
@@ -72,6 +80,12 @@ ParticleVector ParticleGenerator::fromSurfaceSource(std::vector<surface_source_t
         ParticleType type{util::getParticleTypeFromStrRepresentation(sourceData.type)};
         if (type == ParticleType::Unknown)
             throw std::invalid_argument("Unknown particle type received");
+        if (sourceData.count == 0)
+            throw std::logic_error("There is no need to generate 0 objects");
+        if (sourceData.energy == 0)
+        {
+            WARNINGMSG("Be careful! Surface source with zero energy is used.");
+        }
 
         size_t num_cells{sourceData.baseCoordinates.size()},
             particles_per_cell{sourceData.count / num_cells},
