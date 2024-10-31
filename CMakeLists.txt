@@ -121,6 +121,7 @@ set(gxx_major_version ${MAJOR_VERSION})
 
 # ✦ Check if GCC 14 is used, and add the appropriate CUDA flag ✦
 if(gcc_major_version STREQUAL "14" OR gxx_major_version STREQUAL "14")
+    message(STATUS "⚙️  Using GCC-14")
     if (GPU_CUDA_ON)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
         message(WARNING "⚠️  Using GCC ${gcc_major_version} with CUDA. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC ${gcc_major_version} is not guaranteed!")
@@ -227,7 +228,7 @@ include_directories(${GMSH_INC})
 #                     CGAL Setup                              #
 ###############################################################
 find_path(CGAL_INCLUDE_DIR NAMES CGAL/AABB_tree.h
-    HINTS /usr/include /usr/local/include
+    HINTS /usr/include /usr/local/include /usr/local/CGAL/include
     PATH_SUFFIXES CGAL)
 
 message(STATUS "✅ CGAL include directory: [${CGAL_INCLUDE_DIR}]")
@@ -292,7 +293,6 @@ link_libraries(${GMP_LIBRARY})
 ###############################################################
 #                     Boost Setup                             #
 ###############################################################
-cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED)
 if(Boost_FOUND)
     message(STATUS "✅ Boost found: Include directories at [${Boost_INCLUDE_DIRS}], Libraries: [${Boost_LIBRARIES}]")
@@ -454,7 +454,7 @@ endif()
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
-    message(STATUS "🛠️ Compiling in DEBUG mode")
+    message(STATUS "🛠️  Compiling in DEBUG mode")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(RELEASE)
     message(STATUS "🚀 Compiling in RELEASE mode")
@@ -472,7 +472,7 @@ endif()
 if(START_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     add_compile_definitions(START_DEBUG)
-    message(STATUS "🛠️ Start project compiling mode set to START_DEBUG.")
+    message(STATUS "🛠️  Start project compiling mode set to START_DEBUG.")
 elseif(START_RELEASE)
     add_compile_definitions(START_RELEASE)
     message(STATUS "🚀 Start project compiling mode set to START_RELEASE.")
