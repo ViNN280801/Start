@@ -532,6 +532,8 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     Particle
     SessionManagers
     Utilities
+    -ldl
+    -lstdc++
 )
 
 if (GPU_CUDA_ON)
