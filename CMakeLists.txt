@@ -227,13 +227,16 @@ include_directories(${GMSH_INC})
 ###############################################################
 #                     CGAL Setup                              #
 ###############################################################
-find_path(CGAL_INCLUDE_DIR NAMES CGAL/AABB_tree.h
-    HINTS /usr/include /usr/local/include /usr/local/CGAL/include
-    PATH_SUFFIXES CGAL)
+find_package(CGAL REQUIRED)
 
-message(STATUS "✅ CGAL include directory: [${CGAL_INCLUDE_DIR}]")
+if(CGAL_FOUND)
+  message(STATUS "✅ CGAL found: ${CGAL_INCLUDE_DIRS}")
+  include_directories(${CGAL_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "❌ CGAL not found.")
+endif()
 
-include_directories(${CGAL_INCLUDE_DIR})
+# include_directories(${CGAL_INCLUDE_DIR})
 ###############################################################
 #                     OpenMP Setup                            #
 ###############################################################
@@ -532,8 +535,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     Particle
     SessionManagers
     Utilities
-    -ldl
-    -lstdc++
+    -lsupc++
 )
 
 if (GPU_CUDA_ON)
