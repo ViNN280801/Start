@@ -9,6 +9,57 @@ using namespace physical_constants;
 using namespace viscosity_temperature_index;
 using namespace VSS_deflection_parameter;
 
+/**
+ * @class ParticleUtils
+ * @brief Utility class providing various particle property retrieval functions.
+ *
+ * The `ParticleUtils` class encapsulates static methods for retrieving specific
+ * physical properties of particles based on their type. This class supports fetching
+ * essential particle attributes like radius, mass, viscosity temperature index,
+ * VSS deflection parameter, and charge. By using enums for particle types, the class
+ * provides a structured and efficient approach to querying these properties.
+ *
+ * This utility class is highly efficient and lightweight, offering only static methods
+ * without requiring instantiation. It is suitable for CUDA applications, as indicated
+ * by the `START_CUDA_HOST_DEVICE` decorator, ensuring compatibility with both
+ * host and device functions for GPU-based computations.
+ *
+ * ### Key Features
+ * - **Radius Retrieval**: Returns the radius (in meters) of a particle based on its type.
+ * - **Mass Retrieval**: Returns the mass (in kilograms) of a particle.
+ * - **Viscosity Temperature Index**: Provides the viscosity temperature index,
+ *   significant in simulation scenarios involving variable viscosities.
+ * - **VSS Deflection Parameter**: Useful in VSS (Variable Soft Sphere) models, this
+ *   parameter aids in defining particle collision behaviors.
+ * - **Charge Data**: Retrieves the electric charge of a particle in Coulombs, critical
+ *   for simulations involving ionized particles.
+ *
+ * ### Design Considerations
+ * - The use of an `enum` for particle types ensures type safety, reducing potential
+ *   errors when requesting particle properties.
+ * - Implements defensive checks for undefined particle types, providing default values
+ *   (typically 0 or 0.0) and optional warnings when not running in CUDA.
+ * - Compatible with GPU computing; methods are marked for CUDA device compatibility.
+ *
+ * ### Error Handling
+ * - For unsupported particle types, properties are set to default values.
+ * - Warning messages (wrapped in `WARNINGMSG`) are conditionally emitted when not
+ *   compiled with CUDA support, alerting the user to potential misconfigurations.
+ *
+ * ### Usage
+ * This class is primarily intended for use in physics simulations where particle-specific
+ * properties are frequently required. By encapsulating these property retrievals, it
+ * abstracts away the need for direct access to constants and minimizes the risk of errors.
+ *
+ * ### Example
+ * ```
+ * auto radius = ParticleUtils::getRadiusFromType(ParticleType::Ar);
+ * auto mass = ParticleUtils::getMassFromType(ParticleType::Ti);
+ * ```
+ *
+ * @note This class relies on several namespaces such as `constants`, `particle_types`,
+ *       and others, which must be included for full functionality.
+ */
 class ParticleUtils
 {
 public:
