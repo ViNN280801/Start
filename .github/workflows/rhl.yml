@@ -1,0 +1,42 @@
+name: RHL CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+        build_type: [Release, Debug]
+        technology: [OpenMP, MPI, HDF5]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up RHL environment
+        run: |
+          docker pull registry.access.redhat.com/ubi8/ubi
+          docker run -v "$(pwd)":/workspace -w /workspace registry.access.redhat.com/ubi8/ubi bash -c "
+            yum update -y &&
+            yum install -y cmake make gcc gcc-c++ boost-devel hdf5-devel libgomp openmpi-devel &&
+            if [[ '${{ matrix.compiler }}' == 'clang' ]]; then
+              yum install -y llvm clang;
+            fi &&
+            mkdir -p build &&
+            cd build &&
+            cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                      -DSTART_OPENMP_ON=${{ matrix.technology == 'OpenMP' }} \
+                      -DSTART_MPI_ON=${{ matrix.technology == 'MPI' }} \
+                      -DHDF5_FOUND=${{ matrix.technology == 'HDF5' }} &&
+            make -j$(nproc) &&
+            ctest --output-on-failure
+          "
