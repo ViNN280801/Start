@@ -285,7 +285,7 @@ else()
   message(FATAL_ERROR "❌ CGAL not found.")
 endif()
 
-# include_directories(${CGAL_INCLUDE_DIR})
+include_directories(${CGAL_INCLUDE_DIR})
 # ##############################################################################
 # OpenMP Setup                            #
 # ##############################################################################
