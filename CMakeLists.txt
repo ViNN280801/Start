@@ -98,12 +98,12 @@ function(set_compiler_if_not_defined env_var cmake_var default_value
 endfunction()
 
 # ──► Setting compilers ◄──
-set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc-13" "C compiler")
-set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++-13"
+set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc" "C compiler")
+set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++"
                             "C++ compiler")
 
 if(GPU_CUDA_ON)
-  set(CUDAHOSTCXX "/usr/bin/g++-13")
+  set(CUDAHOSTCXX "/usr/bin/g++")
   message(STATUS "⚙️  Using ${CUDAHOSTCXX} as the CUDA host compiler.")
   set(CMAKE_CUDA_HOST_COMPILER ${CUDAHOSTCXX})
 
@@ -206,15 +206,14 @@ if(GPU_CUDA_ON)
 
   # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
   set(CMAKE_CUDA_ARCHITECTURES "89")
-  set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
+  set_property(GLOBAL PROPERTY CMAKE_CUDA_ARCHITECTURES
+                               ${CMAKE_CUDA_ARCHITECTURES})
   message(
     STATUS
-      "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}"
+      "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES={${CMAKE_CUDA_ARCHITECTURES}}"
   )
 
-  set(CMAKE_CUDA_FLAGS
-      "${CMAKE_CUDA_FLAGS} --expt-extended-lambda -Xcompiler -mno-amx-bf16 -Xcompiler -mno-amx-int8 -Xcompiler -mno-amx-tile"
-  )
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
   message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
   # ############################################################################
   # End of CUDA Setup                        #
@@ -552,11 +551,18 @@ if(VECTORIZATION_ON)
     set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget"
                             "-qopt-zmm-usage=high")
     set(INTEL_COMPILER_FLAGS "-flarge-source-files")
+
+    # Add Intel-specific flag to suppress warning 68: To supress warnings from
+    # CGAL like this:
+    # /usr/local/CGAL/include/CGAL/Intersections_3/internal/tetrahedron_lines_intersections_3.h(126):
+    # warning #68-D: integer conversion resulted in a change of sign
+    set(DIAG_SUPPRESS "-diag-suppress=68")
+
     add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS}
-                        ${ANTI_ALIASING_FLAG})
+                        ${ANTI_ALIASING_FLAG} ${DIAG_SUPPRESS})
     message(
       STATUS
-        "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]"
+        "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG} ${DIAG_SUPPRESS}]"
     )
   endif()
   message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")

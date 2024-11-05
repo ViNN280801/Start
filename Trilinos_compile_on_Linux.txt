@@ -39,7 +39,7 @@ make -j<n> install
 cd .. && rm -rvf build/
 mkdir -pv build && cd build
 cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
-      -DCMAKE_BUILD_TYPE=RELEASE \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_C_COMPILER=mpicc \
       -DCMAKE_CXX_COMPILER=mpicxx \
       -DKOKKOSKERNELS_ENABLE_TPL_CUSPARSE=ON \
@@ -90,7 +90,7 @@ cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
 
 Building without CUDA but with MPI:
 cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
-      -DCMAKE_BUILD_TYPE=RELEASE \
+      -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_C_COMPILER=mpicc \
       -DCMAKE_CXX_COMPILER=mpicxx \
       -DTPL_ENABLE_MPI=ON \
