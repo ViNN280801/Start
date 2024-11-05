@@ -25,4 +25,10 @@
     #define COMMON_PRETTY_FUNC __FUNCSIG__
 #endif
 
+#ifdef USE_CUDA
+    #define START_CUDA_HOST_DEVICE __host__ __device__
+#else
+    #define START_CUDA_HOST_DEVICE
+#endif
+
 #endif // !COMPILERUTILS_HPP
