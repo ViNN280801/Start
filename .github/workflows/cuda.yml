@@ -12,7 +12,7 @@ jobs:
   cuda-build-and-test:
     runs-on: ubuntu-latest
     container:
-      image: nvidia/cuda:11.4.2-devel-ubuntu20.04
+      image: nvidia/cuda:11.8.0-devel-ubuntu20.04
 
     steps:
       - name: Checkout code
@@ -20,13 +20,57 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update && apt-get install -y cmake build-essential libboost-all-dev libhdf5-dev libgmp-dev libtbb-dev
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y \
+            cmake \
+            build-essential \
+            g++ \
+            gcc \
+            libboost-all-dev \
+            libhdf5-dev \
+            libgmp-dev \
+            libtbb-dev \
+            libopenmpi-dev \
+            openmpi-bin \
+            libjsoncpp-dev \
+            python3.7 \
+            python3-pip \
+            python3-dev
+
+      - name: Exporting OpenMP and CUDA environment variables
+        run: |
+          export OMP_PROC_BIND=spread
+          export OMP_PLACES=threads
+          export CUDA_VISIBLE_DEVICES=0
+
+      - name: Copy dependencies to container
+        if: ${{ env.ACT }}
+        run: |
+          if [ ! -d /github/workspace/.github/dependencies ]; then
+            mkdir -p /github/workspace/.github/dependencies
+          fi
+          cp -r .github/dependencies/* /github/workspace/.github/dependencies
+
+      - name: Extract Trilinos
+        run: |
+          mkdir -p /usr/local/Trilinos
+          tar -xzvf .github/dependencies/trilinos-install-16.0.tar.gz -C /usr/local/Trilinos
+
+      - name: Extract CGAL
+        run: |
+          mkdir -p /usr/local/CGAL
+          tar -xzvf .github/dependencies/cgal-install-6.0.1.tar.gz -C /usr/local/CGAL
+
+      - name: Extract nvcc_wrapper
+        run: |
+          tar -xzvf .github/dependencies/nvcc_wrapper.tar.gz -C /usr/local/bin
+          chmod +x /usr/local/bin/nvcc_wrapper
 
       - name: Configure CMake
         run: |
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DGPU_CUDA_ON=ON
+          mkdir -pv build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
 
       - name: Build
         run: |
