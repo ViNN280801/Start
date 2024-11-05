@@ -241,20 +241,40 @@ endif()
 
 include_directories(${GMSH_INC})
 
-###############################################################
-#                     GMP Setup                               #
-###############################################################
-find_path(GMP_INCLUDE_DIR gmp.h
-    HINTS /usr/include/x86_64-linux-gnu /usr/include/CGAL)
+# ##############################################################################
+# CGAL Setup                              #
+# ##############################################################################
+find_package(CGAL REQUIRED)
 
-find_library(GMP_LIBRARY NAMES gmp libgmp
-    HINTS /usr/lib/x86_64-linux-gnu)
+if(CGAL_FOUND)
+  message(STATUS "✅ CGAL found: ${CGAL_INCLUDE_DIRS}")
+  include_directories(${CGAL_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "❌ CGAL not found.")
+endif()
+
+include_directories(${CGAL_INCLUDE_DIR})
+
+# ##############################################################################
+# GMP Setup                               #
+# ##############################################################################
+find_path(GMP_INCLUDE_DIR gmp.h HINTS /usr/include/x86_64-linux-gnu
+                                      /usr/include/CGAL)
+
+find_library(
+  GMP_LIBRARY
+  NAMES gmp libgmp
+  HINTS /usr/lib/x86_64-linux-gnu)
 
 if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
-    message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
+  message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
 else()
-    message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
+  message(
+    STATUS
+      "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]"
+  )
 endif()
+
 include_directories(${GMP_INCLUDE_DIR})
 link_libraries(${GMP_LIBRARY})
 
@@ -273,7 +293,6 @@ include_directories(${TBB_INCLUDE_DIRS})
 ###############################################################
 #                     Boost Setup                             #
 ###############################################################
-cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED)
 if(Boost_FOUND)
     message(STATUS "✅ Boost found: Include directories at [${Boost_INCLUDE_DIRS}], Libraries: [${Boost_LIBRARIES}]")
