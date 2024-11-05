@@ -44,14 +44,6 @@ jobs:
           export OMP_PLACES=threads
           export CUDA_VISIBLE_DEVICES=0
 
-      - name: Copy dependencies to container
-        if: ${{ env.ACT }}
-        run: |
-          if [ ! -d /github/workspace/.github/dependencies ]; then
-            mkdir -p /github/workspace/.github/dependencies
-          fi
-          cp -r .github/dependencies/* /github/workspace/.github/dependencies
-
       - name: Extract Trilinos
         run: |
           mkdir -p /usr/local/Trilinos
