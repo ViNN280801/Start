@@ -1,0 +1,40 @@
+name: CUDA CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cuda-build-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:11.4.2-devel-ubuntu20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y cmake build-essential libboost-all-dev libhdf5-dev libgmp-dev libtbb-dev
+          # Add additional dependencies as needed
+
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DGPU_CUDA_ON=ON
+
+      - name: Build
+        run: |
+          cd build
+          make -j$(nproc)
+
+      - name: Run Tests
+        run: |
+          cd build
+          ctest --output-on-failure

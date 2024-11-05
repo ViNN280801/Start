@@ -1,0 +1,35 @@
+name: Fedora CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: fedora-latest
+
+    strategy:
+      matrix:
+        compiler: [gcc-11, gcc-12, gcc-13, gcc-14, clang-8, clang-9]
+        build_type: [Release, Debug]
+        technology: [OpenMP, MPI, HDF5]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo dnf install -y cmake boost-devel hdf5-devel gmp-devel tbb-devel
+          if [[ "${{ matrix.compiler }}" == gcc* ]]; then
+            sudo dnf install -y ${{ matrix.compiler }} ${{ matrix.compiler }}-base;
+          elif [[ "${{ matrix.compiler }}" == clang* ]]; then
+            sudo dnf install -y ${{ matrix.compiler }};
+          fi
+          if [[ "${{ matrix.technology }}" == "MPI" ]]; then
+            sudo dnf install -y openmpi-devel;
+          fi
