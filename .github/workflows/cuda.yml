@@ -21,7 +21,6 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update && apt-get install -y cmake build-essential libboost-all-dev libhdf5-dev libgmp-dev libtbb-dev
-          # Add additional dependencies as needed
 
       - name: Configure CMake
         run: |
