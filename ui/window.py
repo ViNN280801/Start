@@ -517,8 +517,20 @@ class WindowApp(QMainWindow):
         elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_M:
             self.config_tab.upload_mesh_file()
         elif event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_L:
-            self.log_console.log_dock_widget.setVisible(
-                not self.log_console.log_dock_widget.isVisible())
+            def show_hide_instruction_message():
+                message = (
+                    "You just pressed Ctrl+L to hide the log widget located at the bottom.\n"
+                    "To make it visible again, press Ctrl+L."
+                )
+                QMessageBox.information(self, "Log Widget Toggled", message)
+
+            is_visible = self.log_console.log_dock_widget.isVisible()
+            self.log_console.log_dock_widget.setVisible(not is_visible)
+            
+            # If the widget was visible and is now hidden, show the message
+            if not self.log_console.log_dock_widget.isVisible():
+                show_hide_instruction_message()
+            
         elif event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Tab:
             self.switch_tab()
         elif event.key() == Qt.Key_F1:
