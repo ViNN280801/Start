@@ -43,11 +43,17 @@ jobs:
           export OMP_PROC_BIND=spread
           export OMP_PLACES=threads
           export CUDA_VISIBLE_DEVICES=0
+      
+      - name: Download dependencies
+        run: |
+          wget -c https://drive.google.com/file/d/1BaMXRJLpsgOCl_lNpe9UcumxB9SfFvP9/view?usp=drive_link -P .github/dependencies/
+          wget -c https://drive.google.com/file/d/1z3JnT7Yctd0Hb8NqNEMX28rd3J1kuP7e/view?usp=drive_link -P .github/dependencies/
+          wget -c https://drive.google.com/file/d/153V-ZeFh47PAbkDta_K8RsUEeqFhXlaF/view?usp=drive_link -P .github/dependencies/        
 
       - name: Extract Trilinos
         run: |
           mkdir -p /usr/local/Trilinos
-          tar -xzvf .github/dependencies/trilinos-install-16.0.tar.gz -C /usr/local/Trilinos
+          tar -xzvf .github/dependencies/trilinos-install-16.0-serial-omp-mpi-cuda.tar.gz -C /usr/local/Trilinos
 
       - name: Extract CGAL
         run: |
