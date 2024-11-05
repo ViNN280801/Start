@@ -10,14 +10,8 @@
 
 #include "Geometry/GeometryTypes.hpp"
 #include "Geometry/MathVector.hpp"
+#include "Particle/ParticleUtils.hpp"
 #include "Utilities/ConfigParser.hpp"
-#include "Utilities/Constants.hpp"
-
-using namespace constants;
-using namespace particle_types;
-using namespace physical_constants;
-using namespace viscosity_temperature_index;
-using namespace VSS_deflection_parameter;
 
 /// @brief Represents a particle in a simulation.
 class Particle
@@ -283,12 +277,12 @@ public:
     constexpr VelocityVector const &getVelocityVector() const { return m_velocity; }
     constexpr CGAL::Bbox_3 const &getBoundingBox() const { return m_bbox; }
     constexpr ParticleType getType() const { return m_type; }
-    constexpr double getMass() const { return getMassFromType(m_type); }
-    constexpr double getRadius() const { return getRadiusFromType(m_type); }
-    constexpr double getViscosityTemperatureIndex() const { return getViscosityTemperatureIndexFromType(m_type); }
-    constexpr double getVSSDeflectionParameter() const { return getVSSDeflectionParameterFromType(m_type); }
-    constexpr double getCharge() const { return getChargeFromType(m_type); }
-    constexpr int getChargeInIons() const { return getChargeInIonsFromType(m_type); }
+    double getMass() const { return ParticleUtils::getMassFromType(m_type); }
+    double getRadius() const { return ParticleUtils::getRadiusFromType(m_type); }
+    double getViscosityTemperatureIndex() const { return ParticleUtils::getViscosityTemperatureIndexFromType(m_type); }
+    double getVSSDeflectionParameter() const { return ParticleUtils::getVSSDeflectionParameterFromType(m_type); }
+    double getCharge() const { return ParticleUtils::getChargeFromType(m_type); }
+    int getChargeInIons() const { return ParticleUtils::getChargeInIonsFromType(m_type); }
 
     /**
      * @brief Chooses the specified scattering model.
