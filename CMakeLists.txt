@@ -205,7 +205,7 @@ if(GPU_CUDA_ON)
   # ############################################################################
 
   # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
-  set(CUDA_ARCHITECTURES "89")
+  set(CMAKE_CUDA_ARCHITECTURES "89")
   set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
   message(
     STATUS
@@ -243,7 +243,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Global CUDA include directories if GPU support is enabled
 if(GPU_CUDA_ON)
   set(CMAKE_CXX_STANDARD 17)
-  set(CMAKE_CUDA_STANDARD 20)
+  set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
   include_directories(${CUDA_INCLUDE_DIR})
