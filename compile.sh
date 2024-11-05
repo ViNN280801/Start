@@ -16,8 +16,7 @@ usage() {
     exit 1
 }
 
-BUILD_TYPE="Debug"             # Default build type
-START_BUILD_TYPE="START_DEBUG" # Default to custom Start Debug build type
+BUILD_TYPE="Release"           # Default build type
 REBUILD=false                  # Default behavior does not clean build
 NUM_THREADS=$(nproc)           # Default to all available cores
 INTERMEDIATE=false             # Default behavior does not compile intermediate results
@@ -65,12 +64,6 @@ while [[ "$#" -gt 0 ]]; do
         ;;
     -release)
         BUILD_TYPE="Release"
-        ;;
-    -sdebug)
-        START_BUILD_TYPE="START_DEBUG"
-        ;;
-    -srelease)
-        START_BUILD_TYPE="START_RELEASE"
         ;;
     -h | --help)
         usage
