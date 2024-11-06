@@ -353,7 +353,7 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
 #ifdef USE_MPI
         M = MueLu::CreateTpetraPreconditioner<Scalar, LocalOrdinal, GlobalOrdinal, Node>(m_A, mueluParams);
 #else
-        M = MueLu::CreateTpetraPreconditioner < Scalar, LocalOrdinal, GlobalOridnal, Node(m_A);
+        M = MueLu::CreateTpetraPreconditioner<Scalar, LocalOrdinal, GlobalOrdinal, Node>(m_A);
 #endif
 
         Teuchos::RCP<Belos::LinearProblem<Scalar, TpetraMultiVector, TpetraOperator>> problem{
