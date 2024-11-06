@@ -23,12 +23,12 @@ jobs:
           skip_after_successful_duplicate: "true"
 
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@v0.12.1
+        uses: styfle/cancel-workflow-action@v0.13.0
         with:
           access_token: ${{ github.token }}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
@@ -56,10 +56,11 @@ jobs:
             libmpfr-dev
 
       - name: Exporting OpenMP and CUDA environment variables
+        shell: bash
         run: |
-          export OMP_PROC_BIND=spread
-          export OMP_PLACES=threads
-          export CUDA_VISIBLE_DEVICES=0
+          echo "export OMP_PROC_BIND=spread" >> $GITHUB_ENV
+          echo "export OMP_PLACES=threads" >> $GITHUB_ENV
+          echo "export CUDA_VISIBLE_DEVICES=0" >> $GITHUB_ENV
 
       - name: Install gdown for Google Drive downloads
         run: pip install gdown
@@ -103,7 +104,7 @@ jobs:
 
       - name: Upload Test Artifacts
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: test-logs
           path: build/logs/
