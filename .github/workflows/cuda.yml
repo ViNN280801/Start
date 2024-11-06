@@ -27,6 +27,7 @@ jobs:
             build-essential \
             g++ \
             gcc \
+            libboost-dev \
             libboost-all-dev \
             libhdf5-dev \
             libgmp-dev \
