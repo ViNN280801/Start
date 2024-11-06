@@ -39,7 +39,8 @@ jobs:
             python3-dev \
             wget \
             gmsh \
-            libgmsh-dev
+            libgmsh-dev \
+            libmpfr-dev
 
       - name: Exporting OpenMP and CUDA environment variables
         run: |
