@@ -121,11 +121,6 @@ if(GPU_CUDA_ON)
     )
     set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
 
-    set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
-        "--expt-extended-lambda -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
-    )
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
     message(
       STATUS
         "⚙️  Added flags [${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}] to the C++ compile flags to suppress some warnings from Trilinos"
@@ -362,7 +357,7 @@ link_libraries(${GMP_LIBRARY})
 # ##############################################################################
 # Boost Setup                             #
 # ##############################################################################
-find_package(Boost 1.71 REQUIRED)
+find_package(Boost 1.72 REQUIRED)
 if(Boost_FOUND)
   message(
     STATUS
