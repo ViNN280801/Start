@@ -22,11 +22,6 @@ jobs:
         with:
           skip_after_successful_duplicate: "true"
 
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@v0.12.1
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout code
         uses: actions/checkout@v3
 
