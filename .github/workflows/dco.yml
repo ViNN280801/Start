@@ -1,0 +1,29 @@
+# .github/workflows/dco.yml
+
+name: DCO
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  dco-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: DCO Check
+        run: |
+          # Check each commit for Signed-off-by
+          missing_signoff=0
+          for commit in $(git rev-list origin/main..HEAD); do
+            if ! git show -s --format=%B "$commit" | grep -q "Signed-off-by"; then
+              echo "::error file=${commit}::Commit ${commit} is missing a Signed-off-by line."
+              missing_signoff=$((missing_signoff + 1))
+            fi
+          done
+          if [ $missing_signoff -ne 0 ]; then
+            exit 1
+          fi
