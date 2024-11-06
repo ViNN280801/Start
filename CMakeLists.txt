@@ -362,7 +362,7 @@ link_libraries(${GMP_LIBRARY})
 # ##############################################################################
 # Boost Setup                             #
 # ##############################################################################
-find_package(Boost REQUIRED)
+find_package(Boost 1.71 REQUIRED)
 if(Boost_FOUND)
   message(
     STATUS
