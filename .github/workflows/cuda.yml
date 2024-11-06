@@ -39,26 +39,7 @@ jobs:
             python3-dev \
             wget \
             gmsh \
-            libgmsh-dev \
-            liblapack-dev \
-            libblas-dev \
-            libcusparse-dev \
-            libcudart-dev \
-            libcublas-dev \
-            libcurl4-openssl-dev \
-            libpng-dev \
-            libjpeg-dev \
-            libglu1-mesa-dev \
-            libxrender-dev \
-            libxext-dev \
-            libxi-dev \
-            libx11-dev \
-            zlib1g-dev \
-            libevent-dev \
-            libssl-dev \
-            libzstd-dev \
-            libtiff-dev \
-            libfreeimage-dev
+            libgmsh-dev
 
       - name: Exporting OpenMP and CUDA environment variables
         run: |
