@@ -23,7 +23,7 @@ jobs:
           skip_after_successful_duplicate: "true"
 
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@v0.13.0
+        uses: styfle/cancel-workflow-action@v0.12.1
         with:
           access_token: ${{ github.token }}
 
