@@ -121,6 +121,11 @@ if(GPU_CUDA_ON)
     )
     set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
 
+    set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
+        "--expt-extended-lambda -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
+    )
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
     message(
       STATUS
         "⚙️  Added flags [${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}] to the C++ compile flags to suppress some warnings from Trilinos"
@@ -280,6 +285,7 @@ else()
 endif()
 
 include_directories(${CGAL_INCLUDE_DIR})
+
 # ##############################################################################
 # OpenMP Setup                            #
 # ##############################################################################
@@ -357,7 +363,7 @@ link_libraries(${GMP_LIBRARY})
 # ##############################################################################
 # Boost Setup                             #
 # ##############################################################################
-find_package(Boost 1.72 REQUIRED)
+find_package(Boost REQUIRED)
 if(Boost_FOUND)
   message(
     STATUS
@@ -547,17 +553,11 @@ if(VECTORIZATION_ON)
                             "-qopt-zmm-usage=high")
     set(INTEL_COMPILER_FLAGS "-flarge-source-files")
 
-    # Add Intel-specific flag to suppress warning 68: To supress warnings from
-    # CGAL like this:
-    # /usr/local/CGAL/include/CGAL/Intersections_3/internal/tetrahedron_lines_intersections_3.h(126):
-    # warning #68-D: integer conversion resulted in a change of sign
-    set(DIAG_SUPPRESS "-diag-suppress=68")
-
     add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS}
-                        ${ANTI_ALIASING_FLAG} ${DIAG_SUPPRESS})
+                        ${ANTI_ALIASING_FLAG})
     message(
       STATUS
-        "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG} ${DIAG_SUPPRESS}]"
+        "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]"
     )
   endif()
   message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")
