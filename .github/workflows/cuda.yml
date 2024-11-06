@@ -48,7 +48,8 @@ jobs:
             wget \
             gmsh \
             libgmsh-dev \
-            libmpfr-dev
+            libmpfr-dev \
+            nlohmann-json3-dev
 
       - name: Exporting OpenMP and CUDA environment variables
         shell: bash
