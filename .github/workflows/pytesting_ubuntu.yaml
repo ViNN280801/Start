@@ -2,11 +2,11 @@ name: Run Python Tests
 
 on:
   push:
-    branches-ignore: main
+    branches: [main, develop]
     paths:
       - "**/*.py"
   pull_request:
-    branches-ignore: main
+    branches: [main, develop]
     paths:
       - "**/*.py"
   workflow_dispatch:

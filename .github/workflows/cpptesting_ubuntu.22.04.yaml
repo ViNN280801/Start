@@ -2,7 +2,7 @@ name: Run Cpp Tests without CUDA
 
 on:
   push:
-    branches-ignore: main
+    branches: [main, develop]
     paths:
       - "**/*.c"
       - "**/*.h"
@@ -11,7 +11,7 @@ on:
       - "**/*.cc"
       - "**/*.hh"
   pull_request:
-    branches-ignore: main
+    branches: [main, develop]
     paths:
       - "**/*.c"
       - "**/*.h"
