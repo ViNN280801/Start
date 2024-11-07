@@ -2,9 +2,23 @@ name: Run Cpp Tests without CUDA
 
 on:
   push:
-    branches: [main, develop]
+    branches-ignore: main
+    paths:
+      - "**/*.c"
+      - "**/*.h"
+      - "**/*.cpp"
+      - "**/*.hpp"
+      - "**/*.cc"
+      - "**/*.hh"
   pull_request:
-    branches: [main, develop]
+    branches-ignore: main
+    paths:
+      - "**/*.c"
+      - "**/*.h"
+      - "**/*.cpp"
+      - "**/*.hpp"
+      - "**/*.cc"
+      - "**/*.hh"
   workflow_dispatch:
 
 jobs:
