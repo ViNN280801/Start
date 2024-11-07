@@ -6,7 +6,7 @@ on:
     paths:
       - "**/*.py"
   pull_request:
-    branches: main
+    branches-ignore: main
     paths:
       - "**/*.py"
   workflow_dispatch:
@@ -23,8 +23,15 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.7
+          cache: "pip"
+          cache-dependency-path: requirements.txt
 
-      - name: Install dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libglu1-mesa libgl1 ffmpeg libsm6 libxext6 libxft-dev libxinerama-dev
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
