@@ -1,0 +1,26 @@
+name: DCO Check
+
+on:
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  dco_check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: DCO Check
+        run: |
+          # Check all commits in the pull request for "Signed-off-by" line
+          if git log --format='%B' ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -q "Signed-off-by:"; then
+            echo "All commits are signed off."
+          else
+            echo "DCO check failed: Found commits without 'Signed-off-by' signature."
+            echo "Please sign off each commit by using 'git commit --amend --signoff' and then push with 'git push --force'."
+            echo "Alternatively, use 'git rebase --signoff <base-branch>' to sign off multiple commits."
+            exit 1
+          fi
