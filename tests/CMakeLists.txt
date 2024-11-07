@@ -345,10 +345,8 @@ link_directories(${Trilinos_LIBRARY_DIRS})
 # ║ type (Debug, Release, etc.).                                             ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(DEBUG)
     message(STATUS "⚙️  Compiling in DEBUG mode")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_definitions(RELEASE)
     message(STATUS "🚀 Compiling in RELEASE mode")
 else()
     message(WARNING "⚠️ Unknown build type: ${CMAKE_BUILD_TYPE}")
