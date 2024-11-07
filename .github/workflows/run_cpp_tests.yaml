@@ -2,9 +2,9 @@ name: Run Cpp Tests without CUDA
 
 on:
   push:
-    branches: [develop]
+    branches: [main, develop]
   pull_request:
-    branches: [develop]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
