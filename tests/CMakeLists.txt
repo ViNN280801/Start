@@ -207,7 +207,6 @@ message(STATUS "🔍 Fetching GoogleTest library...")
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
 message(STATUS "✅ GoogleTest successfully downloaded and made available.")
