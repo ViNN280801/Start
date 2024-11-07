@@ -127,9 +127,9 @@ TEST_F(CubatureManagerTest, DesiredAccuracyExceedsMaximum)
     catch (const std::overflow_error &e)
     {
         EXPECT_STREQ(e.what(),
-                     std::string(std::format("Desired calculation accuracy can't be greater than {}. Required range: [{}; {}]",
-                                             FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY,
-                                             FEM_LIMITS_MIN_DESIRED_CALCULATION_ACCURACY, FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY))
+                     util::stringify("Desired calculation accuracy can't be greater than ", FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY,
+                                     ". Required range: [", FEM_LIMITS_MIN_DESIRED_CALCULATION_ACCURACY, "; ",
+                                     FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY, "]")
                          .c_str());
     }
     catch (...)
@@ -221,9 +221,9 @@ TEST_F(CubatureManagerTest, PolynomOrderExceedsMaximum)
     catch (const std::overflow_error &e)
     {
         EXPECT_STREQ(e.what(),
-                     std::string(std::format("Polynomial order can't be greater than {}. Required range: [{}; {}]",
-                                             FEM_LIMITS_MAX_POLYNOMIAL_ORDER,
-                                             FEM_LIMITS_MIN_POLYNOMIAL_ORDER, FEM_LIMITS_MAX_POLYNOMIAL_ORDER))
+                     util::stringify("Polynomial order can't be greater than ", FEM_LIMITS_MAX_POLYNOMIAL_ORDER, ". Required range: [",
+                                     FEM_LIMITS_MIN_POLYNOMIAL_ORDER, "; ",
+                                     FEM_LIMITS_MAX_POLYNOMIAL_ORDER, "]")
                          .c_str());
     }
     catch (...)
@@ -238,7 +238,8 @@ TEST_F(CubatureManagerTest, ValidMaximumPolynomOrder)
     execute_without_output([&]()
                            {
     CubatureManager cubatureManager(CellType::Tetrahedron, 2, FEM_LIMITS_MAX_POLYNOMIAL_ORDER);
-    EXPECT_GT(cubatureManager.getCountCubaturePoints(), 0); }, std::cerr);
+    EXPECT_GT(cubatureManager.getCountCubaturePoints(), 0); },
+                           std::cerr);
 }
 
 // Clear Test 5: Valid maximum desired accuracy
