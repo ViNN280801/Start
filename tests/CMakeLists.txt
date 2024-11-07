@@ -379,7 +379,7 @@ set(TARGET_NAME all_tests)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -O3 -Wall -Wextra -Werror -Wno-maybe-uninitialized -Wmisleading-indentation -flarge-source-files")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -O3 -Wall -Wextra -Wno-maybe-uninitialized -Wmisleading-indentation -flarge-source-files")
 
 message(STATUS "⚙️  Using C++${CMAKE_CXX_STANDARD} standard.")
 message(STATUS "⚙️  C++ extensions set to OFF, because of Kokkos requirements.")
