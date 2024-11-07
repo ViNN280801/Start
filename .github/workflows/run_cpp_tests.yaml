@@ -1,0 +1,37 @@
+name: Run Cpp Tests without CUDA
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  run_cpp_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -f Dockerfile.ubuntu.22.04.cpptesting -t cpptesting-image .
+
+      - name: Run tests in Docker container
+        run: |
+          docker run --rm cpptesting-image
+
+      - name: Notify repo author
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '@ViNN280801 C++ tests for the Serial, OpenMP, MPI on Ubuntu 22.04 are passed successfully. Please consider the changes.'
+            })
