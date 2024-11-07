@@ -520,7 +520,8 @@ class WindowApp(QMainWindow):
             def show_hide_instruction_message():
                 message = (
                     "You just pressed Ctrl+L to hide the log widget located at the bottom.\n"
-                    "To make it visible again, press Ctrl+L."
+                    "To make it visible again, press Ctrl+L.\n"
+                    "Also, if you want to see all the shortcuts, follow: Edit->Show Shortcuts"
                 )
                 QMessageBox.information(self, "Log Widget Toggled", message)
 
