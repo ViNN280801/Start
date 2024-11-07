@@ -27,7 +27,6 @@ class LogConsoleTests(unittest.TestCase):
     @patch('gmsh.finalize')
     @patch('sys.exit')
     def test_signal_handler_unknown_signal(self, mock_exit, mock_finalize):
-        raise AssertionError("Test exception")
         with patch('sys.stdout', new=io.StringIO()) as fake_out:
             LogConsole.setup_signal_handlers()
             signal_number = signal.SIGUSR1
