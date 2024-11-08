@@ -133,7 +133,7 @@ jobs:
       if: matrix.build-mode == 'manual' && steps.cache-trilinos.outputs.cache-hit != 'true'
       run: |
         cd Trilinos-trilinos-release-16-0-0/build && \
-        make -j$(nproc) install && \
+        sudo make -j$(nproc) install && \
         cd ../.. && \
         rm -rf Trilinos-trilinos-release-16-0-0/ trilinos-release-16-0-0.tar.gz
 
