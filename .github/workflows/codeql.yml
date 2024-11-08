@@ -88,12 +88,12 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - name: Download Trilinos
+    - name: Download Trilinos 16.0.0
       if: matrix.build-mode == 'manual'
       run: |
         wget -c https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-16-0-0.tar.gz && \
         tar -xzf trilinos-release-16-0-0.tar.gz
-    
+
     - name: Configure Trilinos
       if: matrix.build-mode == 'manual'
       run: |
@@ -119,13 +119,31 @@ jobs:
           -DTrilinos_ENABLE_TESTS=OFF \
           ..
 
-    - name: Build Trilinos
+    - name: Cache Trilinos Build
       if: matrix.build-mode == 'manual'
+      uses: actions/cache@v3
+      with:
+        path: |
+          Trilinos-trilinos-release-16-0-0/build
+          /usr/local/Trilinos
+        key: ${{ runner.os }}-trilinos-${{ hashFiles('**/Trilinos-trilinos-release-16-0-0/CMakeLists.txt') }}
+
+    - name: Build Trilinos
+      if: matrix.build-mode == 'manual' && steps.cache-trilinos.outputs.cache-hit != 'true'
       run: |
         cd Trilinos-trilinos-release-16-0-0/build && \
         make -j$(nproc) install && \
         cd ../.. && \
         rm -rf Trilinos-trilinos-release-16-0-0/ trilinos-release-16-0-0.tar.gz
+
+    - name: Save Trilinos Cache
+      if: matrix.build-mode == 'manual' && steps.cache-trilinos.outputs.cache-hit != 'true'
+      uses: actions/cache@v3
+      with:
+        path: |
+          Trilinos-trilinos-release-16-0-0/build
+          /usr/local/Trilinos
+        key: ${{ runner.os }}-trilinos-${{ hashFiles('**/Trilinos-trilinos-release-16-0-0/CMakeLists.txt') }}
     
     - if: matrix.build-mode == 'manual'
       name: Configure Project
