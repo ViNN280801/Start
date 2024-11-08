@@ -52,18 +52,21 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          cmake \
-          libboost-all-dev \
-          libhdf5-dev \
-          libopenmpi-dev \
-          libgtest-dev \
-          libcgal-dev \
-          liblapack-dev \
-          libblas-dev \
-          gmsh \
-          nlohmann-json3-dev
+        apt-get install -y \
+        build-essential \
+        libboost-all-dev \
+        libhdf5-dev \
+        libtbb-dev \
+        libopenmpi-dev \
+        libgmp-dev \
+        libmpfr-dev \
+        nlohmann-json3-dev \
+        gmsh \
+        libgtest-dev \
+        libgmsh-dev \
+        libcgal-dev \
+        liblapack-dev \
+        libblas-dev
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -84,6 +87,18 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    - if: matrix.build-mode == 'manual'
+      name: Configure Project
+      run: |
+        mkdir -pv build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DGPU_CUDA_ON=OFF ..
+
+    - if: matrix.build-mode == 'manual'
+      name: Build Project
+      run: |
+        cd build
+        make -j$(nproc)
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
