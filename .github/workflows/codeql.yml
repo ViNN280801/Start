@@ -53,70 +53,17 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          wget \
           build-essential \
+          cmake \
           libboost-all-dev \
           libhdf5-dev \
-          libtbb-dev \
           libopenmpi-dev \
-          libgmp-dev \
-          libmpfr-dev \
-          nlohmann-json3-dev \
-          gmsh \
           libgtest-dev \
-          libgmsh-dev \
           libcgal-dev \
           liblapack-dev \
-          libblas-dev
-
-        wget -c https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0.tar.gz
-        tar -xzf cmake-3.31.0.tar.gz
-        cd cmake-3.31.0/
-        ./bootstrap
-        make -j$(nproc)
-        sudo make install
-        cd ..
-        rm -rf cmake-3.31.0/ cmake-3.31.0.tar.gz
-
-        wget -c https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz
-        tar -xf CGAL-6.0.1.tar.xz
-        cd CGAL-6.0.1/
-        mkdir -p build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
-        make -j$(nproc)
-        sudo make install
-        cd ../..
-        rm -rf CGAL-6.0.1/ CGAL-6.0.1.tar.xz
-
-        wget -c https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-16-0-0.tar.gz
-        tar -xzf trilinos-release-16-0-0.tar.gz
-        cd Trilinos-trilinos-release-16-0-0/
-        mkdir -p build
-        cd build
-        cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_COMPILER=mpicc \
-          -DCMAKE_CXX_COMPILER=mpicxx \
-          -DTPL_ENABLE_MPI=ON \
-          -DTPL_ENABLE_HDF5=OFF \
-          -DHDF5_PREFER_PARALLEL=ON \
-          -DTrilinos_ENABLE_ALL_PACKAGES=OFF \
-          -DTrilinos_ENABLE_OpenMP=ON \
-          -DTrilinos_ENABLE_Belos=ON \
-          -DTrilinos_ENABLE_Intrepid2=ON \
-          -DTrilinos_ENABLE_Kokkos=ON \
-          -DTrilinos_ENABLE_KokkosKernels=ON \
-          -DTrilinos_ENABLE_MueLu=ON \
-          -DTrilinos_ENABLE_Shards=ON \
-          -DTrilinos_ENABLE_Teuchos=ON \
-          -DTrilinos_ENABLE_Tpetra=ON \
-          -DTrilinos_ENABLE_TESTS=OFF \
-          ..
-        make -j$(nproc)
-        sudo make install
-        cd ../..
-        rm -rf Trilinos-trilinos-release-16-0-0/ trilinos-release-16-0-0.tar.gz
+          libblas-dev \
+          gmsh \
+          nlohmann-json3-dev
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -138,12 +85,17 @@ jobs:
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - if: matrix.build-mode == 'manual'
-      shell: bash
+      name: Configure Project
       run: |
         mkdir -pv build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release -DGPU_CUDA_ON=OFF ..
-        make $(($(nproc)/2))
+
+    - if: matrix.build-mode == 'manual'
+      name: Build Project
+      run: |
+        cd build
+        make -j$(nproc)
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
