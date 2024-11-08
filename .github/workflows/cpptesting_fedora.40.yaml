@@ -1,0 +1,38 @@
+name: Run Cpp Tests without CUDA
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "**/*.c"
+      - "**/*.h"
+      - "**/*.cpp"
+      - "**/*.hpp"
+      - "**/*.cc"
+      - "**/*.hh"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "**/*.c"
+      - "**/*.h"
+      - "**/*.cpp"
+      - "**/*.hpp"
+      - "**/*.cc"
+      - "**/*.hh"
+  workflow_dispatch:
+
+jobs:
+  run_cpp_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -f Dockerfile.fedora.40.cpptesting -t cpptesting-image .
+
+      - name: Run tests in Docker container
+        run: |
+          docker run --rm cpptesting-image
