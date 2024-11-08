@@ -88,6 +88,17 @@ jobs:
         libcgal-dev \
         liblapack-dev \
         libblas-dev
+
+    - name: Installing CGAL 6.0.1
+      if: matrix.build-mode == 'manual'
+      run: | 
+        wget -c https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz && \
+        tar -xf CGAL-6.0.1.tar.xz && \
+        cd CGAL-6.0.1/ && mkdir -p build && cd build && \
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. && \
+        make -j$(nproc) install && \
+        cd ../.. && \
+        rm -rf CGAL-6.0.1/ CGAL-6.0.1.tar.xz
     
     - name: Download Trilinos 16.0.0
       if: matrix.build-mode == 'manual'
