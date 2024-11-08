@@ -1,0 +1,77 @@
+# Dockerfile.fedora.40.base.image
+FROM fedora:40
+
+RUN dnf update -y && dnf install -y \
+    wget \
+    cmake \
+    gcc \
+    gcc-c++ \
+    boost-devel \
+    openmpi \
+    openmpi-devel \
+    hdf5 \
+    hdf5-devel \
+    hdf5-openmpi \
+    hdf5-openmpi-devel \
+    tbb \
+    libbtbb-devel \
+    gmp-devel \
+    mpfr-devel \
+    json-devel \
+    gmsh \
+    gmsh-libs \
+    gmsh-devel \
+    gmsh-openmpi \
+    gmsh-openmpi-devel \
+    gmsh-openmpi-libs \
+    gtest \
+    gtest-devel \
+    CGAL-devel \
+    lapack \
+    lapack-devel \
+    scalapack-openmpi \
+    scalapack-openmpi-devel \
+    blas-devel \
+    openblas \
+    openblas-devel \
+    openblas-openmp
+
+ENV PATH="/usr/lib64/openmpi/bin:${PATH}"
+
+RUN wget -c https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz && \
+    tar -xf CGAL-6.0.1.tar.xz && \
+    cd CGAL-6.0.1/ && mkdir -p build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. && \
+    make -j$(nproc) install && \
+    cd ../.. && \
+    rm -rf CGAL-6.0.1/ CGAL-6.0.1.tar.xz
+
+RUN wget -c https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-16-0-0.tar.gz && \
+    tar -xzf trilinos-release-16-0-0.tar.gz
+
+RUN cd Trilinos-trilinos-release-16-0-0/ && mkdir -p build && cd build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=mpicc \
+    -DCMAKE_CXX_COMPILER=mpicxx \
+    -DTPL_ENABLE_MPI=ON \
+    -DTPL_ENABLE_HDF5=OFF \
+    -DHDF5_PREFER_PARALLEL=ON \
+    -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_hl.so;/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.so;/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_cpp.so" \
+    -DTrilinos_ENABLE_ALL_PACKAGES=OFF \
+    -DTrilinos_ENABLE_OpenMP=ON \
+    -DTrilinos_ENABLE_Belos=ON \
+    -DTrilinos_ENABLE_Intrepid2=ON \
+    -DTrilinos_ENABLE_Kokkos=ON \
+    -DTrilinos_ENABLE_KokkosKernels=ON \
+    -DTrilinos_ENABLE_MueLu=ON \
+    -DTrilinos_ENABLE_Shards=ON \
+    -DTrilinos_ENABLE_Teuchos=ON \
+    -DTrilinos_ENABLE_Tpetra=ON \
+    -DTrilinos_ENABLE_TESTS=OFF \
+    .. && \
+    make -j$(nproc) install && \
+    cd ../.. && \
+    rm -rf Trilinos-trilinos-release-16-0-0/ trilinos-release-16-0-0.tar.gz
+
+WORKDIR /cpptesting
