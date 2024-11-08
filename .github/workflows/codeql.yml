@@ -22,7 +22,9 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: vladislavsemykin18/start-ubuntu22.04:omp_mpi_v1.0
+    runs-on: [self-hosted]
+    container:
+      image: vladislavsemykin18/start-ubuntu22.04:omp_mpi_v1.0
     permissions:
       security-events: write
       packages: read
