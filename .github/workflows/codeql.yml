@@ -53,6 +53,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
+        wget \
         build-essential \
         libboost-all-dev \
         libhdf5-dev \
@@ -67,6 +68,41 @@ jobs:
         libcgal-dev \
         liblapack-dev \
         libblas-dev
+
+    - name: Download Trilinos
+      run: |
+        wget -c https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-16-0-0.tar.gz && \
+        tar -xzf trilinos-release-16-0-0.tar.gz
+
+    - name: Configure Trilinos
+      run: |
+        cd Trilinos-trilinos-release-16-0-0/ && mkdir -p build && cd build && \ 
+        cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=mpicc \
+        -DCMAKE_CXX_COMPILER=mpicxx \
+        -DTPL_ENABLE_MPI=ON \
+        -DTPL_ENABLE_HDF5=OFF \
+        -DHDF5_PREFER_PARALLEL=ON \
+        -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_hl.so;/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.so;/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_cpp.so" \
+        -DTrilinos_ENABLE_ALL_PACKAGES=OFF \
+        -DTrilinos_ENABLE_OpenMP=ON \
+        -DTrilinos_ENABLE_Belos=ON \
+        -DTrilinos_ENABLE_Intrepid2=ON \
+        -DTrilinos_ENABLE_Kokkos=ON \
+        -DTrilinos_ENABLE_KokkosKernels=ON \
+        -DTrilinos_ENABLE_MueLu=ON \
+        -DTrilinos_ENABLE_Shards=ON \
+        -DTrilinos_ENABLE_Teuchos=ON \
+        -DTrilinos_ENABLE_Tpetra=ON \
+        -DTrilinos_ENABLE_TESTS=OFF \
+        ..
+
+    - name: Building Trilinos 16.0.0
+      run: |
+        make -j$(nproc) install && \
+        cd ../.. && \
+        rm -rf Trilinos-trilinos-release-16-0-0/ trilinos-release-16-0-0.tar.gz
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
