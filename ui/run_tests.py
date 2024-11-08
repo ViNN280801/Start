@@ -1,3 +1,4 @@
+import sys
 from unittest import TestLoader, TextTestRunner, TextTestResult
 from os.path import join, dirname, abspath, isdir, relpath
 
@@ -8,6 +9,10 @@ class CustomTextTestRunner(TextTestRunner):
 
 
 class CustomTestResult(TextTestResult):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.failed_tests = []
+    
     def startTest(self, test):
         test_file = relpath(test.__module__.replace('.', '/') + '.py', start=abspath('.'))
         self.stream.write(f"{test_file}: ")
@@ -19,11 +24,13 @@ class CustomTestResult(TextTestResult):
         self.stream.write('\033[0m')
 
     def addFailure(self, test, err):
+        self.failed_tests.append(test.id())
         self.stream.write('\033[91m')
         super().addFailure(test, err)
         self.stream.write('\033[0m')
 
     def addError(self, test, err):
+        self.failed_tests.append(test.id())
         self.stream.write('\033[91m')
         super().addError(test, err)
         self.stream.write('\033[0m')
@@ -64,19 +71,43 @@ def discover_and_run_suite(path):
     try:
         suite = loader.discover(abs_path, pattern="*_tests.py")
         runner = CustomTextTestRunner(verbosity=2)
-        runner.run(suite)
+        result = runner.run(suite)
+        global total_tests, successful_tests, failed_tests
+        total_tests += result.testsRun
+        successful_tests += result.testsRun - len(result.failed_tests)
+        failed_tests += len(result.failed_tests)
+        if result.failed_tests:
+            failed_test_names.extend(result.failed_tests)
+        return result.wasSuccessful()
     except Exception as e:
-        raise RuntimeError(f"Failed to discover tests in directory {abs_path}: {e}")
+        print(f"Failed to discover tests in directory {abs_path}: {e}")
+        return False
 
 
 if __name__ == "__main__":
-    test_dir_field_validators = join(dirname(__file__), 'tests/field_validators_tests')
-    test_dir_log_console = join(dirname(__file__), 'tests/logger_tests')
-    test_dir_util = join(dirname(__file__), 'tests/util_tests')
-    
-    try:
-        discover_and_run_suite(test_dir_field_validators)
-        discover_and_run_suite(test_dir_log_console)
-        discover_and_run_suite(test_dir_util)
-    except (ValueError, RuntimeError) as e:
-        print(f"Error: {e}")
+    total_tests = 0
+    successful_tests = 0
+    failed_tests = 0
+    failed_test_names = []
+
+    test_dirs = [
+        join(dirname(__file__), 'tests/field_validators_tests'),
+        join(dirname(__file__), 'tests/logger_tests'),
+        join(dirname(__file__), 'tests/util_tests')
+    ]
+
+    all_tests_passed = True
+    for test_dir in test_dirs:
+        if not discover_and_run_suite(test_dir):
+            all_tests_passed = False
+
+    print(f"\nTotal tests run: {total_tests}")
+    print(f"Successful tests: {successful_tests}")
+    print(f"Failed tests: {failed_tests}")
+
+    if failed_tests > 0:
+        print("\nFailed test names:")
+        for test_name in failed_test_names:
+            print(f"- {test_name}")
+
+    sys.exit(0 if all_tests_passed else 1)

@@ -2,11 +2,11 @@ name: Run Python Tests
 
 on:
   push:
-    branches-ignore: main
+    branches: [main, develop]
     paths:
       - "**/*.py"
   pull_request:
-    branches-ignore: main
+    branches: [main, develop]
     paths:
       - "**/*.py"
   workflow_dispatch:
@@ -39,16 +39,3 @@ jobs:
       - name: Run Python tests
         run: |
           python ui/run_tests.py
-
-          - name: Notify author on success
-          if: success() && github.event_name == 'pull_request'
-          uses: actions/github-script@v6
-          with:
-            github-token: ${{ secrets.GITHUB_TOKEN }}
-            script: |
-              github.issues.createComment({
-                issue_number: context.payload.pull_request.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: '@ViNN280801 All Python tests have passed successfully. Please review the changes and proceed with the next steps if everything looks good.'
-              })
