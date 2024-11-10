@@ -33,16 +33,10 @@ jobs:
       fail-fast: true
       matrix:
         language: [python]
-        os: [ubuntu-latest, centos-latest, fedora-latest, debian-latest]
+        os: [ubuntu-latest]
         include:
           - language: python
             os: ubuntu-latest
-          - language: python
-            os: centos-latest
-          - language: python
-            os: fedora-latest
-          - language: python
-            os: debian-latest
 
     steps:
     - name: Checkout repository
