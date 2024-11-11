@@ -7,30 +7,27 @@ set(FEM_SOURCES
     MatrixEquationSolver.cpp
 )
 
-if (WIN32)
-    add_compile_options("/bigobj")
-else ()
-    add_compile_options("-flarge-source-files" "-Wmisleading-indentation")
-endif()
+add_compile_options("-flarge-source-files" "-Wmisleading-indentation")
 
 add_subdirectory(BoundaryConditions)
 add_subdirectory(Cell)
 add_subdirectory(Cubature)
 add_subdirectory(LinearAlgebraManagers)
 
-add_library(FiniteElementMethod ${FEM_SOURCES})
+set(LIB_FEM FiniteElementMethod)
+add_library(${LIB_FEM} ${FEM_SOURCES})
 
 find_package(TBB REQUIRED)
-target_link_libraries(FiniteElementMethod PRIVATE
-    FiniteElementMethod_BoundaryConditions
-    FiniteElementMethod_Cell
-    FiniteElementMethod_Cubature
-    FiniteElementMethod_LinearAlgebraManagers
+target_link_libraries(${LIB_FEM} PRIVATE
+    ${LIB_FEM_BOUNDARY_CONDITIONS}
+    ${LIB_FEM_CELL}
+    ${LIB_FEM_CUBATURE}
+    ${LIB_FEM_LINEAR_ALGEBRA_MANAGERS}
 
-    TBB::tbb
     ${Trilinos_LIBRARIES}
+    TBB::tbb
 )
 
-target_include_directories(FiniteElementMethod PRIVATE
+target_include_directories(${LIB_FEM} PRIVATE
     ${Trilinos_INCLUDE_DIRS}
 )

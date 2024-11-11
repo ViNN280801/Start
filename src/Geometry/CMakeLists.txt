@@ -4,12 +4,14 @@ set(GEOMETRY_SOURCES
     RayTriangleIntersection.cpp
 )
 
-add_library(Geometry ${GEOMETRY_SOURCES})
+set(LIB_GEOMETRY Geometry)
+add_library(${LIB_GEOMETRY} ${GEOMETRY_SOURCES})
 
-target_link_libraries(Geometry PRIVATE
+target_link_libraries(${LIB_GEOMETRY} PRIVATE
     ${GMSH_LIBRARIES}
 )
 
-target_include_directories(Geometry PRIVATE
+target_include_directories(${LIB_GEOMETRY} PRIVATE
     ${CGAL_INCLUDE_DIRS}
-    ${GMSH_INCLUDE_DIRS})
+    ${GMSH_INCLUDE_DIRS}
+)

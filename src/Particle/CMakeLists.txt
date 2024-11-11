@@ -2,13 +2,14 @@ set(PARTICLES_SOURCES
     Particle.cpp
 )
 
-add_library(Particle ${PARTICLES_SOURCES})
+set(LIB_PARTICLE Particle)
+add_library(${LIB_PARTICLE} ${PARTICLES_SOURCES})
 
-target_link_libraries(Particle PRIVATE
+target_link_libraries(${LIB_PARTICLE} PRIVATE
     ${Boost_LIBRARIES}
     Generators
 )
 
-target_include_directories(Particle PRIVATE
+target_include_directories(${LIB_PARTICLE} PRIVATE
     ${Boost_INCLUDE_DIRS}
 )

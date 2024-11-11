@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # --------{---(@    Setting custom options with default values   @}}>-----
-option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
+option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" OFF)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
@@ -14,6 +14,10 @@ option(START_RELEASE "Compile the project in Start Release mode" ON)
 # °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸
 # ##############################################################################
 # #########                    Reporting about custom project flags ##########
+if(BUILD_SHARED_LIBS)
+  add_compile_options(-fPIC)
+endif()
+
 if(GPU_CUDA_ON)
   message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
   add_compile_options(-DUSE_CUDA)
@@ -673,13 +677,19 @@ target_link_libraries(
           ${TBB_LIBRARIES}
           ${MPI_LIBRARIES}
           ${Trilinos_LIBRARIES}
+          
           DataHandling
           FiniteElementMethod
+          FiniteElementMethod_BoundaryConditions
+          FiniteElementMethod_Cell
+          FiniteElementMethod_Cubature
+          FiniteElementMethod_LinearAlgebraManagers
           Generators
           Geometry
           Particle
           SessionManagers
-          Utilities)
+          Utilities
+)
 
 if(GPU_CUDA_ON)
   target_compile_options(

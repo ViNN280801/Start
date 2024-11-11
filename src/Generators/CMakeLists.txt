@@ -7,12 +7,13 @@ if (GPU_CUDA_ON)
     list(APPEND GENERATORS_SOURCES ParticleGenerator_CUDA.cu)
 endif()
 
-add_library(Generators ${GENERATORS_SOURCES})
+set(LIB_GENERATORS Generators)
+add_library(${LIB_GENERATORS} ${GENERATORS_SOURCES})
 
-target_link_libraries(Generators PRIVATE
+target_link_libraries(${LIB_GENERATORS} PRIVATE
     ${Boost_LIBRARIES}
 )
 
-target_include_directories(Generators PRIVATE
+target_include_directories(${LIB_GENERATORS} PRIVATE
     ${Boost_INCLUDE_DIRS}
 )
