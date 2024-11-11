@@ -3,6 +3,7 @@ from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import *
 from constants import *
 from numpy import all, array
+import tempfile
 
 
 def get_cur_datetime() -> str:
@@ -208,3 +209,15 @@ def remove_last_occurrence(lst, item):
         if lst[i] == item:
             del lst[i]  # Remove the item if found
             break       # Exit the loop after removing the item
+
+
+def create_secure_tempfile() -> str:
+    """
+    Creates a secure temporary file and returns its file path.
+    
+    Returns:
+    - str: Path to the securely created temporary file.
+    """
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file_path = temp_file.name
+    return temp_file_path 
