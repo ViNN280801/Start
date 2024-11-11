@@ -3,11 +3,12 @@ set(DATA_HANDLING_SOURCES
     TetrahedronMeshManager.cpp
 )
 
-add_library(DataHandling ${DATA_HANDLING_SOURCES})
+set(LIB_DATA_HANDLING DataHandling)
+add_library(${LIB_DATA_HANDLING} ${DATA_HANDLING_SOURCES})
 
-target_link_libraries(DataHandling PRIVATE
+target_link_libraries(${LIB_DATA_HANDLING} PRIVATE
     ${HDF5_LIBRARIES}
 )
 
-target_include_directories(DataHandling PRIVATE
+target_include_directories(${LIB_DATA_HANDLING} PRIVATE
     ${HDF5_INCLUDE_DIRS})
