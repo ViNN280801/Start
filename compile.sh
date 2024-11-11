@@ -133,5 +133,5 @@ if [ "$INTERMEDIATE" = true ] && [ -n "$INTERMEDIATE_FILE" ]; then
 else
     mkdir -pv build && cd build
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && make -j$NUM_THREADS
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS
 fi
