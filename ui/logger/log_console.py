@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QTextCharFormat, QTextCursor, QColor, QTextDocument
 from util.path_file_checkers import is_file_valid
-from util.util import get_cur_datetime
+from util.util import get_cur_datetime, create_secure_tempfile
 from .cli_history import CommandLineHistory
 from vtk import vtkLogger
 from traceback import print_exception
@@ -103,10 +103,9 @@ class LogConsole(QWidget):
     
     def setup_gmsh_logger(self):
         from gmsh import option
-        from tempfile import mktemp
         from os import dup, dup2, fdopen
         
-        self.gmsh_log_file_path = mktemp()
+        self.gmsh_log_file_path = create_secure_tempfile()
         self.gmsh_log_file = open(self.gmsh_log_file_path, 'w')
         self.appendLog(f"Created log file for the gmsh: {self.gmsh_log_file_path}")
 
@@ -126,11 +125,10 @@ class LogConsole(QWidget):
         self.start_monitoring_gmsh_log_file()
 
     def setup_vtk_logger(self):
-        from tempfile import mktemp
         from vtk import vtkObject
         
         vtkObject.GlobalWarningDisplayOn()
-        self.vtk_log_file_path = mktemp()
+        self.vtk_log_file_path = create_secure_tempfile()
         self.appendLog(f"Created log file for the vtk: {self.vtk_log_file_path}")
         vtkLogger.LogToFile(self.vtk_log_file_path, vtkLogger.APPEND, vtkLogger.VERBOSITY_INFO)
         self.start_monitoring_vtk_log_file()
