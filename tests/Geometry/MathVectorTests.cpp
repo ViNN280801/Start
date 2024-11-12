@@ -214,9 +214,9 @@ void testDotProduct()
 {
     PositionVector vec1(2.0, 3.0, 4.0),
         vec2(3.0, 4.0, 5.0);
-    double dotProdResult = vec1 * vec2,
-           expectedDotProduct = 2.0 * 3.0 + 3.0 * 4.0 + 4.0 * 5.0,
-           tolerance = 1e-10;
+    [[maybe_unused]]double dotProdResult = vec1 * vec2,
+        expectedDotProduct = 2.0 * 3.0 + 3.0 * 4.0 + 4.0 * 5.0,
+        tolerance = 1e-10;
 
     assert(std::abs(dotProdResult - expectedDotProduct) < tolerance);
 }
@@ -308,12 +308,12 @@ void testRandomOperations(int test_count = 1'000'000)
 
         MathVector additionResult{vec1 + vec2},
             subtractionResult{vec1 - vec2};
-        double dotProductResult = vec1 * vec2;
+        [[maybe_unused]]double dotProductResult = vec1 * vec2;
         MathVector crossProductResult{vec1.crossProduct(vec2)};
-        double moduleResultVec1 = std::sqrt(vec1.getX() * vec1.getX() +
+        [[maybe_unused]]double moduleResultVec1 = std::sqrt(vec1.getX() * vec1.getX() +
                                             vec1.getY() * vec1.getY() +
                                             vec1.getZ() * vec1.getZ()),
-               moduleResultVec2 = std::sqrt(vec2.getX() * vec2.getX() +
+            moduleResultVec2 = std::sqrt(vec2.getX() * vec2.getX() +
                                             vec2.getY() * vec2.getY() +
                                             vec2.getZ() * vec2.getZ());
 
