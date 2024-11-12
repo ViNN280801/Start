@@ -12,8 +12,8 @@ namespace constants
         static STARTCONSTEXPR const double KT_reference{297.0 * 1.380658e-23}; ///< KT referevnce value [J/kg].
         static STARTCONSTINIT const double N_av{6.22e23};                      ///< Avogadro number.
         static STARTCONSTEXPR const double e_charge{1.602176565e-19};          ///< Charge of the electron.
-        static STARTCONSTINIT const double eV_J{1.602176565e-19};              ///< Conversion factor of eV to J (1 eV is ...  J).
-        static STARTCONSTINIT const double J_eV{6.242e+18};                    ///< Conversion factor of J to eV (1 J  is ... eV).
+        static STARTCONSTINIT const double eV_J{1.60217733000001e-19};         ///< Conversion factor of eV to J (1 eV is ...  J).
+        static STARTCONSTINIT const double J_eV{6.241506363094e+18};           ///< Conversion factor of J to eV (1 J  is ... eV).
 
         /*** Weight of particles in [kg]. ***/
         static STARTCONSTINIT const double O2_mass{53.1e-27}; // Book: The DSMC method G. A. Bird Version 1.2; 2013. 286 p. (Table A.1) - omega
