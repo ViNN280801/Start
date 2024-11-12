@@ -43,7 +43,7 @@ RUN wget -c https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar
 RUN wget -c https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-16-0-0.tar.gz && \
     tar -xzf trilinos-release-16-0-0.tar.gz
 
-# TODO: Test Trilinos 16.0.1 build on PC with NVidia support
+# TODO: Test Trilinos 16.0.0 build on PC with NVidia support
 
 RUN cd Trilinos-trilinos-release-16-0-0/ && mkdir -p build && cd build && \ 
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
