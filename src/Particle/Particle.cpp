@@ -5,6 +5,9 @@ std::atomic<size_t> Particle::m_nextId{0ul};
 
 void Particle::calculateVelocityFromEnergy_J(std::array<double, 3> const &thetaPhi)
 {
+	// GUI sends energy in eV, so, we need to convert it from eV to J:
+	m_energy *= constants::physical_constants::eV_J;
+
 	auto [thetaUsers, phiCalculated, thetaCalculated]{thetaPhi};
 	RealNumberGenerator rng;
 
@@ -15,6 +18,7 @@ void Particle::calculateVelocityFromEnergy_J(std::array<double, 3> const &thetaP
 		vz{v * std::cos(theta)};
 
 	m_velocity = VelocityVector(vx, vy, vz);
+	std::cout << m_velocity << '\n';
 }
 
 void Particle::calculateEnergyJFromVelocity(double vx, double vy, double vz) noexcept { m_energy = getMass() * std::pow((VelocityVector(vx, vy, vz).module()), 2) / 2; }

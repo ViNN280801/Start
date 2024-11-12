@@ -26,7 +26,8 @@ TEST(ParticleTest, ConstructorWithTypeAndPositionAndEnergy)
     EXPECT_DOUBLE_EQ(particle.getX(), 1.0);
     EXPECT_DOUBLE_EQ(particle.getY(), 2.0);
     EXPECT_DOUBLE_EQ(particle.getZ(), 3.0);
-    EXPECT_DOUBLE_EQ(particle.getEnergy_eV(), 1);
+    EXPECT_DOUBLE_EQ(particle.getEnergy_J(), 1);
+    EXPECT_NEAR(particle.getEnergy_eV(), 6.241506363094e+18, 1e10);
 }
 
 // Test constructor with ParticleType and full position and velocity
@@ -78,7 +79,8 @@ TEST(ParticleTest, ConstructorWithTypeConstPointRefAndEnergy)
     EXPECT_DOUBLE_EQ(particle.getX(), 1.0);
     EXPECT_DOUBLE_EQ(particle.getY(), 2.0);
     EXPECT_DOUBLE_EQ(particle.getZ(), 3.0);
-    EXPECT_DOUBLE_EQ(particle.getEnergy_eV(), 2);
+    EXPECT_DOUBLE_EQ(particle.getEnergy_J(), 2);
+    EXPECT_NEAR(particle.getEnergy_eV(), 2 * 6.241506363094e+18, 1e10);
 }
 
 // Test constructor with ParticleType, rvalue Point, and energy
@@ -89,7 +91,8 @@ TEST(ParticleTest, ConstructorWithTypeRvaluePointAndEnergy)
     EXPECT_DOUBLE_EQ(particle.getX(), 1.0);
     EXPECT_DOUBLE_EQ(particle.getY(), 2.0);
     EXPECT_DOUBLE_EQ(particle.getZ(), 3.0);
-    EXPECT_DOUBLE_EQ(particle.getEnergy_eV(), 1.4);
+    EXPECT_DOUBLE_EQ(particle.getEnergy_J(), 1.4);
+    EXPECT_NEAR(particle.getEnergy_eV(), 1.4 * 6.241506363094e+18, 1e10);
 }
 
 // Test updating position based on velocity and time delta
@@ -138,8 +141,8 @@ TEST(ParticleTest, EnergyGetters)
 {
     Particle particle(ParticleType::Ar, 0, 0, 0, 1, thetaPhi);
 
-    EXPECT_DOUBLE_EQ(particle.getEnergy_eV(), 1);          // Should return 1 electron volt
-    EXPECT_NEAR(particle.getEnergy_J(), 1.602e-19, 1e-22); // Should return 1.602e-19 joules
+    EXPECT_DOUBLE_EQ(particle.getEnergy_J(), 1);                    // Should return 1 joules
+    EXPECT_NEAR(particle.getEnergy_eV(), 6.241506363094e+18, 1e10); // Should return 1 eV
 }
 
 // Test the getter for velocity module

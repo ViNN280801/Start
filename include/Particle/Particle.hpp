@@ -22,7 +22,7 @@ private:
     ParticleType m_type{};               ///< Type of the particle.
     Point m_centre;                      ///< Position in Cartesian coordinates (x, y, z).
     VelocityVector m_velocity;           ///< Velocity vector (Vx, Vy, Vz).
-    double m_energy{};                   ///< Particle energy in [eV] by default.
+    double m_energy{};                   ///< Particle energy in [J] by default.
     CGAL::Bbox_3 m_bbox;                 ///< Bounding box for particle.
 
     /**
@@ -267,8 +267,8 @@ public:
     double getY() const;
     double getZ() const;
     double getPositionModule() const;
-    double getEnergy_J() const { return m_energy * physical_constants::eV_J; }
-    constexpr double getEnergy_eV() const { return m_energy; }
+    constexpr double getEnergy_J() const { return m_energy; }
+    double getEnergy_eV() const { return m_energy / physical_constants::eV_J; }
     constexpr double getVx() const { return m_velocity.getX(); }
     constexpr double getVy() const { return m_velocity.getY(); }
     constexpr double getVz() const { return m_velocity.getZ(); }
