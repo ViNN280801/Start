@@ -209,7 +209,7 @@ private:
      * @param thetaPhi Polar angle θ and azimuthal angle φ.
      * @return Velocity module.
      */
-    void calculateVelocityFromEnergy_J(std::array<double, 3> const &thetaPhi);
+    void calculateVelocityFromEnergy_eV(std::array<double, 3> const &thetaPhi);
 
     /**
      * @brief Calculates the kinetic energy of a particle from its velocity components.

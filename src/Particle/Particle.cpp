@@ -3,7 +3,7 @@
 
 std::atomic<size_t> Particle::m_nextId{0ul};
 
-void Particle::calculateVelocityFromEnergy_J(std::array<double, 3> const &thetaPhi)
+void Particle::calculateVelocityFromEnergy_eV(std::array<double, 3> const &thetaPhi)
 {
 	// GUI sends energy in eV, so, we need to convert it from eV to J:
 	m_energy *= constants::physical_constants::eV_J;
@@ -18,7 +18,6 @@ void Particle::calculateVelocityFromEnergy_J(std::array<double, 3> const &thetaP
 		vz{v * std::cos(theta)};
 
 	m_velocity = VelocityVector(vx, vy, vz);
-	std::cout << m_velocity << '\n';
 }
 
 void Particle::calculateEnergyJFromVelocity(double vx, double vy, double vz) noexcept { m_energy = getMass() * std::pow((VelocityVector(vx, vy, vz).module()), 2) / 2; }
@@ -39,13 +38,13 @@ Particle::Particle(ParticleType type_)
 	  m_bbox(0, 0, 0, 0, 0, 0) {}
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
-				   double energyJ_, std::array<double, 3> const &thetaPhi)
+				   double energy_eV, std::array<double, 3> const &thetaPhi)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(Point(x_, y_, z_)),
-	  m_energy(energyJ_)
+	  m_energy(energy_eV)
 {
-	calculateVelocityFromEnergy_J(thetaPhi);
+	calculateVelocityFromEnergy_eV(thetaPhi);
 	calculateBoundingBox();
 }
 
@@ -82,25 +81,25 @@ Particle::Particle(ParticleType type_, Point &&centre,
 	calculateBoundingBox();
 }
 
-Particle::Particle(ParticleType type_, Point const &centre, double energyJ_,
+Particle::Particle(ParticleType type_, Point const &centre, double energy_eV,
 				   std::array<double, 3> const &thetaPhi)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(centre),
-	  m_energy(energyJ_)
+	  m_energy(energy_eV)
 {
-	calculateVelocityFromEnergy_J(thetaPhi);
+	calculateVelocityFromEnergy_eV(thetaPhi);
 	calculateBoundingBox();
 }
 
-Particle::Particle(ParticleType type_, Point &&centre, double energyJ_,
+Particle::Particle(ParticleType type_, Point &&centre, double energy_eV,
 				   std::array<double, 3> const &thetaPhi)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(std::move(centre)),
-	  m_energy(energyJ_)
+	  m_energy(energy_eV)
 {
-	calculateVelocityFromEnergy_J(thetaPhi);
+	calculateVelocityFromEnergy_eV(thetaPhi);
 	calculateBoundingBox();
 }
 
