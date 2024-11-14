@@ -136,11 +136,25 @@ void ModelingMainDriver::_initializeParticles()
         throw std::runtime_error("Particles are uninitialized, check your configuration file");
 }
 
-void ModelingMainDriver::_initialize()
+void ModelingMainDriver::_ginitialize()
 {
     _initializeSurfaceMesh();
     _initializeSurfaceMeshAABB();
     _initializeParticles();
+}
+
+void ModelingMainDriver::_updateSurfaceMesh()
+{
+    // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
+    auto mapEnd{_settledParticlesCounterMap.cend()};
+    for (auto &meshParam : _triangleMesh)
+        if (auto it{_settledParticlesCounterMap.find(std::get<0>(meshParam))}; it != mapEnd)
+            std::get<3>(meshParam) = it->second;
+
+    std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
+    hdf5filename += ".hdf5";
+    HDF5Handler hdf5handler(hdf5filename);
+    hdf5handler.saveMeshToHDF5(_triangleMesh);
 }
 
 void ModelingMainDriver::_saveParticleMovements() const
@@ -211,21 +225,7 @@ void ModelingMainDriver::_saveParticleMovements() const
     }
 }
 
-void ModelingMainDriver::_updateSurfaceMesh()
-{
-    // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
-    auto mapEnd{_settledParticlesCounterMap.cend()};
-    for (auto &meshParam : _triangleMesh)
-        if (auto it{_settledParticlesCounterMap.find(std::get<0>(meshParam))}; it != mapEnd)
-            std::get<3>(meshParam) = it->second;
-
-    std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
-    hdf5filename += ".hdf5";
-    HDF5Handler hdf5handler(hdf5filename);
-    hdf5handler.saveMeshToHDF5(_triangleMesh);
-}
-
-void ModelingMainDriver::_finalize()
+void ModelingMainDriver::_gfinalize()
 {
     _updateSurfaceMesh();
     _saveParticleMovements();
@@ -307,8 +307,10 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
     }
 
     // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
-    _initialize();
+    _ginitialize();
 }
+
+ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
                                                  std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
@@ -858,7 +860,4 @@ void ModelingMainDriver::startModeling()
 #endif
     }
     LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
-
-    // Updates surface mesh (updates counter of the settled particles in .hdf5 file) and save trajectories of the particles.
-    _finalize();
 }

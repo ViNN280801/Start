@@ -106,7 +106,7 @@ private:
     /* =========================================== */
 
     /// @brief Global initializator. Uses all the initializers above.
-    void _initialize();
+    void _ginitialize();
 
     /* Finalizers for all the necessary objects. */
     /**
@@ -122,7 +122,7 @@ private:
     /* =========================================== */
 
     /// @brief Global finalizator. Updates
-    void _finalize();
+    void _gfinalize();
 
     /**
      * @brief 1st step of the PIC (Particle-In-Cell) modeling.
@@ -224,6 +224,15 @@ public:
      * @param config_filename A string view of the path to the configuration file.
      */
     ModelingMainDriver(std::string_view config_filename);
+
+    /**
+     * @brief Dtor. Finalizes all the processes.
+     * 
+     * @details Updates surface mesh (updates counter of the settled particles in .hdf5 file) 
+     *          and saves trajectories of the particles movements to the json.
+     *          Has checkings after writing a .json file with all the particle movements.
+     */
+    ~ModelingMainDriver();
 
     /**
      * @brief Starts the modeling process.
