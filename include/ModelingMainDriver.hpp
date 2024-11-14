@@ -108,8 +108,25 @@ private:
     /// @brief Global initializator. Uses all the initializers above.
     void _initialize();
 
+    /* Finalizers for all the necessary objects. */
     /**
-     * @brief Initializes the Finite Element Method (FEM) components.
+     * @brief Saves the particle movements to a JSON file.
+     *
+     * This function saves the contents of m_particlesMovement to a JSON file named "particles_movements.json".
+     * It handles exceptions and provides a warning message if the map is empty.
+     */
+    void _saveParticleMovements() const;
+
+    /// @brief Using HDF5Handler to update the mesh according to the settled particles.
+    void _updateSurfaceMesh();
+    /* =========================================== */
+
+    /// @brief Global finalizator. Updates
+    void _finalize();
+
+    /**
+     * @brief 1st step of the PIC (Particle-In-Cell) modeling.
+     *        Initializes the Finite Element Method (FEM) components.
      *
      * @details This function initializes the global stiffness matrix assembler,
      *          creates a cubic grid for the tetrahedron mesh, sets the boundary conditions,
@@ -125,34 +142,6 @@ private:
                         std::shared_ptr<CubicGrid> &cubicGrid,
                         std::map<GlobalOrdinal, double> &boundaryConditions,
                         std::shared_ptr<VectorManager> &solutionVector);
-
-    /**
-     * @brief Saves the particle movements to a JSON file.
-     *
-     * This function saves the contents of m_particlesMovement to a JSON file named "particles_movements.json".
-     * It handles exceptions and provides a warning message if the map is empty.
-     */
-    void _saveParticleMovements() const;
-
-    /**
-     * @brief Checks if a given ray intersects with a triangle.
-     *
-     * This function determines whether a finite ray intersects with a given triangle.
-     * If an intersection occurs, the ID of the intersected triangle is returned.
-     * Otherwise, an empty `std::optional<size_t>` is returned, indicating no intersection.
-     *
-     * @param ray A constant reference to the ray (line segment) to be checked.
-     * @param triangle A constant reference to the triangle to check for intersection.
-     * @return An `std::optional<size_t>` containing the ID of the intersected triangle
-     *         if the ray intersects, or `std::nullopt` if there is no intersection.
-     */
-    std::optional<size_t> _isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle);
-
-    /// @brief Returns count of threads from config. Has initial checkings and warning msg when num threads occupies 80% of all the threads.
-    unsigned int _getNumThreads() const;
-
-    /// @brief Using HDF5Handler to update the mesh according to the settled particles.
-    void _updateSurfaceMesh();
 
     /**
      * @brief Processes particles in parallel using multiple threads.
