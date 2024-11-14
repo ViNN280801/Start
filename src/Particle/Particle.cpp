@@ -339,6 +339,9 @@ void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, E
 
 	// 4. Final acceleration semistep: v_upd = v_+ + a_L ⋅ Δt/2.
 	m_velocity = v_plus + a_L * time_step / 2.;
+
+	// 5. Updating energy after updating velocity:
+	calculateEnergyJFromVelocity(m_velocity);
 }
 
 std::ostream &operator<<(std::ostream &os, Particle const &particle)
