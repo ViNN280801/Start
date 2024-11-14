@@ -217,8 +217,11 @@ TEST_F(ParticleGeneratorTest, CleanFromPointSource)
     for (Particle const &p : particles)
     {
         EXPECT_TRUE(p.getType() == ParticleType::Ar || p.getType() == ParticleType::He);
-        EXPECT_GE(p.getEnergy_J(), 10.0);
-        EXPECT_LE(p.getEnergy_J(), 20.0);
+        EXPECT_GE(p.getEnergy_eV(), 10.0);
+        EXPECT_LE(p.getEnergy_eV(), 20.0);
+
+        EXPECT_GE(p.getEnergy_J(), 9.0 / 6.241506363094e+18);
+        EXPECT_LE(p.getEnergy_J(), 21.0 / 6.241506363094e+18);
     }
 }
 
@@ -276,8 +279,11 @@ TEST_F(ParticleGeneratorTest, CleanFromSurfaceSource)
     for (Particle const &p : particles)
     {
         EXPECT_TRUE(p.getType() == ParticleType::Ar || p.getType() == ParticleType::Sn);
-        EXPECT_GE(p.getEnergy_J(), 10.0);
-        EXPECT_LE(p.getEnergy_J(), 20.0);
+        EXPECT_GE(p.getEnergy_eV(), 10.0);
+        EXPECT_LE(p.getEnergy_eV(), 20.0);
+
+        EXPECT_GE(p.getEnergy_J(), 9.0 / 6.241506363094e+18);
+        EXPECT_LE(p.getEnergy_J(), 21.0 / 6.241506363094e+18);
     }
 }
 
