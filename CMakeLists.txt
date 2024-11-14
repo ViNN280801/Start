@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # --------{---(@    Setting custom options with default values   @}}>-----
-option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" OFF)
+option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)

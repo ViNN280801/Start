@@ -1,3 +1,5 @@
+#ifndef USE_CUDA
+
 #include "Generators/ParticleGenerator.hpp"
 #include "Generators/RealNumberGenerator.hpp"
 
@@ -135,3 +137,5 @@ ParticleVector ParticleGenerator::fromSurfaceSource(std::vector<surface_source_t
     }
     return particles;
 }
+
+#endif // !USE_CUDA
