@@ -1,12 +1,13 @@
 #include <fstream>
 #include <iostream>
-#include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
+#include <thread>
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 #include "Utilities/ConfigParser.hpp"
-
-using json = nlohmann::json;
 
 void checkParameterExists(json const &j, std::string_view param)
 {
@@ -219,4 +220,24 @@ void ConfigParser::getConfigData(std::string_view config)
     {
         throw std::runtime_error("Something went wrong when assigning data from the config.");
     }
+}
+
+unsigned int ConfigParser::getNumThreads_s()
+{
+    if (auto curThreads{getNumThreads()}; curThreads < 1 || curThreads > std::thread::hardware_concurrency())
+        throw std::runtime_error("The number of threads requested (1) exceeds the number of hardware threads supported by the system (" +
+                                 std::to_string(curThreads) +
+                                 "). Please run on a system with more resources.");
+
+    unsigned int num_threads{getNumThreads()},
+        hardware_threads{std::thread::hardware_concurrency()},
+        threshold{static_cast<unsigned int>(hardware_threads * 0.8)};
+    if (num_threads > threshold)
+    {
+        WARNINGMSG(util::stringify("Warning: The number of threads requested (", num_threads,
+                                   ") is close to or exceeds 80% of the available hardware threads (", hardware_threads, ").",
+                                   " This might cause the system to slow down or become unresponsive because the system also needs resources for its own tasks."));
+    }
+
+    return num_threads;
 }

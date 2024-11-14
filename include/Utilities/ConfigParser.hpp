@@ -111,7 +111,7 @@ public:
      * @brief Automatically fills configuration from the file.
      * @param config Configuration filename.
      */
-    ConfigParser(std::string_view config) { getConfigData(config); }
+    ConfigParser(std::string_view config_filename) { getConfigData(config_filename); }
 
     /// @brief Dtor. Clears out all the data members.
     ~ConfigParser() { clearConfig(); }
@@ -146,6 +146,9 @@ public:
     constexpr int getConvergenceTestFrequency() const { return m_config.convergenceTestFrequency; }
     constexpr std::vector<std::pair<std::vector<size_t>, double>> const &getBoundaryConditions() const { return m_config.boundaryConditions; }
     constexpr std::vector<size_t> const &getNonChangeableNodes() const { return m_config.nonChangeableNodes; }
+
+    /// @brief Returns count of threads from config. Has initial checkings and warning msg when num threads occupies 80% of all the threads.
+    unsigned int getNumThreads_s();
 };
 
 #endif // !CONFIGPARSER_HPP
