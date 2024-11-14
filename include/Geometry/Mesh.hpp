@@ -47,7 +47,7 @@ double calculateVolumeOfTetrahedron(Tetrahedron const &tetrahedron);
 class Mesh
 {
 private:
-    static size_t isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle);
+    static std::optional<size_t> isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle);
     static std::optional<std::tuple<size_t, Point>>
     getIntersectionPointImpl(Ray const &ray, MeshTriangleParam const &triangle);
     static double calcTetrahedronVolume(MathVector<double> const &a, MathVector<double> const &b, MathVector<double> const &c, MathVector<double> const &d);
@@ -80,27 +80,21 @@ public:
     static MeshTetrahedronParamVector getTetrahedronMeshParams(std::string_view msh_filename);
 
     /**
-     * @brief Determines if a ray intersects with a given triangle in the mesh.
+     * @brief Checks if a given ray intersects with a triangle.
      *
-     * @details This function utilizes the `isIntersectTriangle` method from the `RayTriangleIntersection`
-     *          class or namespace to check for an intersection between a ray and a triangle. It is used
-     *          to identify whether a given ray intersects with a specific triangle within the mesh, which
-     *          can be useful in various applications like ray tracing, collision detection, or physics simulations.
+     * This function determines whether a finite ray intersects with a given triangle.
+     * If an intersection occurs, the ID of the intersected triangle is returned.
+     * Otherwise, an empty `std::optional<size_t>` is returned, indicating no intersection.
      *
-     * @param ray The ray to be tested for intersection. This should be an instance of `RayD`,
-     *            which is a template specialization of `Ray` for `double` type. The ray contains
-     *            the information about its origin and direction.
-     * @param triangle A tuple representing the triangle with which the intersection test is to be performed.
-     *                 The tuple contains the triangle's parameters, which likely include its vertices
-     *                 and other relevant geometric data.
-     *
-     * @return Returns the index or ID of the triangle (as size_t) if the ray intersects with it.
-     *         If there is no intersection, it returns a special value (usually -1 cast to size_t) to indicate this.
+     * @param ray A constant reference to the ray (line segment) to be checked.
+     * @param triangle A constant reference to the triangle to check for intersection.
+     * @return An `std::optional<size_t>` containing the ID of the intersected triangle
+     *         if the ray intersects, or `std::nullopt` if there is no intersection.
      */
-    static size_t isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle) { return isRayIntersectTriangleImpl(ray, triangle); }
-    static size_t isRayIntersectTriangle(Ray &&ray, MeshTriangleParam const &triangle) { return isRayIntersectTriangleImpl(std::move(ray), triangle); }
-    static size_t isRayIntersectTriangle(Ray const &ray, MeshTriangleParam &&triangle) { return isRayIntersectTriangleImpl(ray, std::move(triangle)); }
-    static size_t isRayIntersectTriangle(Ray &&ray, MeshTriangleParam &&triangle) { return isRayIntersectTriangleImpl(std::move(ray), std::move(triangle)); }
+    static std::optional<size_t> isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle) { return isRayIntersectTriangleImpl(ray, triangle); }
+    static std::optional<size_t> isRayIntersectTriangle(Ray &&ray, MeshTriangleParam const &triangle) { return isRayIntersectTriangleImpl(std::move(ray), triangle); }
+    static std::optional<size_t> isRayIntersectTriangle(Ray const &ray, MeshTriangleParam &&triangle) { return isRayIntersectTriangleImpl(ray, std::move(triangle)); }
+    static std::optional<size_t> isRayIntersectTriangle(Ray &&ray, MeshTriangleParam &&triangle) { return isRayIntersectTriangleImpl(std::move(ray), std::move(triangle)); }
 
     /**
      * @brief Gets intersection point of ray and triangle if ray intersects the triangle.
