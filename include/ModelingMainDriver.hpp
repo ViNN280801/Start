@@ -13,11 +13,6 @@
 #include "SessionManagement/GmshSessionManager.hpp"
 #include "Utilities/ConfigParser.hpp"
 
-#ifdef USE_CUDA
-#include "Geometry/AABBTreeDevice.cuh"
-#include "Particle/ParticleDevice.cuh"
-#endif // !USE_CUDA
-
 /**
  * @brief This class represents the main driver that manages the PIC part and surface collision tracker.
  *
@@ -71,20 +66,6 @@ private:
     ConfigParser m_config;                                                ///< `ConfigParser` object to get all the simulation physical paramters.
     std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
     std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
-
-#ifdef USE_CUDA
-    ParticleDevice_t *md_particles = nullptr;
-    AABBNodeDevice_t *md_nodes = nullptr;
-    TriangleDevice_t *md_triangles = nullptr;
-    size_t md_particleCount = 0ul;
-    size_t md_nodeCount = 0ul;
-    size_t md_triangleCount = 0ul;
-
-    AABBTreeDevice md_aabbTreeDevice;
-
-    void _initializeDeviceMemory();
-    void _freeDeviceMemory();
-#endif
 
     /**
      * @brief Broadcasts the triangle mesh data from the root rank (rank 0) to all other ranks.

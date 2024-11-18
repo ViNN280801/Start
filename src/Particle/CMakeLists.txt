@@ -3,10 +3,7 @@ set(PARTICLES_SOURCES
 )
 
 if(GPU_CUDA_ON)
-    set(CUDA_PARTICLES_SOURCES
-        ParticleKernels.cu
-    )
-    list(APPEND PARTICLES_SOURCES ${CUDA_PARTICLES_SOURCES})
+    add_subdirectory(CUDA)
 endif()
 
 set(LIB_PARTICLE Particle)

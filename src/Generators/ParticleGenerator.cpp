@@ -3,45 +3,6 @@
 #include "Generators/ParticleGenerator.hpp"
 #include "Generators/RealNumberGenerator.hpp"
 
-ParticleVector ParticleGenerator::byVelocities(size_t count, ParticleType type,
-                                               double minx, double miny, double minz,
-                                               double maxx, double maxy, double maxz,
-                                               double minvx, double minvy, double minvz,
-                                               double maxvx, double maxvy, double maxvz)
-{
-    RealNumberGenerator rng;
-    return _generate(count, [&]()
-                     { return Particle(type,
-                                       rng(minx, maxx), rng(miny, maxy), rng(minz, maxz),
-                                       rng(minvx, maxvx), rng(minvy, maxvy), rng(minvz, maxvz)); });
-}
-
-ParticleVector ParticleGenerator::byVelocities(size_t count, ParticleType type,
-                                               double x, double y, double z,
-                                               double vx, double vy, double vz)
-{
-    ParticleVector particles;
-    return _generate(count, [&]()
-                     { return Particle(type, x, y, z, vx, vy, vz); });
-}
-
-ParticleVector ParticleGenerator::byVelocityModule(size_t count, ParticleType type,
-                                                   double x, double y, double z,
-                                                   double v, double theta, double phi)
-{
-    RealNumberGenerator rng;
-    return _generate(count, [&]()
-                     {
-        theta = rng(0, theta);
-		phi = rng(0, phi);
-
-        double vx{v * sin(theta) * cos(phi)},
-			vy{v * sin(theta) * sin(phi)},
-			vz{v * cos(theta)};
-
-        return Particle(type, x, y, z, vx, vy, vz); });
-}
-
 ParticleVector ParticleGenerator::fromPointSource(std::vector<point_source_t> const &source)
 {
     ParticleVector particles;

@@ -10,159 +10,6 @@
 #include "Particle/ParticleUtils.hpp"
 #include "Utilities/DeviceUtils.cuh"
 
-__global__ void generateParticlesKernel(ParticleDevice_t *particles, size_t count, int type,
-                                        double minx, double miny, double minz,
-                                        double maxx, double maxy, double maxz,
-                                        double minvx, double minvy, double minvz,
-                                        double maxvx, double maxvy, double maxvz,
-                                        unsigned long long seed)
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= count)
-        return;
-
-    curandState_t state;
-    curand_init(seed, idx, 0, &state);
-
-    particles[idx].id = idx;
-    particles[idx].type = type;
-
-    // Randomized position
-    particles[idx].x = minx + (maxx - minx) * curand_uniform_double(&state);
-    particles[idx].y = miny + (maxy - miny) * curand_uniform_double(&state);
-    particles[idx].z = minz + (maxz - minz) * curand_uniform_double(&state);
-
-    // Randomized velocity
-    particles[idx].vx = minvx + (maxvx - minvx) * curand_uniform_double(&state);
-    particles[idx].vy = minvy + (maxvy - minvy) * curand_uniform_double(&state);
-    particles[idx].vz = minvz + (maxvz - minvz) * curand_uniform_double(&state);
-
-    double mass = ParticleUtils::getMassFromType(static_cast<ParticleType>(type));
-    particles[idx].energy = 0.5 * mass * (particles[idx].vx * particles[idx].vx + particles[idx].vy * particles[idx].vy + particles[idx].vz * particles[idx].vz);
-}
-
-START_PARTICLE_VECTOR ParticleGenerator::byVelocities(size_t count, ParticleType type,
-                                                      double minx, double miny, double minz,
-                                                      double maxx, double maxy, double maxz,
-                                                      double minvx, double minvy, double minvz,
-                                                      double maxvx, double maxvy, double maxvz)
-{
-    if (count == 0)
-        throw std::logic_error("Cannot generate 0 particles");
-
-    ParticleDeviceArray_t deviceParticles;
-    deviceParticles.resize(count);
-
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
-
-    generateParticlesKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        deviceParticles.begin(), count, static_cast<int>(type), minx, miny, minz,
-        maxx, maxy, maxz, minvx, minvy, minvz, maxvx, maxvy, maxvz, 123'456'789ull);
-
-    cuda_utils::check_cuda_err(cudaGetLastError(), "Error during kernel execution: generateParticlesKernel");
-    cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize device after particle generation");
-
-    return deviceParticles;
-}
-
-__global__ void generateFixedParticlesKernel(ParticleDevice_t *particles, size_t count, int type,
-                                             double x, double y, double z,
-                                             double vx, double vy, double vz)
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= count)
-        return;
-
-    particles[idx].id = idx;
-    particles[idx].type = type;
-    particles[idx].x = x;
-    particles[idx].y = y;
-    particles[idx].z = z;
-    particles[idx].vx = vx;
-    particles[idx].vy = vy;
-    particles[idx].vz = vz;
-
-    double mass = ParticleUtils::getMassFromType(static_cast<ParticleType>(type));
-    particles[idx].energy = 0.5 * mass * (vx * vx + vy * vy + vz * vz);
-}
-
-START_PARTICLE_VECTOR ParticleGenerator::byVelocities(size_t count, ParticleType type,
-                                                      double x, double y, double z,
-                                                      double vx, double vy, double vz)
-{
-    if (count == 0)
-        throw std::logic_error("Cannot generate 0 particles");
-
-    ParticleDeviceArray_t deviceParticles;
-    deviceParticles.resize(count);
-
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
-
-    generateFixedParticlesKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        deviceParticles.begin(), count, static_cast<int>(type), x, y, z, vx, vy, vz);
-
-    cuda_utils::check_cuda_err(cudaGetLastError(), "Error during kernel execution: generateFixedParticlesKernel");
-    cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize device after particle generation");
-
-    return deviceParticles;
-}
-
-__global__ void generateParticlesWithVelocityModuleKernel(ParticleDevice_t *particles, size_t count, int type,
-                                                          double x, double y, double z,
-                                                          double v, double maxTheta, double maxPhi,
-                                                          unsigned long long seed)
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= count)
-        return;
-
-    curandState_t state;
-    curand_init(seed, idx, 0, &state);
-
-    double theta = maxTheta * curand_uniform(&state);
-    double phi = maxPhi * curand_uniform(&state);
-
-    double vx = v * sin(theta) * cos(phi);
-    double vy = v * sin(theta) * sin(phi);
-    double vz = v * cos(theta);
-
-    particles[idx].id = idx;
-    particles[idx].type = type;
-    particles[idx].x = x;
-    particles[idx].y = y;
-    particles[idx].z = z;
-    particles[idx].vx = vx;
-    particles[idx].vy = vy;
-    particles[idx].vz = vz;
-
-    double mass = ParticleUtils::getMassFromType(static_cast<ParticleType>(type));
-    particles[idx].energy = 0.5 * mass * (vx * vx + vy * vy + vz * vz);
-}
-
-START_PARTICLE_VECTOR ParticleGenerator::byVelocityModule(size_t count, ParticleType type,
-                                                          double x, double y, double z,
-                                                          double v, double maxTheta, double maxPhi)
-{
-    if (count == 0)
-        throw std::logic_error("Cannot generate 0 particles");
-
-    ParticleDeviceArray_t deviceParticles;
-    deviceParticles.resize(count);
-
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
-
-    generateParticlesWithVelocityModuleKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        deviceParticles.begin(), count, static_cast<int>(type), x, y, z, v, maxTheta, maxPhi, 123'456'789ull);
-
-    cuda_utils::check_cuda_err(cudaGetLastError(), "Error during kernel execution: generateParticlesWithVelocityModuleKernel");
-    cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize device after particle generation");
-
-    return deviceParticles;
-}
-
 __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
                                                        double3 position, double energy, int type,
                                                        double expansionAngle, double phi, double theta,
@@ -206,7 +53,7 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
         totalParticles += sourceData.count;
     }
 
-    ParticleDeviceArray_t deviceParticles;
+    ParticleDeviceArray deviceParticles;
     deviceParticles.resize(totalParticles);
 
     size_t offset = 0;
@@ -230,7 +77,6 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
     }
 
     cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize after point source generation");
-
     return deviceParticles;
 }
 
@@ -281,7 +127,7 @@ START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<sur
         totalCells += sourceData.baseCoordinates.size();
     }
 
-    ParticleDeviceArray_t deviceParticles;
+    ParticleDeviceArray deviceParticles;
     deviceParticles.resize(totalParticles);
 
     std::vector<double3> cellCenters, normals;

@@ -14,7 +14,7 @@
 #include "Utilities/ConfigParser.hpp"
 
 #ifdef USE_CUDA
-#include "Particle/ParticleDevice.cuh"
+#include "Particle/CUDA/ParticleDevice.cuh"
 #endif
 
 /// @brief Represents a particle in a simulation.
@@ -78,7 +78,7 @@ public:
     ~Particle() {}
 
 #ifdef USE_CUDA
-    explicit Particle(const ParticleDevice_t &deviceParticle)
+    explicit Particle(ParticleDevice_t const &deviceParticle)
         : m_id(deviceParticle.id),
           m_type(static_cast<ParticleType>(deviceParticle.type)),
           m_centre(deviceParticle.x, deviceParticle.y, deviceParticle.z),
@@ -87,7 +87,7 @@ public:
     {
     }
 
-    Particle &operator=(const ParticleDevice_t &deviceParticle)
+    Particle &operator=(ParticleDevice_t const &deviceParticle)
     {
         m_id = deviceParticle.id;
         m_type = static_cast<ParticleType>(deviceParticle.type);

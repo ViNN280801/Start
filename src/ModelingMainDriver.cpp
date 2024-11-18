@@ -7,6 +7,7 @@ using json = nlohmann::json;
 #include "DataHandling/HDF5Handler.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
+#include "FiniteElementMethod/FEMInitializer.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "FiniteElementMethod/FEMPrinter.hpp"
 #include "Generators/ParticleGenerator.hpp"
@@ -17,59 +18,6 @@ std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
 std::mutex ModelingMainDriver::m_particlesMovement_mutex;
 std::shared_mutex ModelingMainDriver::m_settledParticles_mutex;
 std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
-
-#ifdef USE_CUDA
-#include "Particle/ParticleMemoryConverter.cuh"
-#include "Utilities/DeviceUtils.cuh"
-
-void ModelingMainDriver::_initializeDeviceMemory()
-{
-    md_particleCount = m_particles.size();
-    size_t particleBytes = md_particleCount * sizeof(ParticleDevice_t);
-    cuda_utils::check_cuda_err(cudaMalloc(&md_particles, particleBytes), "Failed to allocate device memory for particles");
-
-    // Copy particle data to device
-    std::vector<ParticleDevice_t> h_particles(md_particleCount);
-    for (size_t i = 0; i < md_particleCount; ++i)
-    {
-        h_particles[i] = ParticleToDevice(m_particles[i]);
-    }
-    cuda_utils::check_cuda_err(cudaMemcpy(md_particles, h_particles.data(), particleBytes, cudaMemcpyHostToDevice),
-                               "Failed to copy particles to device");
-
-    // Convert triangles to device-compatible format
-    md_triangleCount = _triangles.size();
-    std::vector<TriangleDevice_t> h_triangles(md_triangleCount);
-    for (size_t i = 0; i < md_triangleCount; ++i)
-    {
-        h_triangles[i] = TriangleToDevice(_triangles[i]);
-    }
-
-    // Copy triangle data to device
-    size_t triangleBytes = md_triangleCount * sizeof(TriangleDevice_t);
-    cuda_utils::check_cuda_err(cudaMalloc(&md_triangles, triangleBytes), "Failed to allocate device memory for triangles");
-    cuda_utils::check_cuda_err(cudaMemcpy(md_triangles, h_triangles.data(), triangleBytes, cudaMemcpyHostToDevice),
-                               "Failed to copy triangles to device");
-
-    // Build AABB Tree on host and copy to device
-    md_aabbTreeDevice.build(h_triangles);
-}
-
-void ModelingMainDriver::_freeDeviceMemory()
-{
-    if (md_particles)
-    {
-        cudaFree(md_particles);
-        md_particles = nullptr;
-    }
-    if (md_triangles)
-    {
-        cudaFree(md_triangles);
-        md_triangles = nullptr;
-    }
-    md_aabbTreeDevice.freeDeviceMemory();
-}
-#endif // !USE_CUDA
 
 void ModelingMainDriver::_broadcastTriangleMesh()
 {
@@ -253,13 +201,7 @@ void ModelingMainDriver::_saveParticleMovements() const
 
             // Check if the file contains null or is incorrectly formatted.
             if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
-            {
-                throw std::runtime_error("File content is invalid. Ensure the format is like this:\n"
-                                         "{\n"
-                                         "    \"0\": [{\"x\": 0.0, \"y\": 0.0, \"z\": 0.0}, {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}],\n"
-                                         "    \"1\": [{\"x\": 0.0, \"y\": 1.0, \"z\": 2.0}, {\"x\": 1.0, \"y\": 2.0, \"z\": 3.0}]\n"
-                                         "}");
-            }
+                throw std::runtime_error(util::stringify("Json file '", filepath, "' is invalid. Check the formatting or content."));
         }
         else
             throw std::ios_base::failure("Failed to open file for reading back and check its content.");
@@ -361,19 +303,9 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
 
     // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
     _ginitialize();
-
-#ifdef USE_CUDA
-    _initializeDeviceMemory();
-#endif
 }
 
-ModelingMainDriver::~ModelingMainDriver()
-{
-    _gfinalize();
-#ifdef USE_CUDA
-    _freeDeviceMemory();
-#endif
-}
+ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
                                                  std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
@@ -874,11 +806,11 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
 void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
-    std::shared_ptr<GSMAssemblier> assemblier;
-    std::shared_ptr<CubicGrid> cubicGrid;
-    std::map<GlobalOrdinal, double> boundaryConditions;
-    std::shared_ptr<VectorManager> solutionVector;
-    _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
+    FEMInitializer feminit(m_config);
+    auto assemblier{feminit.getGlobalStiffnessMatrixAssemblier()};
+    auto cubicGrid{feminit.getCubicGrid()};
+    auto boundaryConditions{feminit.getBoundaryConditions()};
+    auto solutionVector{feminit.getEquationRHS()};
     /* Ending of the FEM initialization. */
 
     [[maybe_unused]] auto num_threads{m_config.getNumThreads_s()};
@@ -910,7 +842,7 @@ void ModelingMainDriver::startModeling()
         // 2. Solve equation in the main thread.
         _solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
-// 3. Process surface collision tracking in parallel.
+        // 3. Process surface collision tracking in parallel.
 #ifdef USE_OMP
         _processPIC_and_SurfaceCollisionTracker(0, m_particles.size(), t, cubicGrid, assemblier);
 #else

@@ -40,36 +40,4 @@ using AABB_Tree_Triangle = CGAL::AABB_tree<TriangleTraits>;
 using MeshTetrahedronParam = std::tuple<size_t, Tetrahedron, double>;
 using MeshTetrahedronParamVector = std::vector<MeshTetrahedronParam>;
 
-#ifdef USE_CUDA
-/// @brief Structure representing a 3D point or vector.
-struct Vec3Device_t
-{
-    double x;
-    double y;
-    double z;
-
-    START_CUDA_HOST_DEVICE Vec3Device_t() : x(0.0), y(0.0), z(0.0) {}
-    START_CUDA_HOST_DEVICE Vec3Device_t(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {}
-    START_CUDA_HOST_DEVICE Vec3Device_t(const Vec3Device_t &other) = default;
-    START_CUDA_HOST_DEVICE Vec3Device_t &operator=(const Vec3Device_t &other) = default;
-    START_CUDA_HOST_DEVICE Vec3Device_t(Vec3Device_t &&other) = default;
-    START_CUDA_HOST_DEVICE Vec3Device_t &operator=(Vec3Device_t &&other) = default;
-};
-
-/// @brief Structure representing a triangle in 3D space.
-struct TriangleDevice_t
-{
-    Vec3Device_t v0; ///< First vertex of the triangle.
-    Vec3Device_t v1; ///< Second vertex of the triangle.
-    Vec3Device_t v2; ///< Third vertex of the triangle.
-
-    START_CUDA_HOST_DEVICE TriangleDevice_t() {}
-    START_CUDA_HOST_DEVICE TriangleDevice_t(const Vec3Device_t &v0_, const Vec3Device_t &v1_, const Vec3Device_t &v2_) : v0(v0_), v1(v1_), v2(v2_) {}
-    START_CUDA_HOST_DEVICE TriangleDevice_t(const TriangleDevice_t &other) = default;
-    START_CUDA_HOST_DEVICE TriangleDevice_t &operator=(const TriangleDevice_t &other) = default;
-    START_CUDA_HOST_DEVICE TriangleDevice_t(TriangleDevice_t &&other) = default;
-    START_CUDA_HOST_DEVICE TriangleDevice_t &operator=(TriangleDevice_t &&other) = default;
-};
-#endif // !USE_CUDA
-
 #endif // !GEOMETRY_TYPES_HPP

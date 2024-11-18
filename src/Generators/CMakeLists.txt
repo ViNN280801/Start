@@ -3,12 +3,9 @@ set(GENERATORS_SOURCES
     RealNumberGenerator.cpp
 )
 
-if (GPU_CUDA_ON)
-    set(CUDA_GENERATORS_SOURCES
-        ParticleGenerator.cu
-    )
-    list(APPEND GENERATORS_SOURCES ${CUDA_GENERATORS_SOURCES})
-endif()
+# if (GPU_CUDA_ON)
+#     add_subdirectory(CUDA)
+# endif()
 
 set(LIB_GENERATORS Generators)
 add_library(${LIB_GENERATORS} ${GENERATORS_SOURCES})

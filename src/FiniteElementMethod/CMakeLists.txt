@@ -2,6 +2,7 @@
 
 set(FEM_SOURCES
     FEMCheckers.cpp
+    FEMInitializer.cpp
     FEMPrinter.cpp
     GSMAssemblier.cpp
     MatrixEquationSolver.cpp

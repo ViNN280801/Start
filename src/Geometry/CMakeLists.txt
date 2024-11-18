@@ -5,10 +5,7 @@ set(GEOMETRY_SOURCES
 )
 
 if(GPU_CUDA_ON)
-    set(CUDA_GEOMETRY_SOURCES
-        AABBTreeDevice.cu
-    )
-    list(APPEND GEOMETRY_SOURCES ${CUDA_GEOMETRY_SOURCES})
+    add_subdirectory(CUDA)
 endif()
 
 set(LIB_GEOMETRY Geometry)

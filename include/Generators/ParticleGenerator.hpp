@@ -28,14 +28,14 @@ template <typename Generator>
 using ParticleGeneratorConcept = std::enable_if_t<ParticleGeneratorConcept_v<Generator>, bool>;
 #endif
 
-// &&& Types for the particle storage &&& //
+// &&&   Types for the particle storage   &&& //
 #ifndef USE_CUDA
         #define START_PARTICLE_VECTOR ParticleVector
 #else
-        #include "Particle/ParticleDevice.cuh"
-        #define START_PARTICLE_VECTOR ParticleDeviceArray_t
-#endif // !USE_CUDA
-// &&& =============================== &&& //
+        #include "Particle/CUDA/ParticleDevice.cuh"
+        #define START_PARTICLE_VECTOR ParticleDeviceArray
+#endif
+// &&& =================================== &&& //
 
 /**
  * @brief The ParticleGenerator class provides various methods to generate particles with different properties.
@@ -69,7 +69,7 @@ using ParticleGeneratorConcept = std::enable_if_t<ParticleGeneratorConcept_v<Gen
  */
 class ParticleGenerator
 {
-private:
+public:
 /**
  * @brief Creates a specified number of particles using a generator function.
  *
@@ -93,7 +93,7 @@ private:
 #else
         template <typename Gen, typename = ParticleGeneratorConcept<Gen>>
 #endif
-        static ParticleVector _generate(size_t count, Gen gen)
+        static ParticleVector generate(size_t count, Gen gen)
         {
                 if (count == 0)
                         throw std::logic_error("There is no need to generate 0 objects");
@@ -118,74 +118,6 @@ private:
                         particles[i] = gen();
                 return particles;
         }
-
-public:
-        /**
-         * @brief Generates particles with random positions and velocities within specified ranges.
-         * @details This function uses a lambda to create particles with randomized positions and velocities,
-         *          utilizing a real number generator to provide values within the given min and max ranges for
-         *          each component.
-         *
-         * @param count The number of particles to generate.
-         * @param type The type of the particles to generate.
-         * @param minx Minimum x-coordinate for particle position.
-         * @param miny Minimum y-coordinate for particle position.
-         * @param minz Minimum z-coordinate for particle position.
-         * @param maxx Maximum x-coordinate for particle position.
-         * @param maxy Maximum y-coordinate for particle position.
-         * @param maxz Maximum z-coordinate for particle position.
-         * @param minvx Minimum x-component of particle velocity.
-         * @param minvy Minimum y-component of particle velocity.
-         * @param minvz Minimum z-component of particle velocity.
-         * @param maxvx Maximum x-component of particle velocity.
-         * @param maxvy Maximum y-component of particle velocity.
-         * @param maxvz Maximum z-component of particle velocity.
-         * @return START_PARTICLE_VECTOR containing the generated particles.
-         */
-        static START_PARTICLE_VECTOR byVelocities(size_t count, ParticleType type,
-                                                  double minx, double miny, double minz,
-                                                  double maxx, double maxy, double maxz,
-                                                  double minvx, double minvy, double minvz,
-                                                  double maxvx, double maxvy, double maxvz);
-
-        /**
-         * @brief Generates particles with specified fixed positions and velocities.
-         * @details This function creates particles by calling a lambda that generates each particle
-         *          with fixed position and velocity values.
-         *
-         * @param count The number of particles to generate.
-         * @param type The type of the particles to generate.
-         * @param x Fixed x-coordinate for particle position.
-         * @param y Fixed y-coordinate for particle position.
-         * @param z Fixed z-coordinate for particle position.
-         * @param vx Fixed x-component of particle velocity.
-         * @param vy Fixed y-component of particle velocity.
-         * @param vz Fixed z-component of particle velocity.
-         * @return START_PARTICLE_VECTOR containing the generated particles.
-         */
-        static START_PARTICLE_VECTOR byVelocities(size_t count, ParticleType type,
-                                                  double x, double y, double z,
-                                                  double vx, double vy, double vz);
-
-        /**
-         * @brief Generates particles with specified positions and velocities based on a velocity magnitude.
-         * @details The method uses spherical coordinates to generate velocity components (vx, vy, vz) from the
-         *          given magnitude `v`, angle `theta`, and azimuthal angle `phi`. These angles are randomized
-         *          within their given ranges using a real number generator.
-         *
-         * @param count The number of particles to generate.
-         * @param type The type of the particles to generate.
-         * @param x Fixed x-coordinate for particle position.
-         * @param y Fixed y-coordinate for particle position.
-         * @param z Fixed z-coordinate for particle position.
-         * @param v Magnitude of the velocity.
-         * @param theta Range for the polar angle (0 to theta).
-         * @param phi Range for the azimuthal angle (0 to phi).
-         * @return START_PARTICLE_VECTOR containing the generated particles.
-         */
-        static START_PARTICLE_VECTOR byVelocityModule(size_t count, ParticleType type,
-                                                      double x, double y, double z,
-                                                      double v, double theta, double phi);
 
         /**
          * @brief Creates a vector of particles using particle sources as points.
