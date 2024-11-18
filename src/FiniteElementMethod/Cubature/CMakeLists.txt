@@ -1,4 +1,4 @@
-# src/FiniteElementMethod/Cubature
+# src/FiniteElementMethod/Cubature/CMakeLists.txt
 
 set(CUBATURE_SOURCES
     CubatureManager.cpp

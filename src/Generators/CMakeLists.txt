@@ -1,3 +1,5 @@
+# src/Generators/CMakeLists.txt
+
 set(GENERATORS_SOURCES
     ParticleGenerator.cpp
     RealNumberGenerator.cpp

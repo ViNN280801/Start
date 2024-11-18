@@ -1,4 +1,4 @@
-# src/FiniteElementMethod/LinearAlgebraManagers
+# src/FiniteElementMethod/LinearAlgebraManagers/CMakeLists.txt
 
 set(LINEAR_ALGEBRA_MANAGERS_SOURCES
     MatrixManager.cpp

@@ -1,3 +1,5 @@
+# src/SessionManagement/CMakeLists.txt
+
 set(SESSION_MANAGEMENT_SOURCES
     GmshSessionManager.cpp
 )

@@ -1,3 +1,4 @@
+# CMakeLists.txt
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # --------{---(@    Setting custom options with default values   @}}>-----

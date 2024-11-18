@@ -1,3 +1,5 @@
+# src/Geometry/CUDA/CMakeLists.txt
+
 set(CUDA_GEOMETRY_SOURCES
     AABBTreeDevice.cu
     GeometryDeviceMemoryConverter.cu

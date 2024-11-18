@@ -1,3 +1,5 @@
+# src/Generators/CUDA/CMakeLists.txt
+
 set(CUDA_GENERATORS_SOURCES 
     ParticleGenerator.cu
 )

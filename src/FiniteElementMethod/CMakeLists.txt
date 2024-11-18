@@ -1,4 +1,4 @@
-# src/FiniteElementMethod
+# src/FiniteElementMethod/CMakeLists.txt
 
 set(FEM_SOURCES
     FEMCheckers.cpp
