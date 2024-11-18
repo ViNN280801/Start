@@ -169,3 +169,21 @@ void util::check_gmsh_mesh_file(std::string_view mesh_filename)
     if (std::filesystem::file_size(mesh_filename) == 0)
         throw std::runtime_error("File is empty: " + std::string(mesh_filename));
 }
+
+void util::check_json_validity(std::string_view json_filename)
+{
+    // Verify JSON file content after saving.
+    std::ifstream infile(json_filename.data());
+    json loadedJson;
+    if (infile.is_open())
+    {
+        infile >> loadedJson;
+        infile.close();
+
+        // Check if the file contains null or is incorrectly formatted.
+        if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
+            throw std::runtime_error(util::stringify("Json file '", json_filename, "' is invalid. Check the formatting or content."));
+    }
+    else
+        throw std::ios_base::failure("Failed to open file for reading back and check its content.");
+}

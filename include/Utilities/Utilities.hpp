@@ -80,6 +80,33 @@ namespace util
      * @throws std::runtime_error If the file is empty.
      */
     void check_gmsh_mesh_file(std::string_view mesh_filename);
+
+    /**
+     * @brief Validates the contents of a JSON file.
+     *
+     * This function reads the JSON file specified by the given filename and checks its validity.
+     * The function ensures that the file can be opened, parsed, and contains valid JSON data.
+     * If the file is not found, is not correctly formatted, or contains invalid data, the function
+     * throws an exception.
+     *
+     * @param json_filename The name of the JSON file to validate.
+     *
+     * @throws std::runtime_error If the JSON file is null, empty, or incorrectly formatted.
+     * @throws std::ios_base::failure If the file cannot be opened for reading.
+     *
+     * Example Usage:
+     * @code
+     * try
+     * {
+     *     util::check_json_validity("config.json");
+     * }
+     * catch (const std::exception &e)
+     * {
+     *     std::cerr << "Error: " << e.what() << std::endl;
+     * }
+     * @endcode
+     */
+    void check_json_validity(std::string_view json_filename);
 }
 
 #endif // !UTILITIES_HPP

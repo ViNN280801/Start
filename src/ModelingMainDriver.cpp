@@ -30,8 +30,10 @@ void ModelingMainDriver::_broadcastTriangleMesh()
     if (rank == 0)
         numTriangles = _triangleMesh.size();
 
+#ifdef USE_MPI
     // Broadcast the number of triangles.
     MPI_Bcast(std::addressof(numTriangles), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+#endif
 
     // Prepare arrays for sending or receiving.
     std::vector<size_t> triangleIds(numTriangles);
@@ -63,11 +65,13 @@ void ModelingMainDriver::_broadcastTriangleMesh()
         }
     }
 
+#ifdef USE_MPI
     // Broadcast the data arrays.
     MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(counters.data(), numTriangles, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
 
     if (rank != 0)
     {
@@ -191,20 +195,7 @@ void ModelingMainDriver::_saveParticleMovements() const
             throw std::ios_base::failure("Failed to open file for writing");
         LOGMSG(util::stringify("Successfully written particle movements to the file ", filepath));
 
-        // Verify JSON file content after saving.
-        std::ifstream infile(filepath);
-        json loadedJson;
-        if (infile.is_open())
-        {
-            infile >> loadedJson;
-            infile.close();
-
-            // Check if the file contains null or is incorrectly formatted.
-            if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
-                throw std::runtime_error(util::stringify("Json file '", filepath, "' is invalid. Check the formatting or content."));
-        }
-        else
-            throw std::ios_base::failure("Failed to open file for reading back and check its content.");
+        util::check_json_validity(filepath);
     }
     catch (std::ios_base::failure const &e)
     {
