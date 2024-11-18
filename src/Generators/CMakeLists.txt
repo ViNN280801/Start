@@ -4,7 +4,10 @@ set(GENERATORS_SOURCES
 )
 
 if (GPU_CUDA_ON)
-    list(APPEND GENERATORS_SOURCES ParticleGenerator_CUDA.cu)
+    set(CUDA_GENERATORS_SOURCES
+        ParticleGenerator.cu
+    )
+    list(APPEND GENERATORS_SOURCES ${CUDA_GENERATORS_SOURCES})
 endif()
 
 set(LIB_GENERATORS Generators)

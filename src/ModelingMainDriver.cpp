@@ -18,6 +18,59 @@ std::mutex ModelingMainDriver::m_particlesMovement_mutex;
 std::shared_mutex ModelingMainDriver::m_settledParticles_mutex;
 std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
 
+#ifdef USE_CUDA
+#include "Particle/ParticleMemoryConverter.cuh"
+#include "Utilities/DeviceUtils.cuh"
+
+void ModelingMainDriver::_initializeDeviceMemory()
+{
+    md_particleCount = m_particles.size();
+    size_t particleBytes = md_particleCount * sizeof(ParticleDevice_t);
+    cuda_utils::check_cuda_err(cudaMalloc(&md_particles, particleBytes), "Failed to allocate device memory for particles");
+
+    // Copy particle data to device
+    std::vector<ParticleDevice_t> h_particles(md_particleCount);
+    for (size_t i = 0; i < md_particleCount; ++i)
+    {
+        h_particles[i] = ParticleToDevice(m_particles[i]);
+    }
+    cuda_utils::check_cuda_err(cudaMemcpy(md_particles, h_particles.data(), particleBytes, cudaMemcpyHostToDevice),
+                               "Failed to copy particles to device");
+
+    // Convert triangles to device-compatible format
+    md_triangleCount = _triangles.size();
+    std::vector<TriangleDevice_t> h_triangles(md_triangleCount);
+    for (size_t i = 0; i < md_triangleCount; ++i)
+    {
+        h_triangles[i] = TriangleToDevice(_triangles[i]);
+    }
+
+    // Copy triangle data to device
+    size_t triangleBytes = md_triangleCount * sizeof(TriangleDevice_t);
+    cuda_utils::check_cuda_err(cudaMalloc(&md_triangles, triangleBytes), "Failed to allocate device memory for triangles");
+    cuda_utils::check_cuda_err(cudaMemcpy(md_triangles, h_triangles.data(), triangleBytes, cudaMemcpyHostToDevice),
+                               "Failed to copy triangles to device");
+
+    // Build AABB Tree on host and copy to device
+    md_aabbTreeDevice.build(h_triangles);
+}
+
+void ModelingMainDriver::_freeDeviceMemory()
+{
+    if (md_particles)
+    {
+        cudaFree(md_particles);
+        md_particles = nullptr;
+    }
+    if (md_triangles)
+    {
+        cudaFree(md_triangles);
+        md_triangles = nullptr;
+    }
+    md_aabbTreeDevice.freeDeviceMemory();
+}
+#endif // !USE_CUDA
+
 void ModelingMainDriver::_broadcastTriangleMesh()
 {
     int rank{};
@@ -308,9 +361,19 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
 
     // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
     _ginitialize();
+
+#ifdef USE_CUDA
+    _initializeDeviceMemory();
+#endif
 }
 
-ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
+ModelingMainDriver::~ModelingMainDriver()
+{
+    _gfinalize();
+#ifdef USE_CUDA
+    _freeDeviceMemory();
+#endif
+}
 
 void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
                                                  std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,

@@ -26,8 +26,16 @@ constexpr bool ParticleGeneratorConcept_v = std::is_invocable_r_v<Particle, Gene
 // SFINAE check for C++17
 template <typename Generator>
 using ParticleGeneratorConcept = std::enable_if_t<ParticleGeneratorConcept_v<Generator>, bool>;
-
 #endif
+
+// &&& Types for the particle storage &&& //
+#ifndef USE_CUDA
+        #define START_PARTICLE_VECTOR ParticleVector
+#else
+        #include "Particle/ParticleDevice.cuh"
+        #define START_PARTICLE_VECTOR ParticleDeviceArray_t
+#endif // !USE_CUDA
+// &&& =============================== &&& //
 
 /**
  * @brief The ParticleGenerator class provides various methods to generate particles with different properties.
@@ -132,13 +140,13 @@ public:
          * @param maxvx Maximum x-component of particle velocity.
          * @param maxvy Maximum y-component of particle velocity.
          * @param maxvz Maximum z-component of particle velocity.
-         * @return ParticleVector containing the generated particles.
+         * @return START_PARTICLE_VECTOR containing the generated particles.
          */
-        static ParticleVector byVelocities(size_t count, ParticleType type,
-                                           double minx, double miny, double minz,
-                                           double maxx, double maxy, double maxz,
-                                           double minvx, double minvy, double minvz,
-                                           double maxvx, double maxvy, double maxvz);
+        static START_PARTICLE_VECTOR byVelocities(size_t count, ParticleType type,
+                                                  double minx, double miny, double minz,
+                                                  double maxx, double maxy, double maxz,
+                                                  double minvx, double minvy, double minvz,
+                                                  double maxvx, double maxvy, double maxvz);
 
         /**
          * @brief Generates particles with specified fixed positions and velocities.
@@ -153,11 +161,11 @@ public:
          * @param vx Fixed x-component of particle velocity.
          * @param vy Fixed y-component of particle velocity.
          * @param vz Fixed z-component of particle velocity.
-         * @return ParticleVector containing the generated particles.
+         * @return START_PARTICLE_VECTOR containing the generated particles.
          */
-        static ParticleVector byVelocities(size_t count, ParticleType type,
-                                           double x, double y, double z,
-                                           double vx, double vy, double vz);
+        static START_PARTICLE_VECTOR byVelocities(size_t count, ParticleType type,
+                                                  double x, double y, double z,
+                                                  double vx, double vy, double vz);
 
         /**
          * @brief Generates particles with specified positions and velocities based on a velocity magnitude.
@@ -173,11 +181,11 @@ public:
          * @param v Magnitude of the velocity.
          * @param theta Range for the polar angle (0 to theta).
          * @param phi Range for the azimuthal angle (0 to phi).
-         * @return ParticleVector containing the generated particles.
+         * @return START_PARTICLE_VECTOR containing the generated particles.
          */
-        static ParticleVector byVelocityModule(size_t count, ParticleType type,
-                                               double x, double y, double z,
-                                               double v, double theta, double phi);
+        static START_PARTICLE_VECTOR byVelocityModule(size_t count, ParticleType type,
+                                                      double x, double y, double z,
+                                                      double v, double theta, double phi);
 
         /**
          * @brief Creates a vector of particles using particle sources as points.
@@ -192,7 +200,7 @@ public:
          *          2) Creates a set number of particles for each source, setting the type, position, energy and directions
          *             for each (angles theta, phi, expansionAngle).
          */
-        static ParticleVector fromPointSource(std::vector<point_source_t> const &source);
+        static START_PARTICLE_VECTOR fromPointSource(std::vector<point_source_t> const &source);
 
         /**
          * @brief Creates a vector of particles using particle sources as surfaces.
@@ -211,7 +219,7 @@ public:
          *          4) For each cell and normal, calculates the angles theta and phi necessary to determine the direction of the particles.
          *          5) Creates particles by setting for each type, position, energy and directions (angles theta, phi, expansionAngle).
          */
-        static ParticleVector fromSurfaceSource(std::vector<surface_source_t> const &source);
+        static START_PARTICLE_VECTOR fromSurfaceSource(std::vector<surface_source_t> const &source);
 };
 
 #endif // !PARTICLEGENERATOR_HPP

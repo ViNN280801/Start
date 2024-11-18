@@ -227,6 +227,9 @@ bool Particle::colideHS(Particle target, double n_concentration, double time_ste
 		VelocityVector dir_vector(x * mp, y * mp, z * mp);
 
 		m_velocity = dir_vector + cm_vel;
+		
+		// Updating energy after updating velocity:
+		calculateEnergyJFromVelocity(m_velocity);
 	}
 	return iscolide;
 }
@@ -262,6 +265,9 @@ bool Particle::colideVHS(Particle target, double n_concentration, double omega, 
 		VelocityVector dir_vector(x * mp, y * mp, z * mp);
 
 		m_velocity = dir_vector + cm_vel;
+		
+		// Updating energy after updating velocity:
+		calculateEnergyJFromVelocity(m_velocity);
 	}
 
 	return iscolide;
@@ -302,6 +308,9 @@ bool Particle::colideVSS(Particle target, double n_concentration, double omega,
 		dir_vector.rotation(angles);
 
 		m_velocity = dir_vector + cm_vel;
+
+		// Updating energy after updating velocity:
+		calculateEnergyJFromVelocity(m_velocity);
 	}
 	return iscolide;
 }
