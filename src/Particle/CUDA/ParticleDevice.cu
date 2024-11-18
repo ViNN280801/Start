@@ -3,19 +3,12 @@
 #include <cuda_runtime.h>
 #include <stdexcept>
 
-#include "Particle/ParticleDevice.cuh"
+#include "Particle/CUDA/ParticleDevice.cuh"
 
 ParticleDeviceArray::ParticleDeviceArray(ParticleDevice_t *particles, size_t count)
     : d_particles(particles), count(count) {}
 
-ParticleDeviceArray::~ParticleDeviceArray()
-{
-    if (d_particles)
-    {
-        cudaFree(d_particles);
-        d_particles = nullptr;
-    }
-}
+ParticleDeviceArray::~ParticleDeviceArray() { reset(); }
 
 ParticleDeviceArray::ParticleDeviceArray(ParticleDeviceArray &&other) noexcept
     : d_particles(other.d_particles), count(other.count)
@@ -38,6 +31,16 @@ ParticleDeviceArray &ParticleDeviceArray::operator=(ParticleDeviceArray &&other)
         other.count = 0;
     }
     return *this;
+}
+
+void ParticleDeviceArray::reset()
+{
+    if (d_particles)
+    {
+        cudaFree(d_particles);
+        d_particles = nullptr;
+    }
+    count = 0ul;
 }
 
 bool ParticleDeviceArray::empty() const { return count == 0; }

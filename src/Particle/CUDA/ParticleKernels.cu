@@ -3,7 +3,8 @@
 #include <curand_kernel.h>
 #include <math_constants.h>
 
-#include "Particle/ParticleKernels.cuh"
+#include "Geometry/CUDA/GeometryIntersectionChecker.cuh"
+#include "Particle/CUDA/ParticleKernels.cuh"
 #include "Particle/ParticleUtils.hpp"
 #include "Utilities/Constants.hpp"
 
@@ -299,7 +300,7 @@ __global__ void detectCollisionsWithMeshKernel(
         const AABBNodeDevice_t &node = nodes[nodeIdx];
 
         // Check for intersection between ray and the node's AABB
-        if (!intersectRayAABB(rayOrigin, rayDirInv, node.bbox))
+        if (!GeometryIntersectionChecker::intersectRayAABB(rayOrigin, rayDirInv, node.bbox))
             continue;
 
         if (node.left == -1 && node.right == -1)
@@ -308,7 +309,7 @@ __global__ void detectCollisionsWithMeshKernel(
             int triIdx = node.triangleIdx;
             const TriangleDevice_t &tri = triangles[triIdx];
             float t;
-            if (intersectRayTriangle(rayOrigin, rayDirNorm, tri, t))
+            if (GeometryIntersectionChecker::intersectRayTriangle(rayOrigin, rayDirNorm, tri, t))
             {
                 if (t >= 0.0f && t <= minT)
                 {

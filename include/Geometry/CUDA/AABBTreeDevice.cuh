@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 #include <vector>
 
+#include "Geometry/CUDA/GeometryTypes.cuh"
 #include "Geometry/GeometryTypes.hpp"
 #include "Utilities/PreprocessorUtils.hpp"
 
@@ -45,7 +46,7 @@ class AABBTreeDevice
 public:
     /// @brief Construct the AABB tree from a list of triangles.
     /// @param triangles Vector of triangles.
-    void build(const std::vector<TriangleDevice_t> &triangles);
+    void build(std::vector<TriangleDevice_t> triangles);
 
     /**
      * @brief Recursively builds the Axis-Aligned Bounding Box (AABB) tree for a range of triangles.
@@ -96,7 +97,7 @@ public:
      *
      * @exception None. If an invalid range is provided (`start >= end`), the method gracefully returns -1.
      */
-    int buildRecursive(const std::vector<TriangleDevice_t> &triangles, size_t start, size_t end);
+    int buildRecursive(std::vector<TriangleDevice_t> triangles, size_t start, size_t end);
 
     /// @brief Get the number of nodes in the tree.
     /// @return Number of nodes.

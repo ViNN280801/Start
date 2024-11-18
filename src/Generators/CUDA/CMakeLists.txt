@@ -1,8 +1,0 @@
-# src/Generators/CUDA/CMakeLists.txt
-
-set(CUDA_GENERATORS_SOURCES 
-    ParticleGenerator.cu
-)
-
-list(APPEND GENERATORS_SOURCES ${CUDA_GENERATORS_SOURCES})
-list(REMOVE_ITEM GENERATORS_SOURCES ParticleGenerator.cu)

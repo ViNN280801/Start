@@ -4,10 +4,10 @@
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 
-#include "Geometry/AABBTreeDevice.cuh"
+#include "Geometry/CUDA/AABBTreeDevice.cuh"
 
 // Helper function to compute the bounding box of a range of triangles
-AABBDevice_t computeBoundingBox(const std::vector<TriangleDevice_t> &triangles, size_t start, size_t end)
+AABBDevice_t computeBoundingBox(std::vector<TriangleDevice_t> triangles, size_t start, size_t end)
 {
     AABBDevice_t bbox;
 
@@ -56,7 +56,7 @@ START_CUDA_HOST_DEVICE bool AABBDevice_t::intersects(AABBDevice_t const &box) co
            (min.z <= box.max.z && max.z >= box.min.z);
 }
 
-void AABBTreeDevice::build(const std::vector<TriangleDevice_t> &triangles)
+void AABBTreeDevice::build(std::vector<TriangleDevice_t> triangles)
 {
     hostNodes.clear();
     hostNodes.reserve(2 * triangles.size()); // Reserve memory to prevent reallocations
@@ -70,7 +70,7 @@ void AABBTreeDevice::build(const std::vector<TriangleDevice_t> &triangles)
     cudaMemcpy(deviceNodes, hostNodes.data(), nodeSize, cudaMemcpyHostToDevice);
 }
 
-int AABBTreeDevice::buildRecursive(const std::vector<TriangleDevice_t> &triangles, size_t start, size_t end)
+int AABBTreeDevice::buildRecursive(std::vector<TriangleDevice_t> triangles, size_t start, size_t end)
 {
     if (start >= end)
         return -1; // Invalid range, no node to create

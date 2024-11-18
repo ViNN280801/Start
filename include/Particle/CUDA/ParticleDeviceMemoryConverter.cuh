@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "Particle/ParticleDevice.cuh"
+#include "Particle/CUDA/ParticleDevice.cuh"
 
 /**
  * @brief Handles memory conversions for `ParticleDevice_t` and `ParticleDeviceArray`.

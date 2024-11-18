@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include <stdexcept>
 
-#include "Particle/ParticleDeviceMemoryConverter.cuh"
+#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 
 ParticleDevice_t *ParticleDeviceMemoryConverter::allocateDeviceMemory(ParticleDevice_t const &particle)
 {
@@ -32,7 +32,31 @@ ParticleDevice_t ParticleDeviceMemoryConverter::copyToHost(ParticleDevice_t cons
 
 std::vector<ParticleDevice_t> ParticleDeviceMemoryConverter::copyToHost(ParticleDeviceArray const &deviceArray)
 {
-    return deviceArray.copyToHost();
+    // Check if the device array is empty
+    if (deviceArray.empty())
+    {
+        return {}; // Return an empty vector if no particles exist
+    }
+
+    // Allocate host memory to hold the particles
+    std::vector<ParticleDevice_t> hostParticles(deviceArray.size());
+
+    // Copy data from the device to the host
+    cudaError_t err = cudaMemcpy(
+        hostParticles.data(),                          // Host destination
+        deviceArray.get(),                             // Device source
+        deviceArray.size() * sizeof(ParticleDevice_t), // Size of data in bytes
+        cudaMemcpyDeviceToHost);                       // Direction: device -> host
+
+    // Check for CUDA errors
+    if (err != cudaSuccess)
+    {
+        throw std::runtime_error(
+            std::string("CUDA memcpy device to host failed: ") + cudaGetErrorString(err));
+    }
+
+    // Return the copied particles
+    return hostParticles;
 }
 
 void ParticleDeviceMemoryConverter::freeDeviceMemory(ParticleDevice_t *d_particle)
@@ -44,14 +68,6 @@ void ParticleDeviceMemoryConverter::freeDeviceMemory(ParticleDevice_t *d_particl
     }
 }
 
-void ParticleDeviceMemoryConverter::freeDeviceArrayMemory(ParticleDeviceArray &deviceArray)
-{
-    if (deviceArray.d_particles)
-    {
-        cudaFree(deviceArray.d_particles);
-        deviceArray.d_particles = nullptr;
-    }
-    deviceArray.count = 0;
-}
+void ParticleDeviceMemoryConverter::freeDeviceArrayMemory(ParticleDeviceArray &deviceArray) { deviceArray.reset(); }
 
 #endif // USE_CUDA

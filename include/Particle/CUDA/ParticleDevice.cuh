@@ -68,10 +68,27 @@ public:
     ParticleDeviceArray &operator=(ParticleDeviceArray const &) = delete;
 
     /**
+     * @brief Getter for the device particles ptr.
+     */
+    ParticleDevice_t *get() const { return d_particles; }
+
+    /**
+     * @brief Resets the ptr on device particle.
+     * @details 1. Deallocates memory;
+     *          2. Assigns ptr to `nullptr.
+     */
+    void reset();
+
+    /**
      * @brief Check if the array is empty.
      * @return True if the array is empty, false otherwise.
      */
     bool empty() const;
+
+    /**
+     * @brief Getter for the number of particles.
+     */
+    size_t size() const { return count; }
 
     /**
      * @brief Get a pointer to the beginning of the device array.

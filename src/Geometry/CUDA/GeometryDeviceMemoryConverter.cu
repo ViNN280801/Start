@@ -1,5 +1,5 @@
 #ifdef USE_CUDA
-#include "GeometryDeviceMemoryConverter.cuh"
+#include "Geometry/CUDA/GeometryDeviceMemoryConverter.cuh"
 
 /**
  * @brief Converts a host-side Triangle to its device representation.
@@ -34,7 +34,7 @@ Triangle GeometryDeviceMemoryConverter::TriangleToHost(TriangleDevice_t const &t
  */
 Vec3Device_t GeometryDeviceMemoryConverter::Vec3ToDevice(MathVector<double> const &vec)
 {
-    return Vec3Device_t{vec.x, vec.y, vec.z};
+    return Vec3Device_t{vec.getX(), vec.getY(), vec.getZ()};
 }
 
 /**

@@ -5,8 +5,7 @@
 
 #include <cuda_runtime.h>
 
-#include "Geometry/Intersections.cuh"
-#include "Particle/ParticleDevice.cuh"
+#include "Particle/CUDA/ParticleDevice.cuh"
 
 /**
  * @brief CUDA kernel for updating the position of particles.

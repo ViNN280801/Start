@@ -5,10 +5,10 @@
 #include <curand_kernel.h>
 
 #include "Generators/ParticleGenerator.hpp"
-#include "Particle/ParticleDevice.cuh"
-#include "Particle/ParticleMemoryConverter.cuh"
+#include "Particle/CUDA/ParticleDevice.cuh"
+#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/ParticleUtils.hpp"
-#include "Utilities/DeviceUtils.cuh"
+#include "Utilities/CUDA/DeviceUtils.cuh"
 
 __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
                                                        double3 position, double energy, int type,

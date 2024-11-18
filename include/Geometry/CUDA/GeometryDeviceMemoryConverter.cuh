@@ -2,7 +2,8 @@
 #define GEOMETRYDEVICEMEMORYCONVERTER_CUH
 
 #ifdef USE_CUDA
-#include "Geometry/GeometryTypes.cuh"
+#include "Geometry/CUDA/GeometryTypes.cuh"
+#include "Geometry/GeometryTypes.hpp"
 #include "Geometry/MathVector.hpp"
 
 /**

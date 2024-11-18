@@ -7,7 +7,10 @@ set(GEOMETRY_SOURCES
 )
 
 if(GPU_CUDA_ON)
-    add_subdirectory(CUDA)
+    set(CUDA_GEOMETRY_SOURCES
+        CUDA/AABBTreeDevice.cu
+        CUDA/GeometryDeviceMemoryConverter.cu
+    )
 endif()
 
 set(LIB_GEOMETRY Geometry)
@@ -21,3 +24,7 @@ target_include_directories(${LIB_GEOMETRY} PRIVATE
     ${CGAL_INCLUDE_DIRS}
     ${GMSH_INCLUDE_DIRS}
 )
+
+if(GPU_CUDA_ON)
+    target_sources(${LIB_GEOMETRY} PRIVATE ${CUDA_GEOMETRY_SOURCES})
+endif()
