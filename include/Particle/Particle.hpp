@@ -30,12 +30,14 @@ private:
     CGAL::Bbox_3 m_bbox;                 ///< Bounding box for particle.
 
     /**
-     * @brief Calculates velocity module from energy of particle and then
-     * calculates Vx, Vy, Vz from this module using random numbers.
+     * @brief Calculates the velocity magnitude from the energy of a particle and then
+     *        determines \( V_x \), \( V_y \), and \( V_z \) using random numbers.
+     *
      * Formula:
-     * |V| = √(2⋅E/mass)
-     * @param thetaPhi Polar angle θ and azimuthal angle φ.
-     * @return Velocity module.
+     * \f$ |V| = \sqrt{\frac{2 \cdot E}{\text{mass}}} \f$
+     *
+     * @param thetaPhi Polar angle \( \theta \) and azimuthal angle \( \phi \).
+     * @return Velocity magnitude.
      */
     void calculateVelocityFromEnergy_eV(std::array<double, 3> const &thetaPhi);
 

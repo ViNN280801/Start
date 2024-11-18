@@ -173,7 +173,8 @@ DynRankView GSMAssemblier::_computeLocalStiffnessMatrices()
                            weightedBasisGrads(localTetraId, localNodeId, 0, 2));
 #endif
 
-                // As we have polynom order = 1, that all the values from the ∇φ in all cub points are the same, so we can add only 1 row from each ∇φ.
+                /// As we have polynomial order \( = 1 \), all the values from \( \nabla \varphi \)
+                /// in all cubature points are the same, so we can add only one row from each \( \nabla \varphi \).
                 m_meshManager.assignNablaPhi(globalTetraId, globalNodeId, grad);
             }
         }

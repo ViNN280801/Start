@@ -227,7 +227,7 @@ bool Particle::colideHS(Particle target, double n_concentration, double time_ste
 		VelocityVector dir_vector(x * mp, y * mp, z * mp);
 
 		m_velocity = dir_vector + cm_vel;
-		
+
 		// Updating energy after updating velocity:
 		calculateEnergyJFromVelocity(m_velocity);
 	}
@@ -265,7 +265,7 @@ bool Particle::colideVHS(Particle target, double n_concentration, double omega, 
 		VelocityVector dir_vector(x * mp, y * mp, z * mp);
 
 		m_velocity = dir_vector + cm_vel;
-		
+
 		// Updating energy after updating velocity:
 		calculateEnergyJFromVelocity(m_velocity);
 	}
@@ -331,22 +331,24 @@ void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, E
 	// 1. Calculating acceleration using II-nd Newton's Law:
 	MathVector<double> a_L{getCharge() * (electricField + m_velocity.crossProduct(magneticInduction)) / getMass()};
 
-	// 2. Acceleration semistep: V_- = V_old + a_L ⋅ Δt/2.
+	/// Update particle positions: \( x = x + V_x \cdot \Delta t \)
+	/// 2. Acceleration semistep: \( V_- = V_{\text{old}} + a_L \cdot \frac{\Delta t}{2} \)
 	MathVector<double> v_minus{m_velocity + a_L * time_step / 2.};
 
-	// 3. Rotation:
-	/*
-		t = qBΔt/(2m).
-		s = 2t/(1 + |t|^2).
-		V' = V_- + V_- × t.
-		V_+ = V_- + V' × s.
-	*/
+	/// 3. Rotation:
+	/// \f{align}{
+	/// t &= \frac{q B \Delta t}{2 m},
+	/// s &= \frac{2 t}{1 + |t|^2},
+	/// V' &= V_- + V_- \times t,
+	/// V_+ &= V_- + V' \times s.
+	/// \f}
 	MathVector<double> t{getCharge() * magneticInduction * time_step / (2. * getMass())},
 		s{2. * t / (1 + t.module() * t.module())},
 		v_apostrophe{v_minus + v_minus.crossProduct(t)},
 		v_plus{v_minus + v_apostrophe.crossProduct(s)};
 
-	// 4. Final acceleration semistep: v_upd = v_+ + a_L ⋅ Δt/2.
+	/// 4. Final acceleration semistep: \( v_{\text{upd}} = V_+ + a_L \cdot \frac{\Delta t}{2} \)
+	/// \( E_{\text{cell}} = \sum (\varphi_i \cdot \nabla \varphi_i) \), where \( i \) is the global index of the node.
 	m_velocity = v_plus + a_L * time_step / 2.;
 
 	// 5. Updating energy after updating velocity:

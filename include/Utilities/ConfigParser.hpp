@@ -8,19 +8,16 @@
 
 namespace ConfigParserTypes
 {
-    /**
-     * @brief Structure to hold data for a point particle source.
-     * @details This structure contains parameters defining a point particle source, including angles and coordinates.
-     */
+    /// Structure representing a point source of particles.
     struct point_source_t
     {
         std::string type;                        ///< Type of the particle (e.g., Ti, Al, Sn).
         size_t count{};                          ///< Number of particles.
         double energy{};                         ///< Energy of the particles in electronvolts (eV).
-        double phi{};                            ///< Azimuthal angle φ.
-        double theta{};                          ///< Polar (colatitude) angle θ.
-        double expansionAngle{};                 ///< Expansion angle θ.
-        std::array<double, 3ul> baseCoordinates; ///< Base coordinates [x, y, z].
+        double phi{};                            ///< Azimuthal angle \( \phi \).
+        double theta{};                          ///< Polar (colatitude) angle \( \theta \).
+        double expansionAngle{};                 ///< Expansion angle \( \theta \).
+        std::array<double, 3ul> baseCoordinates; ///< Base coordinates \([x, y, z]\).
     };
 
     /**

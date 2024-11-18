@@ -206,7 +206,7 @@ public:
 
     /**
      * @brief Checks if vectors are parallel.
-     *        `a` is parallel to `b` if `a = k⋅b` or `b=k⋅a` for some scalar `k`.
+     *        \( a \) is parallel to \( b \) if \( a = k \cdot b \) or \( b = k \cdot a \) for some scalar \( k \).
      * @return `true` if vectors are parallel, otherwise `false`.
      */
     bool isParallel(MathVector const &other) const

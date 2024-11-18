@@ -19,25 +19,31 @@
 #endif // !USE_CUDA
 
 /**
- * @brief This class represents main driver that manages the PIC part and surface collision tracker.
- * Main algo:
- *      1. Get the mesh from the mesh file. Filling basis gradient functions ∇φi for each node.
- *      2. Construct GSM (Global Stiffness Matrix) at once. Setting BC (Boundary Conditions) to the GSM and vector `b`. Ax=b, where A = GSM.
- *      3. Spawn particles from the specified in configuration file sources.
- *      4. Tracking particles in the mesh.
- *      5. Collecting node charge densities (ρi) on each time step for each node.
- *      6. Pass ρi to the vector `b` to solve equation Ax=b. (Dirichlet Boundary conditions).
- *      7. Solve the equation Ax=b on each time step.
- *      8. Calculate electric potential (φi) of the each node from the `x` vector in result from Ax=b.
- *      9. Calculate electic field E=(Ex,Ey,Ez) of the each mesh cell based on the φi and ∇φi. E=-∇φ -> E_cell=-1/(6V)*Σ(φi⋅∇φi).
- *      10. Electro-magnetic pushing of the particles (update velocity).
- *          10.1. Update position.
- *          10.2. Check is particle inside mesh. If no - particle = settled particle - stop tracking it (incrementing count of the settled particles on certain triangle on the mesh).
- *      11. Gas collision statistical checking (HS/VHS/VSS). If colided - update velocity.
- *          11.1-11.2. Repeat 10.1. and 10.2.
- *      13. Check if particle settled. If so - incrementing count of the settled particles on certain triangle on the mesh.
- *      14. Saving all the collected particles in triangles (surface mesh) to .hdf5 file.
- *      15*. Saving all trajectories of the particles to make animation.
+ * @brief This class represents the main driver that manages the PIC part and surface collision tracker.
+ *
+ * Main algorithm:
+ * 1. Get the mesh from the mesh file. Fill basis gradient functions \( \nabla \varphi_i \) for each node.
+ * 2. Construct GSM (Global Stiffness Matrix). Set Boundary Conditions (BC) to the GSM and vector \(\mathbf{b}\).
+ *    Solve \( A \mathbf{x} = \mathbf{b} \), where \( A = \text{GSM} \).
+ * 3. Spawn particles from the sources specified in the configuration file.
+ * 4. Track particles in the mesh.
+ * 5. Collect node charge densities (\( \rho_i \)) for each node at every time step.
+ * 6. Pass \( \rho_i \) to the vector \(\mathbf{b}\) to solve \( A \mathbf{x} = \mathbf{b} \) (Dirichlet Boundary Conditions).
+ * 7. Solve the equation \( A \mathbf{x} = \mathbf{b} \) at every time step.
+ * 8. Calculate electric potential (\( \varphi_i \)) of each node from the resulting \(\mathbf{x}\) vector in \( A \mathbf{x} = \mathbf{b} \).
+ * 9. Calculate the electric field \( \mathbf{E} = (E_x, E_y, E_z) \) of each mesh cell based on \( \varphi_i \) and \( \nabla \varphi_i \):
+ *    \f[
+ *    \mathbf{E}_{\text{cell}} = -\frac{1}{6V} \sum_i (\varphi_i \cdot \nabla \varphi_i).
+ *    \f]
+ * 10. Electro-magnetic pushing of the particles (update velocity):
+ *     10.1. Update position.
+ *     10.2. Check if the particle is inside the mesh. If not, classify the particle as a settled particle and stop tracking it.
+ * 11. Perform gas collision statistical checking (HS/VHS/VSS). If a collision occurs, update velocity:
+ *     11.1. Update position.
+ *     11.2. Check if the particle is inside the mesh.
+ * 12. Check if the particle is settled. If so, increment the count of settled particles on the relevant triangle in the mesh.
+ * 13. Save all collected particles in triangles (surface mesh) to an \texttt{.hdf5} file.
+ * 14. Optionally, save all trajectories of the particles to create an animation.
  */
 class ModelingMainDriver final
 {
