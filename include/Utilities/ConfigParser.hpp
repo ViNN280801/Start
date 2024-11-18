@@ -27,7 +27,7 @@ namespace ConfigParserTypes
     struct surface_source_t
     {
         std::string type;                                                       ///< Type of the particle (e.g., Ti, Al, Sn).
-        int count{};                                                            ///< Number of particles.
+        size_t count{};                                                         ///< Number of particles.
         double energy{};                                                        ///< Energy of the particles in electronvolts [eV].
         std::unordered_map<std::string, std::vector<double>> baseCoordinates{}; ///< Map of base coordinates and normals.
     };
