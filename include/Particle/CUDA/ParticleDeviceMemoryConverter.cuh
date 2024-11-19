@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Particle/CUDA/ParticleDevice.cuh"
+#include "Particle/Particle.hpp"
 
 /**
  * @brief Handles memory conversions for `ParticleDevice_t` and `ParticleDeviceArray`.
@@ -35,14 +36,14 @@ public:
      * @param d_particle Pointer to the particle on the device.
      * @return The copied particle on the host.
      */
-    static ParticleDevice_t copyToHost(ParticleDevice_t const *d_particle);
+    static Particle copyToHost(ParticleDevice_t const *d_particle);
 
     /**
      * @brief Copies a `ParticleDeviceArray` from the device to the host.
      * @param deviceArray The particle array on the device.
      * @return A vector of particles on the host.
      */
-    static std::vector<ParticleDevice_t> copyToHost(ParticleDeviceArray const &deviceArray);
+    static ParticleVector copyToHost(ParticleDeviceArray const &deviceArray);
 
     /**
      * @brief Frees GPU memory for a single `ParticleDevice_t`.

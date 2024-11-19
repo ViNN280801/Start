@@ -9,12 +9,46 @@
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/ParticleUtils.hpp"
 #include "Utilities/CUDA/DeviceUtils.cuh"
+#include "Utilities/Utilities.hpp"
+
+/**
+ * @brief Generates a random real number in the specified range [from, to] using curand.
+ *
+ * This function is compatible with CUDA and uses the curand library for random
+ * number generation.
+ *
+ * @param from Lower bound of the range.
+ * @param to Upper bound of the range.
+ * @param state curand state initialized in the kernel.
+ * @return A random double in the range [from, to].
+ */
+__device__ double generate_real_number(double from, double to, curandState_t &state)
+{
+    if (from == to)
+        return from;
+    if (from > to)
+    {
+        // Swap to avoid invalid range
+        double temp = from;
+        from = to;
+        to = temp;
+    }
+
+    // Generate a uniform random number in [0, 1)
+    double randomValue = curand_uniform_double(&state);
+
+    // Scale to [from, to]
+    return from + randomValue * (to - from);
+}
 
 __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
-                                                       double3 position, double energy, int type,
-                                                       double expansionAngle, double phi, double theta,
+                                                       double3 position, double energy_eV, int type,
+                                                       double expansionAngle, double phiCalculated, double thetaCalculated,
                                                        unsigned long long seed)
 {
+    // GUI sends energy in eV, so, we need to convert it from eV to J:
+    double energy_J = util::convert_energy_eV_to_energy_J(energy_eV);
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
@@ -29,15 +63,16 @@ __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particl
     particles[idx].y = position.y;
     particles[idx].z = position.z;
 
-    // Set particle energy and direction based on angles
-    double vx = energy * sin(theta) * cos(phi);
-    double vy = energy * sin(theta) * sin(phi);
-    double vz = energy * cos(theta);
+    double theta = {thetaCalculated + generate_real_number(-1, 1, state) * expansionAngle};
+    double v = sqrt(2 * energy_J / ParticleUtils::getMassFromType(static_cast<ParticleType>(type)));
+    double vx = v * sin(theta) * cos(phiCalculated);
+    double vy = v * sin(theta) * sin(phiCalculated);
+    double vz = v * cos(theta);
 
     particles[idx].vx = vx;
     particles[idx].vy = vy;
     particles[idx].vz = vz;
-    particles[idx].energy = energy;
+    particles[idx].energy = energy_J;
 }
 
 START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point_source_t> &source)
@@ -62,14 +97,14 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
         double3 position = {sourceData.baseCoordinates[0], sourceData.baseCoordinates[1], sourceData.baseCoordinates[2]};
         int type = static_cast<int>(util::getParticleTypeFromStrRepresentation(sourceData.type));
         size_t count = sourceData.count;
-        double energy = sourceData.energy;
+        double energy_eV = sourceData.energy;
         unsigned long long seed = 123'456'789ull;
 
         int threadsPerBlock = 256;
         int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
 
         generateParticlesFromPointSourceKernel<<<blocksPerGrid, threadsPerBlock>>>(
-            deviceParticles.begin() + offset, count, position, energy, type,
+            deviceParticles.begin() + offset, count, position, energy_eV, type,
             sourceData.expansionAngle, sourceData.phi, sourceData.theta, seed);
 
         cuda_utils::check_cuda_err(cudaGetLastError(), "Error during point source particle generation");
@@ -82,9 +117,12 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
 
 __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *particles, size_t count,
                                                          double3 *cellCenters, double3 *normals,
-                                                         double energy, int type, size_t numCells,
+                                                         double energy_eV, int type, size_t numCells,
                                                          unsigned long long seed)
 {
+    // GUI sends energy in eV, so, we need to convert it from eV to J:
+    double energy_J = util::convert_energy_eV_to_energy_J(energy_eV);
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
@@ -102,14 +140,14 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
                                                   normals[cellIdx].z * normals[cellIdx].z));
     double phi = atan2(normals[cellIdx].y, normals[cellIdx].x);
 
-    double vx = energy * sin(theta) * cos(phi);
-    double vy = energy * sin(theta) * sin(phi);
-    double vz = energy * cos(theta);
+    double vx = energy_J * sin(theta) * cos(phi);
+    double vy = energy_J * sin(theta) * sin(phi);
+    double vz = energy_J * cos(theta);
 
     particles[idx].vx = vx;
     particles[idx].vy = vy;
     particles[idx].vz = vz;
-    particles[idx].energy = energy;
+    particles[idx].energy = energy_J;
 }
 
 START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<surface_source_t> &source)
@@ -158,7 +196,7 @@ START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<sur
     {
         size_t count = sourceData.count;
         size_t numCells = sourceData.baseCoordinates.size();
-        double energy = sourceData.energy;
+        double energy_eV = sourceData.energy;
         unsigned long long seed = 123'456'789ull;
 
         int threadsPerBlock = 256;
@@ -166,7 +204,7 @@ START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<sur
 
         generateParticlesFromSurfaceSourceKernel<<<blocksPerGrid, threadsPerBlock>>>(
             deviceParticles.begin() + particleOffset, count, d_cellCenters, d_normals,
-            energy, static_cast<int>(util::getParticleTypeFromStrRepresentation(sourceData.type)), numCells, seed);
+            energy_eV, static_cast<int>(util::getParticleTypeFromStrRepresentation(sourceData.type)), numCells, seed);
 
         cuda_utils::check_cuda_err(cudaGetLastError(), "Error during surface source particle generation");
         particleOffset += count;

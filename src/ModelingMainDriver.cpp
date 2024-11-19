@@ -12,6 +12,7 @@ using json = nlohmann::json;
 #include "FiniteElementMethod/FEMPrinter.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
+#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
@@ -127,14 +128,16 @@ void ModelingMainDriver::_initializeParticles()
     if (m_config.isParticleSourcePoint())
     {
         auto tmp{ParticleGenerator::fromPointSource(m_config.getParticleSourcePoints())};
-        if (!tmp.empty())
-            m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
+        ParticleVector h_particles{ParticleDeviceMemoryConverter::copyToHost(tmp)};
+        if (!h_particles.empty())
+            m_particles.insert(m_particles.end(), std::begin(h_particles), std::end(h_particles));
     }
     if (m_config.isParticleSourceSurface())
     {
         auto tmp{ParticleGenerator::fromSurfaceSource(m_config.getParticleSourceSurfaces())};
-        if (!tmp.empty())
-            m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
+        ParticleVector h_particles{ParticleDeviceMemoryConverter::copyToHost(tmp)};
+        if (!h_particles.empty())
+            m_particles.insert(m_particles.end(), std::begin(h_particles), std::end(h_particles));
     }
 
     if (m_particles.empty())
