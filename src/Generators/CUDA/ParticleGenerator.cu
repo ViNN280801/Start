@@ -117,32 +117,44 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
 
 __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *particles, size_t count,
                                                          double3 *cellCenters, double3 *normals,
-                                                         double energy_eV, int type, size_t numCells,
+                                                         double energy_eV, int type,
                                                          unsigned long long seed)
 {
-    // GUI sends energy in eV, so, we need to convert it from eV to J:
-    double energy_J = util::convert_energy_eV_to_energy_J(energy_eV);
-
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
 
-    size_t cellIdx = idx % numCells;
+    // Initialize curand state for this thread
+    curandState_t state;
+    curand_init(seed, idx, 0, &state);
+
+    // Convert energy from eV to J
+    double energy_J = util::convert_energy_eV_to_energy_J(energy_eV);
+
+    // Set particle properties
     particles[idx].id = idx;
     particles[idx].type = type;
-    particles[idx].x = cellCenters[cellIdx].x;
-    particles[idx].y = cellCenters[cellIdx].y;
-    particles[idx].z = cellCenters[cellIdx].z;
+    particles[idx].x = cellCenters[idx].x;
+    particles[idx].y = cellCenters[idx].y;
+    particles[idx].z = cellCenters[idx].z;
 
-    // Calculate angles from normals for direction
-    double theta = acos(normals[cellIdx].z / sqrt(normals[cellIdx].x * normals[cellIdx].x +
-                                                  normals[cellIdx].y * normals[cellIdx].y +
-                                                  normals[cellIdx].z * normals[cellIdx].z));
-    double phi = atan2(normals[cellIdx].y, normals[cellIdx].x);
+    // Calculate theta and phi from normals
+    double3 normal = normals[idx];
+    double normal_length = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+    double thetaCalculated = acos(normal.z / normal_length);
+    double phiCalculated = atan2(normal.y, normal.x);
+    double thetaUsers = 0.0; // No expansion angle for surface source as per CPU code
 
-    double vx = energy_J * sin(theta) * cos(phi);
-    double vy = energy_J * sin(theta) * sin(phi);
-    double vz = energy_J * cos(theta);
+    // Random number between -1 and 1 (if needed)
+    double random_uniform = curand_uniform(&state) * 2.0 - 1.0;
+
+    // Calculate theta (since thetaUsers is 0, theta remains thetaCalculated)
+    double theta = thetaCalculated + random_uniform * thetaUsers;
+
+    double v = sqrt(2 * energy_J / ParticleUtils::getMassFromType(static_cast<ParticleType>(type)));
+    double vx = v * sin(theta) * cos(phiCalculated);
+    double vy = v * sin(theta) * sin(phiCalculated);
+    double vz = v * cos(theta);
 
     particles[idx].vx = vx;
     particles[idx].vy = vy;
@@ -155,61 +167,94 @@ START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<sur
     if (source.empty())
         throw std::logic_error("Surface source list is empty");
 
+    ParticleDeviceArray deviceParticles;
+    std::vector<double3> cellCentersExpanded, normalsExpanded;
     size_t totalParticles = 0;
-    size_t totalCells = 0;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
     for (const auto &sourceData : source)
     {
         if (sourceData.count == 0)
             throw std::logic_error("Cannot generate 0 particles from a surface source");
-        totalParticles += sourceData.count;
-        totalCells += sourceData.baseCoordinates.size();
-    }
 
-    ParticleDeviceArray deviceParticles;
-    deviceParticles.resize(totalParticles);
+        ParticleType type = util::getParticleTypeFromStrRepresentation(sourceData.type);
+        if (type == ParticleType::Unknown)
+            throw std::invalid_argument("Unknown particle type received");
 
-    std::vector<double3> cellCenters, normals;
-    for (const auto &sourceData : source)
-    {
+        size_t num_cells = sourceData.baseCoordinates.size();
+        size_t particles_per_cell = sourceData.count / num_cells;
+        size_t remainder_particles_count = sourceData.count % num_cells;
+
+        // Collect keys (cell center strings)
+        std::vector<std::string> keys;
+        for (const auto &item : sourceData.baseCoordinates)
+            keys.emplace_back(item.first);
+
+        // Randomly distribute the remainder particles.
+        std::shuffle(keys.begin(), keys.end(), gen);
+        std::vector<size_t> cell_particle_count(num_cells, particles_per_cell);
+        for (size_t i = 0; i < remainder_particles_count; ++i)
+            cell_particle_count[i]++;
+
+        size_t cell_index = 0;
         for (const auto &item : sourceData.baseCoordinates)
         {
-            std::istringstream iss(item.first);
-            double x, y, z;
-            iss >> x >> y >> z;
-            double3 center = make_double3(x, y, z);
+            auto const &cell_centre_str = item.first;
+            auto const &normal = item.second;
 
-            cellCenters.push_back(center);
-            normals.push_back(make_double3(item.second[0], item.second[1], item.second[2]));
+            // Parse the cell center coordinates from string to double.
+            std::istringstream iss(cell_centre_str);
+            std::vector<double> cell_centre;
+            double coord;
+            while (iss >> coord)
+            {
+                cell_centre.push_back(coord);
+                if (iss.peek() == ',')
+                    iss.ignore();
+            }
+
+            size_t particles_in_cell = cell_particle_count[cell_index];
+            for (size_t i = 0; i < particles_in_cell; ++i)
+            {
+                // Append the cell center and normal for each particle
+                double3 center = make_double3(cell_centre[0], cell_centre[1], cell_centre[2]);
+                cellCentersExpanded.push_back(center);
+                normalsExpanded.push_back(make_double3(normal[0], normal[1], normal[2]));
+            }
+
+            cell_index++;
         }
+
+        totalParticles += sourceData.count;
     }
+
+    // Now, cellCentersExpanded and normalsExpanded have totalParticles elements
+    deviceParticles.resize(totalParticles);
 
     double3 *d_cellCenters = nullptr;
     double3 *d_normals = nullptr;
-    cuda_utils::check_cuda_err(cudaMalloc(&d_cellCenters, cellCenters.size() * sizeof(double3)), "Failed to allocate cell centers");
-    cuda_utils::check_cuda_err(cudaMalloc(&d_normals, normals.size() * sizeof(double3)), "Failed to allocate normals");
+    cuda_utils::check_cuda_err(cudaMalloc(&d_cellCenters, cellCentersExpanded.size() * sizeof(double3)), "Failed to allocate cell centers");
+    cuda_utils::check_cuda_err(cudaMalloc(&d_normals, normalsExpanded.size() * sizeof(double3)), "Failed to allocate normals");
 
-    cudaMemcpy(d_cellCenters, cellCenters.data(), cellCenters.size() * sizeof(double3), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_normals, normals.data(), normals.size() * sizeof(double3), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_cellCenters, cellCentersExpanded.data(), cellCentersExpanded.size() * sizeof(double3), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_normals, normalsExpanded.data(), normalsExpanded.size() * sizeof(double3), cudaMemcpyHostToDevice);
 
-    size_t particleOffset = 0;
-    for (const auto &sourceData : source)
-    {
-        size_t count = sourceData.count;
-        size_t numCells = sourceData.baseCoordinates.size();
-        double energy_eV = sourceData.energy;
-        unsigned long long seed = 123'456'789ull;
+    // Since we've expanded the cell centers and normals, we can launch a single kernel
+    double energy_eV = source.front().energy; // Assuming same energy for all sources; adjust as needed
+    unsigned long long seed = 123'456'789ull;
 
-        int threadsPerBlock = 256;
-        int blocksPerGrid = (count + threadsPerBlock - 1) / threadsPerBlock;
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (totalParticles + threadsPerBlock - 1) / threadsPerBlock;
 
-        generateParticlesFromSurfaceSourceKernel<<<blocksPerGrid, threadsPerBlock>>>(
-            deviceParticles.begin() + particleOffset, count, d_cellCenters, d_normals,
-            energy_eV, static_cast<int>(util::getParticleTypeFromStrRepresentation(sourceData.type)), numCells, seed);
+    int type = static_cast<int>(util::getParticleTypeFromStrRepresentation(source.front().type)); // Adjust if types differ
 
-        cuda_utils::check_cuda_err(cudaGetLastError(), "Error during surface source particle generation");
-        particleOffset += count;
-    }
+    generateParticlesFromSurfaceSourceKernel<<<blocksPerGrid, threadsPerBlock>>>(
+        deviceParticles.begin(), totalParticles, d_cellCenters, d_normals,
+        energy_eV, type, seed);
 
+    cuda_utils::check_cuda_err(cudaGetLastError(), "Error during surface source particle generation");
     cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize after surface source generation");
 
     cudaFree(d_cellCenters);
