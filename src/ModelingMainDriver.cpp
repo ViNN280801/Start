@@ -220,28 +220,6 @@ void ModelingMainDriver::_gfinalize()
     _saveParticleMovements();
 }
 
-void ModelingMainDriver::_initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
-                                        std::shared_ptr<CubicGrid> &cubicGrid,
-                                        std::map<GlobalOrdinal, double> &boundaryConditions,
-                                        std::shared_ptr<VectorManager> &solutionVector)
-{
-    // Assembling global stiffness matrix from the mesh file.
-    assemblier = std::make_shared<GSMAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
-
-    // Creating cubic grid for the tetrahedron mesh.
-    cubicGrid = std::make_shared<CubicGrid>(assemblier->getMeshManager(), m_config.getEdgeSize());
-
-    // Setting boundary conditions.
-    for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
-        for (GlobalOrdinal nodeId : nodeIds)
-            boundaryConditions[nodeId] = value;
-    BoundaryConditionsManager::set(assemblier->getGlobalStiffnessMatrix(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
-
-    // Initializing the solution vector.
-    solutionVector = std::make_shared<VectorManager>(assemblier->getRows());
-    solutionVector->clear();
-}
-
 template <typename Function, typename... Args>
 void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_policy, Args &&...args)
 {
