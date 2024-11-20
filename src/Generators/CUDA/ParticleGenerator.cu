@@ -114,7 +114,7 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
     // theta = thetaCalculated
     VelocityVector velocity = ParticleUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
                                                                             ParticleUtils::getMassFromType(static_cast<ParticleType>(type)),
-                                                                            {0, phiCalculated, thetaCalculated},
+                                                                            {0, phiCalculated, thetaCalculated}, // Passing expansion angle = 0.
                                                                             &state);
     particles[idx].vx = velocity.getX();
     particles[idx].vy = velocity.getY();
