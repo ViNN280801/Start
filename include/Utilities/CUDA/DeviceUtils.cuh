@@ -7,22 +7,22 @@
 #include <string>
 
 #ifdef START_DEBUG
-    #define START_CHECK_CUDA_ERROR(err, context)                                             \
-        if ((err) != cudaSuccess)                                                            \
-        {                                                                                    \
-            std::cerr << "CUDA Error: " << cudaGetErrorString(err) << "\n"                   \
-                    << "Context: " << (context) << "\n"                                      \
-                    << "Function: " << __FUNCTION__ << "\n"                                  \
-                    << "File: " << __FILE__ << "\n"                                          \
-                    << "Line: " << __LINE__ << std::endl;                                    \
-            throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
-        }
+#define START_CHECK_CUDA_ERROR(err, context)                                             \
+    if ((err) != cudaSuccess)                                                            \
+    {                                                                                    \
+        std::cerr << "CUDA Error: " << cudaGetErrorString(err) << "\n"                   \
+                  << "Context: " << (context) << "\n"                                    \
+                  << "Function: " << __FUNCTION__ << "\n"                                \
+                  << "File: " << __FILE__ << "\n"                                        \
+                  << "Line: " << __LINE__ << std::endl;                                  \
+        throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
+    }
 #elif START_RELEASE
-    #define START_CHECK_CUDA_ERROR(err, context)                                             \
-        if ((err) != cudaSuccess)                                                            \
-        {                                                                                    \
-            throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
-        }
+#define START_CHECK_CUDA_ERROR(err, context)                                             \
+    if ((err) != cudaSuccess)                                                            \
+    {                                                                                    \
+        throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
+    }
 #endif
 
 /**
