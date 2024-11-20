@@ -29,36 +29,6 @@ private:
     double m_energy{};                   ///< Particle energy in [J] by default.
     CGAL::Bbox_3 m_bbox;                 ///< Bounding box for particle.
 
-    /**
-     * @brief Calculates the velocity magnitude from the energy of a particle and then
-     *        determines \( V_x \), \( V_y \), and \( V_z \) using random numbers.
-     *
-     * Formula:
-     * \f$ |V| = \sqrt{\frac{2 \cdot E}{\text{mass}}} \f$
-     *
-     * @param thetaPhi Polar angle \( \theta \) and azimuthal angle \( \phi \).
-     * @return Velocity magnitude.
-     */
-    void calculateVelocityFromEnergy_eV(std::array<double, 3> const &thetaPhi);
-
-    /**
-     * @brief Calculates the kinetic energy of a particle from its velocity components.
-     *
-     * This function uses the formula for kinetic energy:
-     * E = 0.5 * mass * |V|^2,
-     * where |V| is the magnitude of the velocity vector. The function assumes
-     * that the mass of the particle is known and accessible within the class.
-     *
-     * @param vx The x-component of the velocity in [m/s].
-     * @param vy The y-component of the velocity in [m/s].
-     * @param vz The z-component of the velocity in [m/s].
-     * @return void The function does not return a value but presumably updates
-     * the energy state of the particle within the class.
-     */
-    void calculateEnergyJFromVelocity(double vx, double vy, double vz) noexcept;
-    void calculateEnergyJFromVelocity(VelocityVector const &v) noexcept;
-    void calculateEnergyJFromVelocity(VelocityVector &&v) noexcept;
-
     /// @brief Calculates bounding box for the current particle.
     void calculateBoundingBox() noexcept;
 

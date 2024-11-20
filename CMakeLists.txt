@@ -127,7 +127,7 @@ if(GPU_CUDA_ON)
     set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
 
     set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
-        "--expt-extended-lambda -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
+        "--expt-extended-lambda --expt-relaxed-constexpr -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
     )
     set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
@@ -218,7 +218,7 @@ if(GPU_CUDA_ON)
       "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES={${CMAKE_CUDA_ARCHITECTURES}}"
   )
 
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda --expt-relaxed-constexpr")
   message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
   # ############################################################################
   # End of CUDA Setup                        #

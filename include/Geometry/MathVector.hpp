@@ -98,7 +98,7 @@ public:
      * @param y_ Y-coordinate to assign.
      * @param z_ Z-coordinate to assign.
      */
-    MathVector(T x_, T y_, T z_) : x{x_}, y{y_}, z{z_} {}
+    START_CUDA_HOST_DEVICE MathVector(T x_, T y_, T z_) : x{x_}, y{y_}, z{z_} {}
 
     /**
      * @brief Assignment operator with custom double.

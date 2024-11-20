@@ -11,44 +11,11 @@
 #include "Utilities/CUDA/DeviceUtils.cuh"
 #include "Utilities/Utilities.hpp"
 
-/**
- * @brief Generates a random real number in the specified range [from, to] using curand.
- *
- * This function is compatible with CUDA and uses the curand library for random
- * number generation.
- *
- * @param from Lower bound of the range.
- * @param to Upper bound of the range.
- * @param state curand state initialized in the kernel.
- * @return A random double in the range [from, to].
- */
-__device__ double generate_real_number(double from, double to, curandState_t &state)
-{
-    if (from == to)
-        return from;
-    if (from > to)
-    {
-        // Swap to avoid invalid range
-        double temp = from;
-        from = to;
-        to = temp;
-    }
-
-    // Generate a uniform random number in [0, 1)
-    double randomValue = curand_uniform_double(&state);
-
-    // Scale to [from, to]
-    return from + randomValue * (to - from);
-}
-
 __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
                                                        double3 position, double energy_eV, int type,
                                                        double expansionAngle, double phiCalculated, double thetaCalculated,
                                                        unsigned long long seed)
 {
-    // GUI sends energy in eV, so, we need to convert it from eV to J:
-    double energy_J = util::convert_energy_eV_to_energy_J(energy_eV);
-
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
         return;
@@ -63,16 +30,17 @@ __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particl
     particles[idx].y = position.y;
     particles[idx].z = position.z;
 
-    double theta = {thetaCalculated + generate_real_number(-1, 1, state) * expansionAngle};
-    double v = sqrt(2 * energy_J / ParticleUtils::getMassFromType(static_cast<ParticleType>(type)));
-    double vx = v * sin(theta) * cos(phiCalculated);
-    double vy = v * sin(theta) * sin(phiCalculated);
-    double vz = v * cos(theta);
-
-    particles[idx].vx = vx;
-    particles[idx].vy = vy;
-    particles[idx].vz = vz;
-    particles[idx].energy = energy_J;
+    VelocityVector velocity = ParticleUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
+                                                                            ParticleUtils::getMassFromType(static_cast<ParticleType>(type)),
+                                                                            {expansionAngle, phiCalculated, thetaCalculated},
+                                                                            &state);
+    particles[idx].vx = velocity.getX();
+    particles[idx].vy = velocity.getY();
+    particles[idx].vz = velocity.getZ();
+    particles[idx].energy = energy_eV; // Putting energy in J, because in prev step it had been
+                                       // converted from eV to J. We need energy in J because Particle
+                                       // class stores energy in J, to properly recalculate velocities
+                                       // and energy.
 }
 
 START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point_source_t> &source)
@@ -107,11 +75,11 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
             deviceParticles.begin() + offset, count, position, energy_eV, type,
             sourceData.expansionAngle, sourceData.phi, sourceData.theta, seed);
 
-        cuda_utils::check_cuda_err(cudaGetLastError(), "Error during point source particle generation");
+        START_CHECK_CUDA_ERROR(cudaGetLastError(), "Error during point source particle generation");
         offset += count;
     }
 
-    cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize after point source generation");
+    START_CHECK_CUDA_ERROR(cudaDeviceSynchronize(), "Failed to synchronize after point source generation");
     return deviceParticles;
 }
 
@@ -128,9 +96,6 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
     curandState_t state;
     curand_init(seed, idx, 0, &state);
 
-    // Convert energy from eV to J
-    double energy_J = util::convert_energy_eV_to_energy_J(energy_eV);
-
     // Set particle properties
     particles[idx].id = idx;
     particles[idx].type = type;
@@ -143,23 +108,21 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
     double normal_length = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
     double thetaCalculated = acos(normal.z / normal_length);
     double phiCalculated = atan2(normal.y, normal.x);
-    double thetaUsers = 0.0; // No expansion angle for surface source as per CPU code
 
-    // Random number between -1 and 1 (if needed)
-    double random_uniform = curand_uniform(&state) * 2.0 - 1.0;
-
-    // Calculate theta (since thetaUsers is 0, theta remains thetaCalculated)
-    double theta = thetaCalculated + random_uniform * thetaUsers;
-
-    double v = sqrt(2 * energy_J / ParticleUtils::getMassFromType(static_cast<ParticleType>(type)));
-    double vx = v * sin(theta) * cos(phiCalculated);
-    double vy = v * sin(theta) * sin(phiCalculated);
-    double vz = v * cos(theta);
-
-    particles[idx].vx = vx;
-    particles[idx].vy = vy;
-    particles[idx].vz = vz;
-    particles[idx].energy = energy_J;
+    // Assuming that there is no no expansion angle for surface source as per CPU code,
+    // so, formula: theta = thetaCalculated + random_uniform * thetaUsers; will simplified:
+    // theta = thetaCalculated
+    VelocityVector velocity = ParticleUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
+                                                                            ParticleUtils::getMassFromType(static_cast<ParticleType>(type)),
+                                                                            {0, phiCalculated, thetaCalculated},
+                                                                            &state);
+    particles[idx].vx = velocity.getX();
+    particles[idx].vy = velocity.getY();
+    particles[idx].vz = velocity.getZ();
+    particles[idx].energy = energy_eV; // Putting energy in J, because in prev step it had been
+                                       // converted from eV to J. We need energy in J because Particle
+                                       // class stores energy in J, to properly recalculate velocities
+                                       // and energy.
 }
 
 START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<surface_source_t> &source)
@@ -235,8 +198,8 @@ START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<sur
 
     double3 *d_cellCenters = nullptr;
     double3 *d_normals = nullptr;
-    cuda_utils::check_cuda_err(cudaMalloc(&d_cellCenters, cellCentersExpanded.size() * sizeof(double3)), "Failed to allocate cell centers");
-    cuda_utils::check_cuda_err(cudaMalloc(&d_normals, normalsExpanded.size() * sizeof(double3)), "Failed to allocate normals");
+    START_CHECK_CUDA_ERROR(cudaMalloc(&d_cellCenters, cellCentersExpanded.size() * sizeof(double3)), "Failed to allocate cell centers");
+    START_CHECK_CUDA_ERROR(cudaMalloc(&d_normals, normalsExpanded.size() * sizeof(double3)), "Failed to allocate normals");
 
     cudaMemcpy(d_cellCenters, cellCentersExpanded.data(), cellCentersExpanded.size() * sizeof(double3), cudaMemcpyHostToDevice);
     cudaMemcpy(d_normals, normalsExpanded.data(), normalsExpanded.size() * sizeof(double3), cudaMemcpyHostToDevice);
@@ -254,8 +217,8 @@ START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<sur
         deviceParticles.begin(), totalParticles, d_cellCenters, d_normals,
         energy_eV, type, seed);
 
-    cuda_utils::check_cuda_err(cudaGetLastError(), "Error during surface source particle generation");
-    cuda_utils::check_cuda_err(cudaDeviceSynchronize(), "Failed to synchronize after surface source generation");
+    START_CHECK_CUDA_ERROR(cudaGetLastError(), "Error during surface source particle generation");
+    START_CHECK_CUDA_ERROR(cudaDeviceSynchronize(), "Failed to synchronize after surface source generation");
 
     cudaFree(d_cellCenters);
     cudaFree(d_normals);

@@ -120,7 +120,7 @@ namespace util
      * @param[in,out] energy_eV Reference to the energy value in electron volts (eV).
      *                          The value is updated to its equivalent in joules (J).
      */
-    inline void convert_energy_eV_to_energy_J_inplace(double &energy_eV) { energy_eV *= constants::physical_constants::eV_J; }
+    START_CUDA_HOST_DEVICE inline void convert_energy_eV_to_energy_J_inplace(double &energy_eV) { energy_eV *= constants::physical_constants::eV_J; }
 
     /**
      * @brief Converts energy from joules (J) to electron volts (eV) in place.
@@ -134,7 +134,7 @@ namespace util
      * @param[in,out] energy_J Reference to the energy value in joules (J).
      *                          The value is updated to its equivalent in electron volts (eV).
      */
-    inline void convert_energy_J_to_energy_eV_inplace(double &energy_J) { energy_J *= constants::physical_constants::J_eV; }
+    START_CUDA_HOST_DEVICE inline void convert_energy_J_to_energy_eV_inplace(double &energy_J) { energy_J *= constants::physical_constants::J_eV; }
 
     /**
      * @brief Converts energy from electron volts (eV) to joules (J).
@@ -148,7 +148,7 @@ namespace util
      * @param energy_eV Energy value in electron volts (eV).
      * @return Energy value in joules (J).
      */
-    inline START_CUDA_HOST_DEVICE double convert_energy_eV_to_energy_J(double energy_eV) { return energy_eV * constants::physical_constants::eV_J; }
+    START_CUDA_HOST_DEVICE inline double convert_energy_eV_to_energy_J(double energy_eV) { return energy_eV * constants::physical_constants::eV_J; }
 
     /**
      * @brief Converts energy from joules (J) to electron volts (eV).
@@ -162,7 +162,7 @@ namespace util
      * @param energy_J Energy value in joules (J).
      * @return Energy value in electron volts (eV).
      */
-    inline START_CUDA_HOST_DEVICE double convert_energy_J_to_energy_eV(double energy_J) { return energy_J * constants::physical_constants::J_eV; }
+    START_CUDA_HOST_DEVICE inline double convert_energy_J_to_energy_eV(double energy_J) { return energy_J * constants::physical_constants::J_eV; }
 }
 
 #endif // !UTILITIES_HPP
