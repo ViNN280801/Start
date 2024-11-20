@@ -190,7 +190,7 @@ bool Particle::colideHS(Particle target, double n_concentration, double time_ste
 	double Probability{sigma * getVelocityModule() * n_concentration * time_step};
 
 	// Result of the collision: if colide -> change attributes of the particle
-	RealNumberGenerator rng;
+	RealNumberGeneratorHost rng;
 	bool iscolide{rng() < Probability};
 	if (iscolide)
 	{
@@ -228,7 +228,7 @@ bool Particle::colideVHS(Particle target, double n_concentration, double omega, 
 	double sigma{START_PI_NUMBER * d_vhs_2},
 		Probability{sigma * getVelocityModule() * n_concentration * time_step};
 
-	RealNumberGenerator rng;
+	RealNumberGeneratorHost rng;
 	bool iscolide{rng() < Probability};
 	if (iscolide)
 	{
@@ -269,7 +269,7 @@ bool Particle::colideVSS(Particle target, double n_concentration, double omega,
 	double sigma{START_PI_NUMBER * d_vhs_2},
 		Probability{sigma * getVelocityModule() * n_concentration * time_step};
 
-	RealNumberGenerator rng;
+	RealNumberGeneratorHost rng;
 	bool iscolide{rng() < Probability};
 	if (iscolide)
 	{

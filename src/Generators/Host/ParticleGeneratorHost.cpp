@@ -1,9 +1,7 @@
-#ifndef USE_CUDA
+#include "Generators/Host/ParticleGeneratorHost.hpp"
+#include "Generators/Host/RealNumberGeneratorHost.hpp"
 
-#include "Generators/ParticleGenerator.hpp"
-#include "Generators/RealNumberGenerator.hpp"
-
-ParticleVector ParticleGenerator::fromPointSource(std::vector<point_source_t> const &source)
+ParticleVector ParticleGeneratorHost::fromPointSource(std::vector<point_source_t> const &source)
 {
     ParticleVector particles;
     for (auto const &sourceData : source)
@@ -32,7 +30,7 @@ ParticleVector ParticleGenerator::fromPointSource(std::vector<point_source_t> co
     return particles;
 }
 
-ParticleVector ParticleGenerator::fromSurfaceSource(std::vector<surface_source_t> const &source)
+ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_source_t> const &source)
 {
     ParticleVector particles;
     std::random_device rd;
@@ -98,5 +96,3 @@ ParticleVector ParticleGenerator::fromSurfaceSource(std::vector<surface_source_t
     }
     return particles;
 }
-
-#endif // !USE_CUDA

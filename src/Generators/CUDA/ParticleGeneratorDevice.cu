@@ -1,16 +1,25 @@
 #ifdef USE_CUDA
 
-#include <cuda_runtime.h>
-#include <curand.h>
-#include <curand_kernel.h>
-
-#include "Generators/ParticleGenerator.hpp"
+#include "Generators/CUDA/ParticleGeneratorDevice.cuh"
 #include "Particle/CUDA/ParticleDevice.cuh"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#include "Particle/Particle.hpp"
 #include "Particle/ParticleUtils.hpp"
 #include "Utilities/CUDA/DeviceUtils.cuh"
 #include "Utilities/Utilities.hpp"
 
+/**
+ * @brief GPU kernel to generate particles from a point source.
+ * @param particles Pointer to the array of particles to initialize.
+ * @param count Number of particles to generate.
+ * @param position Position of the point source.
+ * @param energy_eV Energy of the particles in electron volts (eV).
+ * @param type Particle type as an integer.
+ * @param expansionAngle Expansion angle for particle direction.
+ * @param phiCalculated Azimuthal angle for particle direction.
+ * @param thetaCalculated Polar angle for particle direction.
+ * @param seed Random seed for particle generation.
+ */
 __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
                                                        double3 position, double energy_eV, int type,
                                                        double expansionAngle, double phiCalculated, double thetaCalculated,
@@ -43,7 +52,7 @@ __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particl
                                        // and energy.
 }
 
-START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point_source_t> &source)
+ParticleDeviceArray ParticleGeneratorDevice::fromPointSource(const std::vector<point_source_t> &source)
 {
     if (source.empty())
         throw std::logic_error("Point source list is empty");
@@ -83,6 +92,16 @@ START_PARTICLE_VECTOR ParticleGenerator::fromPointSource(const std::vector<point
     return deviceParticles;
 }
 
+/**
+ * @brief GPU kernel to generate particles from surface sources.
+ * @param particles Pointer to the array of particles to initialize.
+ * @param count Total number of particles to generate.
+ * @param cellCenters Array of cell center positions.
+ * @param normals Array of normal vectors for the cells.
+ * @param energy_eV Energy of the particles in electron volts (eV).
+ * @param type Particle type as an integer.
+ * @param seed Random seed for particle generation.
+ */
 __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *particles, size_t count,
                                                          double3 *cellCenters, double3 *normals,
                                                          double energy_eV, int type,
@@ -125,7 +144,7 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
                                        // and energy.
 }
 
-START_PARTICLE_VECTOR ParticleGenerator::fromSurfaceSource(const std::vector<surface_source_t> &source)
+ParticleDeviceArray ParticleGeneratorDevice::fromSurfaceSource(const std::vector<surface_source_t> &source)
 {
     if (source.empty())
         throw std::logic_error("Surface source list is empty");

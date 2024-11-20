@@ -1,13 +1,13 @@
 # src/Generators/CMakeLists.txt
 
 set(GENERATORS_SOURCES
-    ParticleGenerator.cpp
-    RealNumberGenerator.cpp
+    Host/ParticleGeneratorHost.cpp
+    Host/RealNumberGeneratorHost.cpp
 )
 
 if (GPU_CUDA_ON)
     set(CUDA_GENERATORS_SOURCES 
-        CUDA/ParticleGenerator.cu
+        CUDA/ParticleGeneratorDevice.cu
     )
 endif()
 

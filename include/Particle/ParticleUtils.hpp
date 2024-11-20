@@ -4,7 +4,7 @@
 #include <atomic>
 
 #include "Generators/CUDA/RealNumberGeneratorDevice.cuh"
-#include "Generators/RealNumberGenerator.hpp"
+#include "Generators/Host/RealNumberGeneratorHost.hpp"
 #include "Geometry/MathVector.hpp"
 #include "Utilities/CUDA/DeviceUtils.cuh"
 #include "Utilities/Utilities.hpp"
@@ -303,7 +303,7 @@ public:
         }
 #else
         // Host-side random number generation
-        static thread_local RealNumberGenerator host_rng(-1, 1);
+        static thread_local RealNumberGeneratorHost host_rng(-1, 1);
         randomValue = host_rng();
 #endif
 
@@ -316,7 +316,7 @@ public:
             theta = thetaCalculated + randomValue * thetaUsers;
         else
             theta = thetaCalculated;
-        
+
         double v = std::sqrt(2 * energy_eV / mass);
         double vx = v * std::sin(theta) * std::cos(phiCalculated);
         double vy = v * std::sin(theta) * std::sin(phiCalculated);
