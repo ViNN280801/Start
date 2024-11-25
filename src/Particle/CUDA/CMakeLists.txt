@@ -1,3 +1,0 @@
-# src/Particle/CUDA/CMakeLists.txt
-
-list(APPEND PARTICLES_SOURCES ${CUDA_PARTICLES_SOURCES})

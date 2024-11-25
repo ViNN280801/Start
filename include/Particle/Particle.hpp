@@ -10,7 +10,7 @@
 
 #include "Geometry/GeometryTypes.hpp"
 #include "Geometry/MathVector.hpp"
-#include "Particle/ParticleUtils.hpp"
+#include "Particle/ParticlePropertiesManager.hpp"
 #include "Utilities/ConfigParser.hpp"
 
 #ifdef USE_CUDA
@@ -98,12 +98,12 @@ public:
     constexpr VelocityVector const &getVelocityVector() const { return m_velocity; }
     constexpr CGAL::Bbox_3 const &getBoundingBox() const { return m_bbox; }
     constexpr ParticleType getType() const { return m_type; }
-    double getMass() const { return ParticleUtils::getMassFromType(m_type); }
-    double getRadius() const { return ParticleUtils::getRadiusFromType(m_type); }
-    double getViscosityTemperatureIndex() const { return ParticleUtils::getViscosityTemperatureIndexFromType(m_type); }
-    double getVSSDeflectionParameter() const { return ParticleUtils::getVSSDeflectionParameterFromType(m_type); }
-    double getCharge() const { return ParticleUtils::getChargeFromType(m_type); }
-    int getChargeInIons() const { return ParticleUtils::getChargeInIonsFromType(m_type); }
+    double getMass() const { return ParticlePropertiesManager::getMassFromType(m_type); }
+    double getRadius() const { return ParticlePropertiesManager::getRadiusFromType(m_type); }
+    double getViscosityTemperatureIndex() const { return ParticlePropertiesManager::getViscosityTemperatureIndexFromType(m_type); }
+    double getVSSDeflectionParameter() const { return ParticlePropertiesManager::getVSSDeflectionParameterFromType(m_type); }
+    double getCharge() const { return ParticlePropertiesManager::getChargeFromType(m_type); }
+    int getChargeInIons() const { return ParticlePropertiesManager::getChargeInIonsFromType(m_type); }
 
     /**
      * @brief Chooses the specified scattering model.
