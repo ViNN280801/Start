@@ -112,6 +112,27 @@ public:
      * @param[in] vy Y-component of velocity in \f$ m/s \f$.
      * @param[in] vz Z-component of velocity in \f$ m/s \f$.\
      */
+    START_CUDA_DEVICE static void calculateEnergyJFromVelocity(double &energy, double mass, VelocityVector const &velocity) noexcept
+    {
+        ParticleDynamicUtils::calculateEnergyJFromVelocity(energy, mass, velocity.getX(), velocity.getY(), velocity.getZ());
+    }
+
+    /**
+     * @brief Calculates the kinetic energy of a particle based on velocity components.
+     *
+     * The method computes kinetic energy using the formula:
+     * \f$ E = \frac{1}{2} m \cdot |v|^2 \f$, where:
+     * - \f$ E \f$ is kinetic energy in joules.
+     * - \f$ m \f$ is the mass of the particle in kilograms.
+     * - \f$ |v| \f$ is the velocity magnitude, calculated as:
+     * \f$ |v| = \sqrt{v_x^2 + v_y^2 + v_z^2} \f$.
+     *
+     * @param[in,out] energy Reference to the energy to update with the calculated value.
+     * @param[in] mass Mass of the particle in kilograms.
+     * @param[in] vx X-component of velocity in \f$ m/s \f$.
+     * @param[in] vy Y-component of velocity in \f$ m/s \f$.
+     * @param[in] vz Z-component of velocity in \f$ m/s \f$.\
+     */
     START_CUDA_DEVICE static void calculateEnergyJFromVelocity(double &energy, double mass, double vx, double vy, double vz) noexcept
     {
         double velocityMagnitudeSquared = vx * vx + vy * vy + vz * vz;

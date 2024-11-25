@@ -120,7 +120,6 @@ public:
     constexpr double getTemperature() const { return m_config.temperature; }
     constexpr double getPressure() const { return m_config.pressure; }
     constexpr ParticleType getGas() const { return m_config.gas; }
-
     STARTCONSTEXPRFUNC std::string_view getMeshFilename() const { return m_config.mshfilename.data(); }
     STARTCONSTEXPRFUNC std::string_view getScatteringModel() const { return m_config.model.data(); }
     constexpr std::vector<point_source_t> const &getParticleSourcePoints() const { return m_config.particleSourcePoints; }

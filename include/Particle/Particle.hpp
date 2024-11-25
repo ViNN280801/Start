@@ -96,6 +96,7 @@ public:
     double getVelocityModule() const;
     constexpr Point const &getCentre() const { return m_centre; }
     constexpr VelocityVector const &getVelocityVector() const { return m_velocity; }
+    constexpr VelocityVector &getVelocityVector() { return m_velocity; }
     constexpr CGAL::Bbox_3 const &getBoundingBox() const { return m_bbox; }
     constexpr ParticleType getType() const { return m_type; }
     double getMass() const { return ParticlePropertiesManager::getMassFromType(m_type); }
@@ -104,20 +105,15 @@ public:
     double getVSSDeflectionParameter() const { return ParticlePropertiesManager::getVSSDeflectionParameterFromType(m_type); }
     double getCharge() const { return ParticlePropertiesManager::getChargeFromType(m_type); }
     int getChargeInIons() const { return ParticlePropertiesManager::getChargeInIonsFromType(m_type); }
+    /* === ---- ---- ---- ---- ---- --- === */
 
-    /**
-     * @brief Chooses the specified scattering model.
-     * @param target particle of gas with which current particle will colide.
-     * @param n_concentration concentration of particles.
-     * @param model scattering model (available: HS/VHS/VSS)
-     * @param time_step simulation time step.
-     * @return `true` if colided, otherwise `false`.
-     */
-    bool colide(Particle target, double n_concentration, std::string_view model, double time_step);
+    /* === Getters for particle params. === */
+    void setEnergy_eV(double energy_eV) { m_energy = util::convert_energy_eV_to_energy_J(energy_eV); }
+    void setEnergy_J(double energy_J) { m_energy = energy_J; }
 
-    bool colideHS(Particle target, double n_concentration, double time_step);
-    bool colideVHS(Particle target, double n_concentration, double omega, double time_step);
-    bool colideVSS(Particle target, double n_concentration, double omega, double alpha, double time_step);
+    void setVelocity(VelocityVector const &velvec) { m_velocity = velvec; }
+    void setVelocity(double vx, double vy, double vz) { m_velocity = VelocityVector(vx, vy, vz); }
+    /* === ---- ---- ---- ---- ---- --- === */
 
     /**
      * @brief Uses Boris Integrator to calculate updated velocity.

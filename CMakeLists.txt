@@ -649,6 +649,8 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include/Generators
   ${CMAKE_SOURCE_DIR}/include/Geometry
   ${CMAKE_SOURCE_DIR}/include/Particle
+  ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore
+  ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore/CollisionModel
   ${CMAKE_SOURCE_DIR}/include/SessionManagement
   ${CMAKE_SOURCE_DIR}/include/Utilities)
 
@@ -657,7 +659,8 @@ add_subdirectory(src)
 set(CPP_SOURCES src/main.cpp src/ModelingMainDriver.cpp)
 set(SOURCES ${CPP_SOURCES})
 if(GPU_CUDA_ON)
-  set(CUDA_SOURCES # !!! Do not forget place .cu files here !!!
+  set(CUDA_SOURCES
+
   )
   set(SOURCES ${SOURCES} ${CUDA_SOURCES})
 endif()
@@ -688,6 +691,7 @@ target_link_libraries(
           Generators
           Geometry
           Particle
+          Particle_PhysicsCore_CollisionModel
           SessionManagers
           Utilities
 )

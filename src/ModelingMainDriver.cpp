@@ -13,6 +13,7 @@ using json = nlohmann::json;
 #include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
@@ -610,7 +611,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                     continue;
 
                 // Updating velocity of the particle according to the collision with gas.
-                particle.colide(m_config.getGas(), _gasConcentration, m_config.getScatteringModel(), m_config.getTimeStep());
+                auto collisionModel = CollisionModelFactory::createCollisionModel(m_config.getScatteringModel());
+                bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                 // Skip collision detection at initial time.
                 if (t == 0.0)
@@ -716,7 +718,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               return;
 
                           // Updating velocity of the particle according to the coliding with gas.
-                          particle.colide(m_config.getGas(), _gasConcentration, m_config.getScatteringModel(), m_config.getTimeStep());
+                          auto collisionModel = CollisionModelFactory::createCollisionModel(m_config.getScatteringModel());
+                          bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                           // There is no need to check particle collision with surface mesh in initial time moment of the simulation (when t = 0).
                           if (t == 0.0)

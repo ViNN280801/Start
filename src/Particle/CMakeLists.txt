@@ -1,5 +1,7 @@
 # src/Particle/CMakeLists.txt
 
+add_subdirectory(PhysicsCore)
+
 set(PARTICLES_SOURCES
     Particle.cpp
 )
