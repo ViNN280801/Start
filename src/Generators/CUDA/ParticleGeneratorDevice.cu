@@ -1,10 +1,9 @@
-#ifdef USE_CUDA
-
 #include "Generators/CUDA/ParticleGeneratorDevice.cuh"
 #include "Particle/CUDA/ParticleDevice.cuh"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/Particle.hpp"
-#include "Particle/ParticleUtils.hpp"
+#include "Particle/ParticlePropertiesManager.hpp"
+#include "Particle/PhysicsCore/ParticleDynamicUtils.hpp"
 #include "Utilities/CUDA/DeviceUtils.cuh"
 #include "Utilities/Utilities.hpp"
 
@@ -39,10 +38,14 @@ __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particl
     particles[idx].y = position.y;
     particles[idx].z = position.z;
 
-    VelocityVector velocity = ParticleUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
-                                                                            ParticleUtils::getMassFromType(static_cast<ParticleType>(type)),
-                                                                            {expansionAngle, phiCalculated, thetaCalculated},
-                                                                            &state);
+    VelocityVector velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
+                                                                                   ParticlePropertiesManager::getMassFromType(static_cast<ParticleType>(type)),
+                                                                                   {expansionAngle, phiCalculated, thetaCalculated}
+#ifdef __CUDA_ARCH__
+                                                                                   ,
+                                                                                   &state
+#endif
+    );
     particles[idx].vx = velocity.getX();
     particles[idx].vy = velocity.getY();
     particles[idx].vz = velocity.getZ();
@@ -131,10 +134,14 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
     // Assuming that there is no no expansion angle for surface source as per CPU code,
     // so, formula: theta = thetaCalculated + random_uniform * thetaUsers; will simplified:
     // theta = thetaCalculated
-    VelocityVector velocity = ParticleUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
-                                                                            ParticleUtils::getMassFromType(static_cast<ParticleType>(type)),
-                                                                            {0, phiCalculated, thetaCalculated}, // Passing expansion angle = 0.
-                                                                            &state);
+    VelocityVector velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
+                                                                                   ParticlePropertiesManager::getMassFromType(static_cast<ParticleType>(type)),
+                                                                                   {0, phiCalculated, thetaCalculated} // Passing expansion angle = 0.
+#ifdef __CUDA_ARCH__
+                                                                                   ,
+                                                                                   &state
+#endif
+    );
     particles[idx].vx = velocity.getX();
     particles[idx].vy = velocity.getY();
     particles[idx].vz = velocity.getZ();
@@ -244,5 +251,3 @@ ParticleDeviceArray ParticleGeneratorDevice::fromSurfaceSource(const std::vector
 
     return deviceParticles;
 }
-
-#endif // !USE_CUDA

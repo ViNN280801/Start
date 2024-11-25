@@ -1,5 +1,3 @@
-#ifdef USE_CUDA
-
 #include <algorithm>
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
@@ -174,5 +172,3 @@ void AABBTreeDevice::freeDeviceMemory()
         deviceNodes = nullptr;
     }
 }
-
-#endif // !USE_CUDA

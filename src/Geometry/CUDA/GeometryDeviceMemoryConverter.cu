@@ -1,4 +1,3 @@
-#ifdef USE_CUDA
 #include "Geometry/CUDA/GeometryDeviceMemoryConverter.cuh"
 
 /**
@@ -44,5 +43,3 @@ MathVector<double> GeometryDeviceMemoryConverter::Vec3ToHost(Vec3Device_t const 
 {
     return MathVector<double>{vecDevice.x, vecDevice.y, vecDevice.z};
 }
-
-#endif // !USE_CUDA

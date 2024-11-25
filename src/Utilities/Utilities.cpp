@@ -3,7 +3,6 @@
 #include <sstream>
 #include <sys/stat.h>
 
-#include "Generators/RealNumberGenerator.hpp"
 #include "Utilities/ConfigParser.hpp"
 #include "Utilities/Utilities.hpp"
 

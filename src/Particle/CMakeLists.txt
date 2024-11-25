@@ -8,7 +8,6 @@ if(GPU_CUDA_ON)
     set(CUDA_PARTICLES_SOURCES
         CUDA/ParticleDevice.cu
         CUDA/ParticleDeviceMemoryConverter.cu
-        CUDA/ParticleKernels.cu
     )
 endif()
 

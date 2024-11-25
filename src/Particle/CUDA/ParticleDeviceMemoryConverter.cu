@@ -1,5 +1,3 @@
-#ifdef USE_CUDA
-
 #include <cuda_runtime.h>
 #include <stdexcept>
 
@@ -63,5 +61,3 @@ void ParticleDeviceMemoryConverter::freeDeviceMemory(ParticleDevice_t *d_particl
 }
 
 void ParticleDeviceMemoryConverter::freeDeviceArrayMemory(ParticleDeviceArray &deviceArray) { deviceArray.reset(); }
-
-#endif // USE_CUDA

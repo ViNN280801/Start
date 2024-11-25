@@ -1,5 +1,3 @@
-#ifdef USE_CUDA
-
 #include <cuda_runtime.h>
 #include <stdexcept>
 
@@ -57,5 +55,3 @@ void ParticleDeviceArray::resize(size_t newCount)
     count = newCount;
     cudaMalloc(&d_particles, count * sizeof(ParticleDevice_t));
 }
-
-#endif // !USE_CUDA

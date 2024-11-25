@@ -1,5 +1,4 @@
 #include "Generators/Host/ParticleGeneratorHost.hpp"
-#include "Generators/Host/RealNumberGeneratorHost.hpp"
 
 ParticleVector ParticleGeneratorHost::fromPointSource(std::vector<point_source_t> const &source)
 {
