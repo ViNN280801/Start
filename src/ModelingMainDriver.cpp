@@ -14,6 +14,7 @@ using json = nlohmann::json;
 #include "ModelingMainDriver.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
+#include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
@@ -262,7 +263,7 @@ void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function 
         f.get();
 }
 
-ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename)
+ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename), __expt_m_config_filename(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
@@ -309,7 +310,7 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
 #pragma omp for schedule(dynamic) nowait
             for (size_t idx = start_index; idx < end_index; ++idx)
             {
-                auto &particle = m_particles[idx];
+                auto const &particle = m_particles[idx];
 
                 // Check if particle is settled.
                 {
@@ -801,17 +802,14 @@ void ModelingMainDriver::startModeling()
         m_stop_processing.clear();
 #endif
 
-        // 1. Obtain charge densities in all the nodes.
-#ifdef USE_OMP
-        _processParticleTracker(0, m_particles.size(), t, cubicGrid, gsmAssembler, nodeChargeDensityMap);
-#else
-        // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
-        // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
-        // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
-        // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
-        // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
-        _processWithThreads(num_threads, &ModelingMainDriver::_processParticleTracker, std::launch::async, t, cubicGrid, gsmAssembler, std::ref(nodeChargeDensityMap));
-#endif
+        NodeChargeDensityProcessor::gather(t,
+                                           __expt_m_config_filename,
+                                           cubicGrid,
+                                           gsmAssembler,
+                                           m_particles,
+                                           _settledParticlesIds,
+                                           m_particleTracker,
+                                           nodeChargeDensityMap);
 
         // 2. Solve equation in the main thread.
         _solveEquation(nodeChargeDensityMap, gsmAssembler, solutionVector, boundaryConditions, t);

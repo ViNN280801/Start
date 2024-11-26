@@ -43,6 +43,8 @@
 class ModelingMainDriver final
 {
 private:
+    std::string __expt_m_config_filename;
+
     static constexpr short const kdefault_max_numparticles_to_anim{5'000}; ///< Maximal count of particles to do animation.
 
     static std::mutex m_PICTracker_mutex;              ///< Mutex for synchronizing access to the particles in tetrahedrons.
@@ -60,7 +62,7 @@ private:
     /* All the neccessary data members for the simulation. */
     ParticleVector m_particles;                        ///< Projective particles.
     double _gasConcentration;                          ///< Gas concentration. Needed to use colide projectives with gas mechanism.
-    std::set<int> _settledParticlesIds;                ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
+    std::set<size_t> _settledParticlesIds;             ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
     std::map<size_t, int> _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
 
     ConfigParser m_config;                                                ///< `ConfigParser` object to get all the simulation physical paramters.
@@ -129,25 +131,6 @@ private:
 
     /// @brief Global finalizator. Updates
     void _gfinalize();
-
-    /**
-     * @brief 1st step of the PIC (Particle-In-Cell) modeling.
-     *        Initializes the Finite Element Method (FEM) components.
-     *
-     * @details This function initializes the global stiffness matrix assembler,
-     *          creates a cubic grid for the tetrahedron mesh, sets the boundary conditions,
-     *          and initializes the solution vector.
-     *
-     * @param config The configuration object containing the necessary parameters.
-     * @param gsmAssembler The global stiffness matrix assembler to be initialized.
-     * @param cubicGrid The cubic grid structure for the tetrahedron mesh to be created.
-     * @param boundaryConditions A map of boundary conditions to be set.
-     * @param solutionVector The solution vector to be initialized.
-     */
-    void _initializeFEM(std::shared_ptr<GSMAssembler> &gsmAssembler,
-                        std::shared_ptr<CubicGrid> &cubicGrid,
-                        std::map<GlobalOrdinal, double> &boundaryConditions,
-                        std::shared_ptr<VectorManager> &solutionVector);
 
     /**
      * @brief Processes particles in parallel using multiple threads.
