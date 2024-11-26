@@ -152,25 +152,6 @@ private:
     void _processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_plicy, Args &&...args);
 
     /**
-     * @brief Processes particle tracking within a specified range of particles.
-     *
-     * This function processes particle tracking for particles within the specified range
-     * [start_index, end_index). It performs operations based on the time `t` and interacts
-     * with the provided cubic grid and GSM assembler. The node charge density map is updated
-     * accordingly during the process.
-     *
-     * @param start_index The starting index of the particles to process.
-     * @param end_index The ending index of the particles to process.
-     * @param t The current time of the simulation.
-     * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
-     * @param gsmAssembler A shared pointer to the GSM assembler that handles particle interactions.
-     * @param nodeChargeDensityMap A reference to a map that tracks the charge density at each node.
-     */
-    void _processParticleTracker(size_t start_index, size_t end_index, double t,
-                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler,
-                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
-
-    /**
      * @brief Solves the equation for the system using node charge density and boundary conditions.
      *
      * This function solves the system of equations based on the provided node charge density map
