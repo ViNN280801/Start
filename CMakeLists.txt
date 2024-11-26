@@ -641,18 +641,33 @@ endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/include
+
   ${CMAKE_SOURCE_DIR}/include/DataHandling
+
   ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod
   ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/BoundaryConditions
   ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/Cell
   ${CMAKE_SOURCE_DIR}/include/FiniteElementMethod/Cubature
+
   ${CMAKE_SOURCE_DIR}/include/Generators
+  ${CMAKE_SOURCE_DIR}/include/Generators/CUDA
+  ${CMAKE_SOURCE_DIR}/include/Generators/Host
+
   ${CMAKE_SOURCE_DIR}/include/Geometry
+  ${CMAKE_SOURCE_DIR}/include/Geometry/CUDA
+
   ${CMAKE_SOURCE_DIR}/include/Particle
+  ${CMAKE_SOURCE_DIR}/include/Particle/CUDA
   ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore
   ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore/CollisionModel
+
+  ${CMAKE_SOURCE_DIR}/include/ParticleInCellEngine
+
   ${CMAKE_SOURCE_DIR}/include/SessionManagement
-  ${CMAKE_SOURCE_DIR}/include/Utilities)
+
+  ${CMAKE_SOURCE_DIR}/include/Utilities
+  ${CMAKE_SOURCE_DIR}/include/Utilities/CUDA
+)
 
 add_subdirectory(src)
 
@@ -692,6 +707,7 @@ target_link_libraries(
           Geometry
           Particle
           Particle_PhysicsCore_CollisionModel
+          ParticleInCellEngine
           SessionManagers
           Utilities
 )

@@ -14,6 +14,7 @@ using json = nlohmann::json;
 #include "ModelingMainDriver.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
+#include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
@@ -262,7 +263,7 @@ void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function 
         f.get();
 }
 
-ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename)
+ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename), __expt_m_config_filename(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
@@ -279,219 +280,6 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
 }
 
 ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
-
-void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
-                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler,
-                                                 std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
-{
-    try
-    {
-#ifdef USE_OMP
-        // Check if the requested number of threads exceeds available hardware concurrency.
-        auto num_threads{m_config.getNumThreads_s()};
-
-        omp_set_num_threads(num_threads);
-
-        std::vector<std::map<size_t, ParticleVector>> particleTracker_per_thread(num_threads);
-        std::vector<std::map<size_t, double>> tetrahedronChargeDensityMap_per_thread(num_threads);
-        std::vector<std::map<GlobalOrdinal, double>> nodeChargeDensityMap_per_thread(num_threads);
-
-        // First parallel region: process particles
-#pragma omp parallel
-        {
-            int thread_id = omp_get_thread_num();
-
-            // References to per-thread data structures.
-            auto &particleTracker = particleTracker_per_thread[thread_id];
-            auto &tetrahedronChargeDensityMap = tetrahedronChargeDensityMap_per_thread[thread_id];
-            auto &local_nodeChargeDensityMap = nodeChargeDensityMap_per_thread[thread_id];
-
-#pragma omp for schedule(dynamic) nowait
-            for (size_t idx = start_index; idx < end_index; ++idx)
-            {
-                auto &particle = m_particles[idx];
-
-                // Check if particle is settled.
-                {
-                    std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
-                    if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.cend())
-                        continue;
-                }
-
-                auto gridIndex = cubicGrid->getGridIndexByPosition(particle.getCentre());
-                auto meshParams = cubicGrid->getTetrahedronsByGridIndex(gridIndex);
-
-                for (auto const &meshParam : meshParams)
-                {
-                    if (Mesh::isPointInsideTetrahedron(particle.getCentre(), meshParam.tetrahedron))
-                    {
-                        // Access per-thread particleTracker.
-                        particleTracker[meshParam.globalTetraId].emplace_back(particle);
-                    }
-                }
-            } // end of particle loop.
-
-            // Calculate charge density in each tetrahedron for this thread.
-            for (auto const &[globalTetraId, particlesInside] : particleTracker)
-            {
-                double totalCharge = std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0,
-                                                     [](double sum, Particle const &particle)
-                                                     { return sum + particle.getCharge(); });
-                double volume = gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(globalTetraId);
-                double chargeDensity = totalCharge / volume;
-                tetrahedronChargeDensityMap[globalTetraId] = chargeDensity;
-            }
-
-            // Access node-tetrahedron mapping.
-            auto nodeTetrahedronsMap = gsmAssembler->getMeshManager().getNodeTetrahedronsMap();
-
-            // Process nodes and aggregate data from adjacent tetrahedra.
-#pragma omp for schedule(dynamic) nowait
-            for (size_t i = 0; i < nodeTetrahedronsMap.size(); ++i)
-            {
-                auto it = nodeTetrahedronsMap.begin();
-                std::advance(it, i);
-                auto const &nodeId = it->first;
-                auto const &adjacentTetrahedra = it->second;
-
-                double totalCharge = 0.0;
-                double totalVolume = 0.0;
-
-                // Sum up the charge and volume for all tetrahedra of a given node.
-                for (auto const &tetrId : adjacentTetrahedra)
-                {
-                    auto tcd_it = tetrahedronChargeDensityMap.find(tetrId);
-                    if (tcd_it != tetrahedronChargeDensityMap.end())
-                    {
-                        double tetrahedronChargeDensity = tcd_it->second;
-                        double tetrahedronVolume = gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(tetrId);
-
-                        totalCharge += tetrahedronChargeDensity * tetrahedronVolume;
-                        totalVolume += tetrahedronVolume;
-                    }
-                }
-
-                // Calculate and store the charge density for the node.
-                if (totalVolume > 0)
-                {
-                    double nodeChargeDensity = totalCharge / totalVolume;
-                    local_nodeChargeDensityMap[nodeId] = nodeChargeDensity;
-                }
-            }
-        } // end of parallel region.
-
-        // Merge per-thread particleTrackers into global particleTracker.
-        std::map<size_t, ParticleVector> particleTracker;
-        for (const auto &pt : particleTracker_per_thread)
-        {
-            for (const auto &[tetraId, particles] : pt)
-            {
-                particleTracker[tetraId].insert(particleTracker[tetraId].end(), particles.begin(), particles.end());
-            }
-        }
-
-        // Merge per-thread tetrahedronChargeDensityMaps into global tetrahedronChargeDensityMap.
-        std::map<size_t, double> tetrahedronChargeDensityMap;
-        for (const auto &tcdm : tetrahedronChargeDensityMap_per_thread)
-        {
-            tetrahedronChargeDensityMap.insert(tcdm.begin(), tcdm.end());
-        }
-
-        // Merge per-thread nodeChargeDensityMaps into the shared nodeChargeDensityMap.
-        {
-            std::lock_guard<std::mutex> lock(m_nodeChargeDensityMap_mutex);
-            for (const auto &local_map : nodeChargeDensityMap_per_thread)
-            {
-                for (const auto &[nodeId, chargeDensity] : local_map)
-                {
-                    // If the node already exists, average the charge densities.
-                    auto it = nodeChargeDensityMap.find(nodeId);
-                    if (it != nodeChargeDensityMap.end())
-                    {
-                        it->second = (it->second + chargeDensity) / 2.0;
-                    }
-                    else
-                    {
-                        nodeChargeDensityMap[nodeId] = chargeDensity;
-                    }
-                }
-            }
-        }
-
-        // Add the particles from particleTracker to m_particleTracker[t].
-        {
-            std::lock_guard<std::mutex> lock_PIC(m_PICTracker_mutex);
-            for (auto const &[tetraId, particlesInside] : particleTracker)
-            {
-                auto &globalParticles{m_particleTracker[t][tetraId]};
-                globalParticles.insert(globalParticles.end(), particlesInside.begin(), particlesInside.end());
-            }
-        }
-#else
-        std::map<size_t, ParticleVector> particleTracker;
-        std::map<size_t, double> tetrahedronChargeDensityMap;
-
-        std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index, [this, &cubicGrid, &particleTracker](auto &particle)
-                      {
-        if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.cend())
-            return;
-
-        auto meshParams{cubicGrid->getTetrahedronsByGridIndex(cubicGrid->getGridIndexByPosition(particle.getCentre()))};
-        for (auto const &meshParam : meshParams)
-            if (Mesh::isPointInsideTetrahedron(particle.getCentre(), meshParam.tetrahedron))
-                particleTracker[meshParam.globalTetraId].emplace_back(particle); });
-
-        // Calculating charge density in each of the tetrahedron using `particleTracker`.
-        for (auto const &[globalTetraId, particlesInside] : particleTracker)
-            tetrahedronChargeDensityMap.insert({globalTetraId,
-                                                (std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0, [](double sum, Particle const &particle)
-                                                                 { return sum + particle.getCharge(); })) /
-                                                    gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(globalTetraId)});
-
-        // Go around each node and aggregate data from adjacent tetrahedra.
-        for (auto const &[nodeId, adjecentTetrahedrons] : gsmAssembler->getMeshManager().getNodeTetrahedronsMap())
-        {
-            double totalCharge{}, totalVolume{};
-
-            // Sum up the charge and volume for all tetrahedra of a given node.
-            for (auto const &tetrId : adjecentTetrahedrons)
-            {
-                if (tetrahedronChargeDensityMap.find(tetrId) != tetrahedronChargeDensityMap.end())
-                {
-                    double tetrahedronChargeDensity{tetrahedronChargeDensityMap.at(tetrId)},
-                        tetrahedronVolume{gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(tetrId)};
-
-                    totalCharge += tetrahedronChargeDensity * tetrahedronVolume;
-                    totalVolume += tetrahedronVolume;
-                }
-            }
-
-            // Calculate and store the charge density for the node.
-            if (totalVolume > 0)
-            {
-                std::lock_guard<std::mutex> lock(m_nodeChargeDensityMap_mutex);
-                nodeChargeDensityMap[nodeId] = totalCharge / totalVolume;
-            }
-        }
-
-        // Adding all the elements from this thread from this local PICTracker to the global PIC tracker.
-        std::lock_guard<std::mutex> lock_PIC(m_PICTracker_mutex);
-        for (auto const &[tetraId, particlesInside] : particleTracker)
-        {
-            auto &globalParticles{m_particleTracker[t][tetraId]};
-            globalParticles.insert(globalParticles.begin(), particlesInside.begin(), particlesInside.end());
-        }
-#endif // !USE_OMP
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(util::stringify("Can't finish PIC processing: ", ex.what()));
-    }
-    catch (...)
-    {
-        ERRMSG("Some error occured while PIC processing");
-    }
-}
 
 void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
                                         std::shared_ptr<GSMAssembler> &gsmAssembler,
@@ -801,17 +589,14 @@ void ModelingMainDriver::startModeling()
         m_stop_processing.clear();
 #endif
 
-        // 1. Obtain charge densities in all the nodes.
-#ifdef USE_OMP
-        _processParticleTracker(0, m_particles.size(), t, cubicGrid, gsmAssembler, nodeChargeDensityMap);
-#else
-        // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
-        // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
-        // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
-        // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
-        // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
-        _processWithThreads(num_threads, &ModelingMainDriver::_processParticleTracker, std::launch::async, t, cubicGrid, gsmAssembler, std::ref(nodeChargeDensityMap));
-#endif
+        NodeChargeDensityProcessor::gather(t,
+                                           __expt_m_config_filename,
+                                           cubicGrid,
+                                           gsmAssembler,
+                                           m_particles,
+                                           _settledParticlesIds,
+                                           m_particleTracker,
+                                           nodeChargeDensityMap);
 
         // 2. Solve equation in the main thread.
         _solveEquation(nodeChargeDensityMap, gsmAssembler, solutionVector, boundaryConditions, t);
