@@ -5,7 +5,7 @@
 #include "Particle/PhysicsCore/CollisionModel/VHSModel.hpp"
 #include "Particle/PhysicsCore/CollisionModel/VSSModel.hpp"
 
-std::unique_ptr<CollisionModel> CollisionModelFactory::createCollisionModel(CollisionModelType model_type)
+std::unique_ptr<CollisionModel> CollisionModelFactory::create(CollisionModelType model_type)
 {
     switch (model_type)
     {
@@ -20,17 +20,17 @@ std::unique_ptr<CollisionModel> CollisionModelFactory::createCollisionModel(Coll
     }
 }
 
-std::unique_ptr<CollisionModel> CollisionModelFactory::createCollisionModel(std::string_view model_name)
+std::unique_ptr<CollisionModel> CollisionModelFactory::create(std::string_view model_name)
 {
     std::string model_str(model_name);
     std::transform(model_str.begin(), model_str.end(), model_str.begin(), ::toupper);
 
     if (model_str == "HS")
-        return createCollisionModel(CollisionModelType::HS);
+        return create(CollisionModelType::HS);
     else if (model_str == "VHS")
-        return createCollisionModel(CollisionModelType::VHS);
+        return create(CollisionModelType::VHS);
     else if (model_str == "VSS")
-        return createCollisionModel(CollisionModelType::VSS);
+        return create(CollisionModelType::VSS);
     else
         throw std::invalid_argument("Unknown collision model name.");
 }

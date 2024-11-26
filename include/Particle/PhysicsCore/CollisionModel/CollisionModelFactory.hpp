@@ -16,14 +16,14 @@ public:
      * @param model_type The type of collision model to create.
      * @return A unique_ptr to the created CollisionModel.
      */
-    static std::unique_ptr<CollisionModel> createCollisionModel(CollisionModelType model_type);
+    static std::unique_ptr<CollisionModel> create(CollisionModelType model_type);
 
     /**
      * @brief Creates a collision model based on the specified model name.
      * @param model_name The name of the collision model ("HS", "VHS", "VSS").
      * @return A unique_ptr to the created CollisionModel.
      */
-    static std::unique_ptr<CollisionModel> createCollisionModel(std::string_view model_name);
+    static std::unique_ptr<CollisionModel> create(std::string_view model_name);
 };
 
 #endif // COLLISIONMODELFACTORY_HPP
