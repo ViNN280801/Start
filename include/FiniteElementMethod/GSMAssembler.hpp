@@ -1,5 +1,5 @@
-#ifndef GSMASSEMBLIER_HPP
-#define GSMASSEMBLIER_HPP
+#ifndef GSMASSEMBLER_HPP
+#define GSMASSEMBLER_HPP
 
 /* ATTENTION: Works well only for the polynom order = 1. */
 
@@ -11,10 +11,10 @@
 #include "Geometry/Mesh.hpp"
 
 /**
- * @class GSMAssemblier
+ * @class GSMAssembler
  * @brief A class for assembling the global stiffness matrix (GSM) in finite element analysis (FEA).
  *
- * The `GSMAssemblier` class manages the assembly of a global stiffness matrix from a GMSH mesh file (.msh).
+ * The `GSMAssembler` class manages the assembly of a global stiffness matrix from a GMSH mesh file (.msh).
  * It integrates mesh management, cubature management (for numerical integration), and matrix operations
  * to facilitate finite element method (FEM) computations. The class supports operations for tetrahedron meshes
  * and can be extended for other cell types.
@@ -33,7 +33,7 @@
  * - Initialize the class with the mesh filename, cell type, desired accuracy, and polynomial order.
  * - Use provided methods to extract vertices, compute matrices, and assemble the global stiffness matrix.
  */
-class GSMAssemblier
+class GSMAssembler
 {
 private:
     std::string m_mesh_filename;       ///< Filename of the mesh.
@@ -78,9 +78,9 @@ private:
 
 public:
     /**
-     * @brief Constructor for the `GSMAssemblier` class.
+     * @brief Constructor for the `GSMAssembler` class.
      *
-     * Initializes the assemblier with the mesh file, cell type, desired calculation accuracy,
+     * Initializes the assembler with the mesh file, cell type, desired calculation accuracy,
      * and polynomial order. These parameters define the mesh, the degree of numerical integration,
      * and the approximation order for the FEM.
      *
@@ -89,10 +89,10 @@ public:
      * @param desired_calc_accuracy Desired accuracy for cubature calculation (number of points).
      * @param polynom_order Polynomial order for FEM basis functions.
      */
-    GSMAssemblier(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order);
+    GSMAssembler(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order);
 
     /// @brief Dtor.
-    ~GSMAssemblier() {}
+    ~GSMAssembler() {}
 
     /**
      * @brief Retrieves the mesh manager instance.
@@ -137,4 +137,4 @@ public:
     constexpr unsigned short getPolynomOrder() const { return m_polynom_order; }
 };
 
-#endif // !GSMASSEMBLIER_HPP
+#endif // !GSMASSEMBLER_HPP

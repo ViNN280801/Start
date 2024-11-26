@@ -281,14 +281,13 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
 ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
-                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
+                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler,
                                                  std::map<GlobalOrdinal, double> &nodeChargeDensityMap)
 {
     try
     {
 #ifdef USE_OMP
         // Check if the requested number of threads exceeds available hardware concurrency.
-        unsigned int availableThreads{std::thread::hardware_concurrency()};
         auto num_threads{m_config.getNumThreads_s()};
 
         omp_set_num_threads(num_threads);
@@ -338,13 +337,13 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
                 double totalCharge = std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0,
                                                      [](double sum, Particle const &particle)
                                                      { return sum + particle.getCharge(); });
-                double volume = assemblier->getMeshManager().getVolumeByGlobalTetraId(globalTetraId);
+                double volume = gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(globalTetraId);
                 double chargeDensity = totalCharge / volume;
                 tetrahedronChargeDensityMap[globalTetraId] = chargeDensity;
             }
 
             // Access node-tetrahedron mapping.
-            auto nodeTetrahedronsMap = assemblier->getMeshManager().getNodeTetrahedronsMap();
+            auto nodeTetrahedronsMap = gsmAssembler->getMeshManager().getNodeTetrahedronsMap();
 
             // Process nodes and aggregate data from adjacent tetrahedra.
 #pragma omp for schedule(dynamic) nowait
@@ -365,7 +364,7 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
                     if (tcd_it != tetrahedronChargeDensityMap.end())
                     {
                         double tetrahedronChargeDensity = tcd_it->second;
-                        double tetrahedronVolume = assemblier->getMeshManager().getVolumeByGlobalTetraId(tetrId);
+                        double tetrahedronVolume = gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(tetrId);
 
                         totalCharge += tetrahedronChargeDensity * tetrahedronVolume;
                         totalVolume += tetrahedronVolume;
@@ -447,10 +446,10 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
             tetrahedronChargeDensityMap.insert({globalTetraId,
                                                 (std::accumulate(particlesInside.cbegin(), particlesInside.cend(), 0.0, [](double sum, Particle const &particle)
                                                                  { return sum + particle.getCharge(); })) /
-                                                    assemblier->getMeshManager().getVolumeByGlobalTetraId(globalTetraId)});
+                                                    gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(globalTetraId)});
 
         // Go around each node and aggregate data from adjacent tetrahedra.
-        for (auto const &[nodeId, adjecentTetrahedrons] : assemblier->getMeshManager().getNodeTetrahedronsMap())
+        for (auto const &[nodeId, adjecentTetrahedrons] : gsmAssembler->getMeshManager().getNodeTetrahedronsMap())
         {
             double totalCharge{}, totalVolume{};
 
@@ -460,7 +459,7 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
                 if (tetrahedronChargeDensityMap.find(tetrId) != tetrahedronChargeDensityMap.end())
                 {
                     double tetrahedronChargeDensity{tetrahedronChargeDensityMap.at(tetrId)},
-                        tetrahedronVolume{assemblier->getMeshManager().getVolumeByGlobalTetraId(tetrId)};
+                        tetrahedronVolume{gsmAssembler->getMeshManager().getVolumeByGlobalTetraId(tetrId)};
 
                     totalCharge += tetrahedronChargeDensity * tetrahedronVolume;
                     totalVolume += tetrahedronVolume;
@@ -495,7 +494,7 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
 }
 
 void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                                        std::shared_ptr<GSMAssemblier> &assemblier,
+                                        std::shared_ptr<GSMAssembler> &gsmAssembler,
                                         std::shared_ptr<VectorManager> &solutionVector,
                                         std::map<GlobalOrdinal, double> &boundaryConditions, double time)
 {
@@ -511,7 +510,7 @@ void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeCha
                 boundaryConditions[nodeId] = nodeChargeDensity;
         BoundaryConditionsManager::set(solutionVector->get(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
 
-        MatrixEquationSolver solver(assemblier, solutionVector);
+        MatrixEquationSolver solver(gsmAssembler, solutionVector);
         auto solverParams{solver.createSolverParams(m_config.getSolverName(), m_config.getMaxIterations(), m_config.getConvergenceTolerance(),
                                                     m_config.getVerbosity(), m_config.getOutputFrequency(), m_config.getNumBlocks(), m_config.getBlockSize(),
                                                     m_config.getMaxRestarts(), m_config.getFlexibleGMRES(), m_config.getOrthogonalization(),
@@ -533,7 +532,7 @@ void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeCha
 }
 
 void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier)
+                                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler)
 {
     try
     {
@@ -581,7 +580,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                     }
                 }
 
-                if (auto tetrahedron = assemblier->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron))
+                if (auto tetrahedron = gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron))
                 {
                     if (tetrahedron->electricField.has_value())
                     {
@@ -668,7 +667,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
 #else
         MagneticInduction magneticInduction{}; // For brevity assuming that induction vector B is 0.
         std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index,
-                      [this, &cubicGrid, assemblier, magneticInduction, t](auto &particle)
+                      [this, &cubicGrid, gsmAssembler, magneticInduction, t](auto &particle)
                       {
                           {
                               // If particles is already settled on surface - there is no need to proceed handling it.
@@ -693,7 +692,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               }
                           }
 
-                          if (auto tetrahedron{assemblier->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron)})
+                          if (auto tetrahedron{gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron)})
                               if (tetrahedron->electricField.has_value())
                                   // Updating velocity of the particle according to the Lorentz force.
                                   particle.electroMagneticPush(magneticInduction,
@@ -782,7 +781,7 @@ void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
     FEMInitializer feminit(m_config);
-    auto assemblier{feminit.getGlobalStiffnessMatrixAssemblier()};
+    auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
     auto cubicGrid{feminit.getCubicGrid()};
     auto boundaryConditions{feminit.getBoundaryConditions()};
     auto solutionVector{feminit.getEquationRHS()};
@@ -804,29 +803,29 @@ void ModelingMainDriver::startModeling()
 
         // 1. Obtain charge densities in all the nodes.
 #ifdef USE_OMP
-        _processParticleTracker(0, m_particles.size(), t, cubicGrid, assemblier, nodeChargeDensityMap);
+        _processParticleTracker(0, m_particles.size(), t, cubicGrid, gsmAssembler, nodeChargeDensityMap);
 #else
         // We use `std::launch::async` here because calculating charge densities is a compute-intensive task that
         // benefits from immediate parallel execution. Each particle contributes to the overall charge density at
         // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
         // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
         // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
-        _processWithThreads(num_threads, &ModelingMainDriver::_processParticleTracker, std::launch::async, t, cubicGrid, assemblier, std::ref(nodeChargeDensityMap));
+        _processWithThreads(num_threads, &ModelingMainDriver::_processParticleTracker, std::launch::async, t, cubicGrid, gsmAssembler, std::ref(nodeChargeDensityMap));
 #endif
 
         // 2. Solve equation in the main thread.
-        _solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
+        _solveEquation(nodeChargeDensityMap, gsmAssembler, solutionVector, boundaryConditions, t);
 
         // 3. Process surface collision tracking in parallel.
 #ifdef USE_OMP
-        _processPIC_and_SurfaceCollisionTracker(0, m_particles.size(), t, cubicGrid, assemblier);
+        _processPIC_and_SurfaceCollisionTracker(0, m_particles.size(), t, cubicGrid, gsmAssembler);
 #else
         // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
         // after particle tracking. It can be deferred until it is needed, allowing for potential optimizations
         // such as saving resources when not required right away. Deferring this task ensures that the function
         // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
         // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
-        _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
+        _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, gsmAssembler);
 #endif
     }
     LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));

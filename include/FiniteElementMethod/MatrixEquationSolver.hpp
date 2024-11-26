@@ -4,13 +4,13 @@
 /* ATTENTION: Works well only for the polynom order = 1. */
 
 #include "FiniteElementMethod/FEMTypes.hpp"
-#include "FiniteElementMethod/GSMAssemblier.hpp"
+#include "FiniteElementMethod/GSMAssembler.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/VectorManager.hpp"
 
 class MatrixEquationSolver
 {
 private:
-    std::shared_ptr<GSMAssemblier> m_assemblier;     ///< Instance of the matrix assemblier.
+    std::shared_ptr<GSMAssembler> m_assembler;       ///< Instance of the matrix assembler.
     std::shared_ptr<VectorManager> m_solutionVector; ///< Instance of the solution vector.
     Teuchos::RCP<TpetraVectorType> m_rhs;            ///< Right-hand side vector 'b'.
     Teuchos::RCP<TpetraVectorType> m_x;              ///< Solution vector 'x'.
@@ -21,7 +21,7 @@ private:
 
 public:
     /// @brief Ctor with params.
-    MatrixEquationSolver(std::shared_ptr<GSMAssemblier> assemblier, std::shared_ptr<VectorManager> solutionVector);
+    MatrixEquationSolver(std::shared_ptr<GSMAssembler>, std::shared_ptr<VectorManager>);
 
     /// @brief Dtor.
     ~MatrixEquationSolver() {}

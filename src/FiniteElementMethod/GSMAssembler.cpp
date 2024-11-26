@@ -1,11 +1,11 @@
-#include "FiniteElementMethod/GSMAssemblier.hpp"
+#include "FiniteElementMethod/GSMAssembler.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/Cell/CellSelector.hpp"
 #include "FiniteElementMethod/Cubature/BasisSelector.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
 
-DynRankViewHost GSMAssemblier::_getTetrahedronVertices()
+DynRankViewHost GSMAssembler::_getTetrahedronVertices()
 {
     try
     {
@@ -36,7 +36,7 @@ DynRankViewHost GSMAssemblier::_getTetrahedronVertices()
     return DynRankViewHost();
 }
 
-std::vector<MatrixEntry> GSMAssemblier::_getMatrixEntries()
+std::vector<MatrixEntry> GSMAssembler::_getMatrixEntries()
 {
     TetrahedronIndicesVector globalNodeIndicesPerElement;
     std::set<size_t> allNodeIDs;
@@ -96,7 +96,7 @@ std::vector<MatrixEntry> GSMAssemblier::_getMatrixEntries()
     return matrixEntries;
 }
 
-DynRankView GSMAssemblier::_computeLocalStiffnessMatrices()
+DynRankView GSMAssembler::_computeLocalStiffnessMatrices()
 {
     try
     {
@@ -191,7 +191,7 @@ DynRankView GSMAssemblier::_computeLocalStiffnessMatrices()
     return DynRankView();
 }
 
-void GSMAssemblier::_assembleGlobalStiffnessMatrix()
+void GSMAssembler::_assembleGlobalStiffnessMatrix()
 {
     try
     {
@@ -219,7 +219,7 @@ void GSMAssemblier::_assembleGlobalStiffnessMatrix()
     }
 }
 
-GSMAssemblier::GSMAssemblier(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order)
+GSMAssembler::GSMAssembler(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order)
     : m_mesh_filename(mesh_filename.data()),
       m_cell_type(cell_type),
       m_desired_accuracy(desired_calc_accuracy),

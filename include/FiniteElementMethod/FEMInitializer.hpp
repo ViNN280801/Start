@@ -3,7 +3,7 @@
 
 #include "FEMLimits.hpp"
 #include "FEMTypes.hpp"
-#include "GSMAssemblier.hpp"
+#include "GSMAssembler.hpp"
 #include "Geometry/CubicGrid.hpp"
 #include "LinearAlgebraManagers/VectorManager.hpp"
 #include "Utilities/ConfigParser.hpp"
@@ -19,7 +19,7 @@
 class FEMInitializer
 {
 private:
-    std::shared_ptr<GSMAssemblier> m_assemblier;          ///< Assembler for the global stiffness matrix.
+    std::shared_ptr<GSMAssembler> m_assembler;           ///< Assembler for the global stiffness matrix.
     std::shared_ptr<CubicGrid> m_cubicGrid;               ///< Cubic grid for managing the tetrahedron mesh.
     std::map<GlobalOrdinal, double> m_boundaryConditions; ///< Boundary conditions for the FEM simulation.
     std::shared_ptr<VectorManager> m_solutionVector;      ///< Solution vector for the equation \( A \mathbf{x} = \mathbf{b} \).
@@ -39,7 +39,7 @@ public:
      * @brief Retrieves a modifiable reference to the global stiffness matrix assembler.
      * @return Modifiable reference to the GSM assembler.
      */
-    auto getGlobalStiffnessMatrixAssemblier() const { return m_assemblier; }
+    auto getGlobalStiffnessMatrixAssembler() const { return m_assembler; }
 
     /**
      * @brief Retrieves a modifiable reference to the solution vector (right-hand side of the equation).

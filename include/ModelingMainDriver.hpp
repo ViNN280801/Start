@@ -139,12 +139,12 @@ private:
      *          and initializes the solution vector.
      *
      * @param config The configuration object containing the necessary parameters.
-     * @param assemblier The global stiffness matrix assembler to be initialized.
+     * @param gsmAssembler The global stiffness matrix assembler to be initialized.
      * @param cubicGrid The cubic grid structure for the tetrahedron mesh to be created.
      * @param boundaryConditions A map of boundary conditions to be set.
      * @param solutionVector The solution vector to be initialized.
      */
-    void _initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
+    void _initializeFEM(std::shared_ptr<GSMAssembler> &gsmAssembler,
                         std::shared_ptr<CubicGrid> &cubicGrid,
                         std::map<GlobalOrdinal, double> &boundaryConditions,
                         std::shared_ptr<VectorManager> &solutionVector);
@@ -180,11 +180,11 @@ private:
      * @param end_index The ending index of the particles to process.
      * @param t The current time of the simulation.
      * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
-     * @param assemblier A shared pointer to the GSM assembler that handles particle interactions.
+     * @param gsmAssembler A shared pointer to the GSM assembler that handles particle interactions.
      * @param nodeChargeDensityMap A reference to a map that tracks the charge density at each node.
      */
     void _processParticleTracker(size_t start_index, size_t end_index, double t,
-                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
+                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler,
                                  std::map<GlobalOrdinal, double> &nodeChargeDensityMap);
 
     /**
@@ -194,13 +194,13 @@ private:
      * and boundary conditions. It updates the solution vector accordingly.
      *
      * @param nodeChargeDensityMap A reference to a map containing the charge density at each node.
-     * @param assemblier A shared pointer to the GSM assembler that constructs the system of equations.
+     * @param gsmAssembler A shared pointer to the GSM assembler that constructs the system of equations.
      * @param solutionVector A shared pointer to the vector manager that holds the solution.
      * @param boundaryConditions A reference to a map containing boundary conditions for the system.
      * @param time The current simulation time.
      */
     void _solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                        std::shared_ptr<GSMAssemblier> &assemblier,
+                        std::shared_ptr<GSMAssembler> &gsmAssembler,
                         std::shared_ptr<VectorManager> &solutionVector,
                         std::map<GlobalOrdinal, double> &boundaryConditions, double time);
 
@@ -215,10 +215,10 @@ private:
      * @param end_index The ending index of the particles to process.
      * @param t The current time of the simulation.
      * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
-     * @param assemblier A shared pointer to the GSM assembler that handles particle and surface interactions.
+     * @param gsmAssembler A shared pointer to the GSM assembler that handles particle and surface interactions.
      */
     void _processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier);
+                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler);
 
 public:
     /**
