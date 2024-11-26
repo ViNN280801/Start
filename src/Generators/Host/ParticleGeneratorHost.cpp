@@ -1,5 +1,31 @@
 #include "Generators/Host/ParticleGeneratorHost.hpp"
 
+std::vector<double> parseCoordinates(const std::string &cell_centre_str)
+{
+    std::vector<double> cell_centre;
+    std::stringstream ss(cell_centre_str);
+    std::string coord_str;
+
+    while (std::getline(ss, coord_str, ','))
+    {
+        try
+        {
+            cell_centre.push_back(std::stod(coord_str));
+        }
+        catch (const std::invalid_argument &)
+        {
+            throw std::invalid_argument("Invalid coordinate value in cell center: " + cell_centre_str);
+        }
+    }
+
+    if (cell_centre.size() != 3)
+    {
+        throw std::invalid_argument("Invalid number of coordinates in cell center: " + cell_centre_str);
+    }
+
+    return cell_centre;
+}
+
 ParticleVector ParticleGeneratorHost::fromPointSource(std::vector<point_source_t> const &source)
 {
     ParticleVector particles;
@@ -42,6 +68,8 @@ ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_sour
             throw std::invalid_argument("Unknown particle type received");
         if (sourceData.count == 0)
             throw std::logic_error("There is no need to generate 0 objects");
+        if (sourceData.baseCoordinates.empty())
+            throw std::invalid_argument("Base coordinates for surface source are empty.");
         if (sourceData.energy == 0)
         {
             WARNINGMSG("Be careful! Surface source with zero energy is used.");
@@ -67,26 +95,33 @@ ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_sour
             auto const &cell_centre_str{item.first};
             auto const &normal{item.second};
 
-            // Parse the cell center coordinates from string to double.
-            std::istringstream iss(cell_centre_str);
-            std::vector<double> cell_centre;
-            double coord;
-            while (iss >> coord)
+            // Validate and normalize the normal vector.
+            if (normal.size() != 3)
             {
-                cell_centre.push_back(coord);
-                if (iss.peek() == ',')
-                    iss.ignore();
+                throw std::invalid_argument("Invalid normal vector size. Expected 3 components.");
             }
+            double magnitude = std::sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+            if (magnitude == 0.0)
+            {
+                throw std::invalid_argument("Normal vector magnitude is zero, cannot calculate angles.");
+            }
+
+            double nx = normal[0] / magnitude;
+            double ny = normal[1] / magnitude;
+            double nz = normal[2] / magnitude;
+
+            // Parse the cell center coordinates.
+            std::vector<double> cell_centre = parseCoordinates(cell_centre_str);
 
             for (size_t i{}; i < cell_particle_count[cell_index]; ++i)
             {
-                // Calculate theta and phi based on the normal.
-                double theta{std::acos(normal.at(2) / std::sqrt(normal.at(0) * normal.at(0) + normal.at(1) * normal.at(1) + normal.at(2) * normal.at(2)))},
-                    phi{std::atan2(normal.at(1), normal.at(0))};
+                // Calculate theta and phi based on the normalized normal vector.
+                double theta{std::acos(nz)};
+                double phi{std::atan2(ny, nx)};
 
-                std::array<double, 3> thetaPhi = {0, phi, theta}; // Assume that there is no expansion with surface source.
+                std::array<double, 3> thetaPhi = {0, phi, theta}; // Assume no expansion with surface source.
                 particles.emplace_back(type,
-                                       Point(cell_centre.at(0), cell_centre.at(1), cell_centre.at(2)),
+                                       Point(cell_centre[0], cell_centre[1], cell_centre[2]),
                                        sourceData.energy,
                                        thetaPhi);
             }
