@@ -10,8 +10,12 @@
 
 #include "Geometry/GeometryTypes.hpp"
 #include "Geometry/MathVector.hpp"
-#include "Particle/ParticleUtils.hpp"
+#include "Particle/ParticlePropertiesManager.hpp"
 #include "Utilities/ConfigParser.hpp"
+
+#ifdef USE_CUDA
+#include "Particle/CUDA/ParticleDevice.cuh"
+#endif
 
 /// @brief Represents a particle in a simulation.
 class Particle
@@ -24,210 +28,6 @@ private:
     VelocityVector m_velocity;           ///< Velocity vector (Vx, Vy, Vz).
     double m_energy{};                   ///< Particle energy in [J] by default.
     CGAL::Bbox_3 m_bbox;                 ///< Bounding box for particle.
-
-    /**
-     * @brief Gets radius from the specified type of the particle.
-     * @param type Type of the particle represented as enum.
-     * @return Radius of the particle [m].
-     */
-    constexpr double getRadiusFromType(ParticleType type) const
-    {
-        switch (type)
-        {
-        case ParticleType::Ar:
-            return Ar_radius;
-        case ParticleType::Ne:
-            return Ne_radius;
-        case ParticleType::He:
-            return He_radius;
-        case ParticleType::Ti:
-            return Ti_radius;
-        case ParticleType::Al:
-            return Al_radius;
-        case ParticleType::Sn:
-            return Sn_radius;
-        case ParticleType::W:
-            return W_radius;
-        case ParticleType::Au:
-            return Au_radius;
-        case ParticleType::Cu:
-            return Cu_radius;
-        case ParticleType::Ni:
-            return Ni_radius;
-        case ParticleType::Ag:
-            return Ag_radius;
-        default:
-            return 0;
-        }
-    }
-
-    /**
-     * @brief Gets mass from the specified type of the particle.
-     * @param type Type of the particle represented as enum.
-     * @return Mass of the particle [kg].
-     */
-    constexpr double getMassFromType(ParticleType type) const
-    {
-        switch (type)
-        {
-        case ParticleType::Ar:
-            return Ar_mass;
-        case ParticleType::Ne:
-            return Ne_mass;
-        case ParticleType::He:
-            return He_mass;
-        case ParticleType::Ti:
-            return Ti_mass;
-        case ParticleType::Al:
-            return Al_mass;
-        case ParticleType::Sn:
-            return Sn_mass;
-        case ParticleType::W:
-            return W_mass;
-        case ParticleType::Au:
-            return Au_mass;
-        case ParticleType::Cu:
-            return Cu_mass;
-        case ParticleType::Ni:
-            return Ni_mass;
-        case ParticleType::Ag:
-            return Ag_mass;
-        default:
-            return 0;
-        }
-    }
-
-    /**
-     * @brief Gets viscosity temperature index from the specified type of the particle.
-     * @param type Type of the particle represented as enum.
-     * @return viscosity temperature index of the particle [no measure units].
-     */
-    constexpr double getViscosityTemperatureIndexFromType(ParticleType type) const
-    {
-        switch (type)
-        {
-        case ParticleType::Ar:
-            return Ar_VTI;
-        case ParticleType::Ne:
-            return Ne_VTI;
-        case ParticleType::He:
-            return He_VTI;
-        default:
-            WARNINGMSG("Viscosity temperature index is 0 - it means smth went wrong while simulation with VHS or VSS, or you passed wrong particle type");
-            return 0.0;
-        }
-    }
-
-    /**
-     * @brief Gets VSS deflection parameter from the specified type of the particle.
-     * @param type Type of the particle represented as enum.
-     * @return VSS deflection parameter of the particle [no measure units].
-     */
-    constexpr double getVSSDeflectionParameterFromType(ParticleType type) const
-    {
-        switch (type)
-        {
-        case ParticleType::Ar:
-            return Ar_VSS_TI;
-        case ParticleType::Ne:
-            return Ne_VSS_TI;
-        case ParticleType::He:
-            return He_VSS_TI;
-        default:
-            WARNINGMSG("VSS deflection parameter is 0 - it means smth went wrong while simulation with VHS or VSS, or you passed wrong particle type");
-            return 0.0;
-        }
-    }
-
-    /**
-     * @brief Gets charge from the specified type of the particle.
-     * @param type Type of the particle represented as enum.
-     * @return Charge of the particle [C - columbs].
-     */
-    constexpr double getChargeFromType(ParticleType type) const
-    {
-        switch (type)
-        {
-        case ParticleType::Ti:
-            return ion_charges_coulombs::Ti_2plus; // By default returning 2 ion Ti.
-        case ParticleType::Al:
-            return ion_charges_coulombs::Al_3plus;
-        case ParticleType::Sn:
-            return ion_charges_coulombs::Sn_2plus; // By default returning 2 ion Sn.
-        case ParticleType::W:
-            return ion_charges_coulombs::W_6plus;
-        case ParticleType::Au:
-            return ion_charges_coulombs::Au_3plus; // By default returning 3 ion Au.
-        case ParticleType::Cu:
-            return ion_charges_coulombs::Cu_1plus; // By defaule returning 1 ion Cu.
-        case ParticleType::Ni:
-            return ion_charges_coulombs::Ni_2plus;
-        case ParticleType::Ag:
-            return ion_charges_coulombs::Ag_1plus;
-        default:
-            WARNINGMSG("Charge of the atom is 0 - it means smth went wrong or you passed unknown particle type, or it's a noble gas");
-            return 0.0;
-        }
-    }
-
-    /**
-     * @brief Gets charge in count of ions from the specified type of the particle.
-     * @param type Type of the particle represented as enum.
-     * @return Charge of the particle [C - columbs].
-     */
-    constexpr double getChargeInIonsFromType(ParticleType type) const
-    {
-        switch (type)
-        {
-        case ParticleType::Ti:
-            return ion_charges::Ti_2plus; // By default returning 2 ion Ti.
-        case ParticleType::Al:
-            return ion_charges::Al_3plus;
-        case ParticleType::Sn:
-            return ion_charges::Sn_2plus; // By default returning 2 ion Sn.
-        case ParticleType::W:
-            return ion_charges::W_6plus;
-        case ParticleType::Au:
-            return ion_charges::Au_3plus; // By default returning 3 ion Au.
-        case ParticleType::Cu:
-            return ion_charges::Cu_1plus; // By defaule returning 1 ion Cu.
-        case ParticleType::Ni:
-            return ion_charges::Ni_2plus;
-        case ParticleType::Ag:
-            return ion_charges::Ag_1plus;
-        default:
-            WARNINGMSG("Charge of the atom is 0 - it means smth went wrong or you passed unknown particle type, or it's a noble gas");
-            return 0.0;
-        }
-    }
-
-    /**
-     * @brief Calculates velocity module from energy of particle and then
-     * calculates Vx, Vy, Vz from this module using random numbers.
-     * Formula:
-     * |V| = √(2⋅E/mass)
-     * @param thetaPhi Polar angle θ and azimuthal angle φ.
-     * @return Velocity module.
-     */
-    void calculateVelocityFromEnergy_eV(std::array<double, 3> const &thetaPhi);
-
-    /**
-     * @brief Calculates the kinetic energy of a particle from its velocity components.
-     *
-     * This function uses the formula for kinetic energy:
-     * E = 0.5 * mass * |V|^2,
-     * where |V| is the magnitude of the velocity vector. The function assumes
-     * that the mass of the particle is known and accessible within the class.
-     *
-     * @param vx The x-component of the velocity in [m/s].
-     * @param vy The y-component of the velocity in [m/s].
-     * @param vz The z-component of the velocity in [m/s].
-     * @return void The function does not return a value but presumably updates
-     * the energy state of the particle within the class.
-     */
-    void calculateEnergyJFromVelocity(double vx, double vy, double vz) noexcept;
-    void calculateEnergyJFromVelocity(VelocityVector const &v) noexcept;
-    void calculateEnergyJFromVelocity(VelocityVector &&v) noexcept;
 
     /// @brief Calculates bounding box for the current particle.
     void calculateBoundingBox() noexcept;
@@ -246,6 +46,27 @@ public:
     Particle(ParticleType type_, Point const &centre, VelocityVector const &velvec);
     Particle(ParticleType type_, Point &&centre, VelocityVector &&velvec);
     ~Particle() {}
+
+#ifdef USE_CUDA
+    explicit Particle(ParticleDevice_t const &deviceParticle)
+        : m_id(deviceParticle.id),
+          m_type(static_cast<ParticleType>(deviceParticle.type)),
+          m_centre(deviceParticle.x, deviceParticle.y, deviceParticle.z),
+          m_velocity(deviceParticle.vx, deviceParticle.vy, deviceParticle.vz),
+          m_energy(deviceParticle.energy)
+    {
+    }
+
+    Particle &operator=(ParticleDevice_t const &deviceParticle)
+    {
+        m_id = deviceParticle.id;
+        m_type = static_cast<ParticleType>(deviceParticle.type);
+        m_centre = {deviceParticle.x, deviceParticle.y, deviceParticle.z};
+        m_velocity = {deviceParticle.vx, deviceParticle.vy, deviceParticle.vz};
+        m_energy = deviceParticle.energy;
+        return *this;
+    }
+#endif
 
     /**
      * @brief Updates the position of the particle after a time interval.
@@ -275,28 +96,24 @@ public:
     double getVelocityModule() const;
     constexpr Point const &getCentre() const { return m_centre; }
     constexpr VelocityVector const &getVelocityVector() const { return m_velocity; }
+    constexpr VelocityVector &getVelocityVector() { return m_velocity; }
     constexpr CGAL::Bbox_3 const &getBoundingBox() const { return m_bbox; }
     constexpr ParticleType getType() const { return m_type; }
-    double getMass() const { return ParticleUtils::getMassFromType(m_type); }
-    double getRadius() const { return ParticleUtils::getRadiusFromType(m_type); }
-    double getViscosityTemperatureIndex() const { return ParticleUtils::getViscosityTemperatureIndexFromType(m_type); }
-    double getVSSDeflectionParameter() const { return ParticleUtils::getVSSDeflectionParameterFromType(m_type); }
-    double getCharge() const { return ParticleUtils::getChargeFromType(m_type); }
-    int getChargeInIons() const { return ParticleUtils::getChargeInIonsFromType(m_type); }
+    double getMass() const { return ParticlePropertiesManager::getMassFromType(m_type); }
+    double getRadius() const { return ParticlePropertiesManager::getRadiusFromType(m_type); }
+    double getViscosityTemperatureIndex() const { return ParticlePropertiesManager::getViscosityTemperatureIndexFromType(m_type); }
+    double getVSSDeflectionParameter() const { return ParticlePropertiesManager::getVSSDeflectionParameterFromType(m_type); }
+    double getCharge() const { return ParticlePropertiesManager::getChargeFromType(m_type); }
+    int getChargeInIons() const { return ParticlePropertiesManager::getChargeInIonsFromType(m_type); }
+    /* === ---- ---- ---- ---- ---- --- === */
 
-    /**
-     * @brief Chooses the specified scattering model.
-     * @param target particle of gas with which current particle will colide.
-     * @param n_concentration concentration of particles.
-     * @param model scattering model (available: HS/VHS/VSS)
-     * @param time_step simulation time step.
-     * @return `true` if colided, otherwise `false`.
-     */
-    bool colide(Particle target, double n_concentration, std::string_view model, double time_step);
+    /* === Getters for particle params. === */
+    void setEnergy_eV(double energy_eV) { m_energy = util::convert_energy_eV_to_energy_J(energy_eV); }
+    void setEnergy_J(double energy_J) { m_energy = energy_J; }
 
-    bool colideHS(Particle target, double n_concentration, double time_step);
-    bool colideVHS(Particle target, double n_concentration, double omega, double time_step);
-    bool colideVSS(Particle target, double n_concentration, double omega, double alpha, double time_step);
+    void setVelocity(VelocityVector const &velvec) { m_velocity = velvec; }
+    void setVelocity(double vx, double vy, double vz) { m_velocity = VelocityVector(vx, vy, vz); }
+    /* === ---- ---- ---- ---- ---- --- === */
 
     /**
      * @brief Uses Boris Integrator to calculate updated velocity.

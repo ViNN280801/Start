@@ -58,7 +58,8 @@ void MatrixEquationSolver::calculateElectricField()
 
         // We have map: (Tetrahedron ID | map<Node ID | Basis function gradient math vector (3 components)>).
         // To get electric field of the cell we just need to accumulate all the basis func grads for each node for each tetrahedron:
-        // E_cell = Σ(φi⋅∇φi), where i - global index of the node.
+        // \f$ E_{\text{cell}} = \sum (\varphi_i \cdot \nabla \varphi_i) \f$,
+        // where \( i \) is the global index of the node.
         for (auto const &tetrahedronData : m_assemblier->getMeshManager().getMeshComponents())
         {
             ElectricField electricField{};

@@ -1,10 +1,14 @@
+# src/Generators/CMakeLists.txt
+
 set(GENERATORS_SOURCES
-    ParticleGenerator.cpp
-    RealNumberGenerator.cpp
+    Host/ParticleGeneratorHost.cpp
+    Host/RealNumberGeneratorHost.cpp
 )
 
 if (GPU_CUDA_ON)
-    list(APPEND GENERATORS_SOURCES ParticleGenerator_CUDA.cu)
+    set(CUDA_GENERATORS_SOURCES 
+        CUDA/ParticleGeneratorDevice.cu
+    )
 endif()
 
 set(LIB_GENERATORS Generators)
@@ -17,3 +21,7 @@ target_link_libraries(${LIB_GENERATORS} PRIVATE
 target_include_directories(${LIB_GENERATORS} PRIVATE
     ${Boost_INCLUDE_DIRS}
 )
+
+if (GPU_CUDA_ON)
+    target_sources(${LIB_GENERATORS} PRIVATE ${CUDA_GENERATORS_SOURCES})
+endif()

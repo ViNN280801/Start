@@ -1,5 +1,7 @@
-#ifndef PARTICLEUTILS_HPP
-#define PARTICLEUTILS_HPP
+#ifndef PARTICLEPROPERTIESMANAGER_HPP
+#define PARTICLEPROPERTIESMANAGER_HPP
+
+#include <atomic>
 
 #include "Utilities/Utilities.hpp"
 
@@ -10,10 +12,10 @@ using namespace viscosity_temperature_index;
 using namespace VSS_deflection_parameter;
 
 /**
- * @class ParticleUtils
+ * @class ParticlePropertiesManager
  * @brief Utility class providing various particle property retrieval functions.
  *
- * The `ParticleUtils` class encapsulates static methods for retrieving specific
+ * The `ParticlePropertiesManager` class encapsulates static methods for retrieving specific
  * physical properties of particles based on their type. This class supports fetching
  * essential particle attributes like radius, mass, viscosity temperature index,
  * VSS deflection parameter, and charge. By using enums for particle types, the class
@@ -53,14 +55,14 @@ using namespace VSS_deflection_parameter;
  *
  * ### Example
  * ```
- * auto radius = ParticleUtils::getRadiusFromType(ParticleType::Ar);
- * auto mass = ParticleUtils::getMassFromType(ParticleType::Ti);
+ * auto radius = ParticlePropertiesManager::getRadiusFromType(ParticleType::Ar);
+ * auto mass = ParticlePropertiesManager::getMassFromType(ParticleType::Ti);
  * ```
  *
  * @note This class relies on several namespaces such as `constants`, `particle_types`,
  *       and others, which must be included for full functionality.
  */
-class ParticleUtils
+class ParticlePropertiesManager
 {
 public:
     /**
@@ -248,4 +250,4 @@ public:
     }
 };
 
-#endif
+#endif // !PARTICLEPROPERTIESMANAGER_HPP

@@ -8,19 +8,16 @@
 
 namespace ConfigParserTypes
 {
-    /**
-     * @brief Structure to hold data for a point particle source.
-     * @details This structure contains parameters defining a point particle source, including angles and coordinates.
-     */
+    /// Structure representing a point source of particles.
     struct point_source_t
     {
         std::string type;                        ///< Type of the particle (e.g., Ti, Al, Sn).
         size_t count{};                          ///< Number of particles.
         double energy{};                         ///< Energy of the particles in electronvolts (eV).
-        double phi{};                            ///< Azimuthal angle φ.
-        double theta{};                          ///< Polar (colatitude) angle θ.
-        double expansionAngle{};                 ///< Expansion angle θ.
-        std::array<double, 3ul> baseCoordinates; ///< Base coordinates [x, y, z].
+        double phi{};                            ///< Azimuthal angle \( \phi \).
+        double theta{};                          ///< Polar (colatitude) angle \( \theta \).
+        double expansionAngle{};                 ///< Expansion angle \( \theta \).
+        std::array<double, 3ul> baseCoordinates; ///< Base coordinates \([x, y, z]\).
     };
 
     /**
@@ -30,7 +27,7 @@ namespace ConfigParserTypes
     struct surface_source_t
     {
         std::string type;                                                       ///< Type of the particle (e.g., Ti, Al, Sn).
-        int count{};                                                            ///< Number of particles.
+        size_t count{};                                                         ///< Number of particles.
         double energy{};                                                        ///< Energy of the particles in electronvolts [eV].
         std::unordered_map<std::string, std::vector<double>> baseCoordinates{}; ///< Map of base coordinates and normals.
     };
@@ -111,7 +108,7 @@ public:
      * @brief Automatically fills configuration from the file.
      * @param config Configuration filename.
      */
-    ConfigParser(std::string_view config) { getConfigData(config); }
+    ConfigParser(std::string_view config_filename) { getConfigData(config_filename); }
 
     /// @brief Dtor. Clears out all the data members.
     ~ConfigParser() { clearConfig(); }
@@ -123,7 +120,6 @@ public:
     constexpr double getTemperature() const { return m_config.temperature; }
     constexpr double getPressure() const { return m_config.pressure; }
     constexpr ParticleType getGas() const { return m_config.gas; }
-
     STARTCONSTEXPRFUNC std::string_view getMeshFilename() const { return m_config.mshfilename.data(); }
     STARTCONSTEXPRFUNC std::string_view getScatteringModel() const { return m_config.model.data(); }
     constexpr std::vector<point_source_t> const &getParticleSourcePoints() const { return m_config.particleSourcePoints; }
@@ -146,6 +142,9 @@ public:
     constexpr int getConvergenceTestFrequency() const { return m_config.convergenceTestFrequency; }
     constexpr std::vector<std::pair<std::vector<size_t>, double>> const &getBoundaryConditions() const { return m_config.boundaryConditions; }
     constexpr std::vector<size_t> const &getNonChangeableNodes() const { return m_config.nonChangeableNodes; }
+
+    /// @brief Returns count of threads from config. Has initial checkings and warning msg when num threads occupies 80% of all the threads.
+    unsigned int getNumThreads_s();
 };
 
 #endif // !CONFIGPARSER_HPP

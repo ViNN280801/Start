@@ -1,28 +1,8 @@
 #include "Particle/Particle.hpp"
-#include "Generators/RealNumberGenerator.hpp"
+#include "Generators/Host/RealNumberGeneratorHost.hpp"
+#include "Particle/PhysicsCore/ParticleDynamicUtils.hpp"
 
 std::atomic<size_t> Particle::m_nextId{0ul};
-
-void Particle::calculateVelocityFromEnergy_eV(std::array<double, 3> const &thetaPhi)
-{
-	// GUI sends energy in eV, so, we need to convert it from eV to J:
-	m_energy *= constants::physical_constants::eV_J;
-
-	auto [thetaUsers, phiCalculated, thetaCalculated]{thetaPhi};
-	RealNumberGenerator rng;
-
-	double theta{thetaCalculated + rng(-1, 1) * thetaUsers},
-		v{std::sqrt(2 * getEnergy_J() / getMass())},
-		vx{v * std::sin(theta) * std::cos(phiCalculated)},
-		vy{v * std::sin(theta) * std::sin(phiCalculated)},
-		vz{v * std::cos(theta)};
-
-	m_velocity = VelocityVector(vx, vy, vz);
-}
-
-void Particle::calculateEnergyJFromVelocity(double vx, double vy, double vz) noexcept { m_energy = getMass() * std::pow((VelocityVector(vx, vy, vz).module()), 2) / 2; }
-void Particle::calculateEnergyJFromVelocity(VelocityVector const &v) noexcept { calculateEnergyJFromVelocity(VelocityVector(v.getX(), v.getZ(), v.getZ())); }
-void Particle::calculateEnergyJFromVelocity(VelocityVector &&v) noexcept { calculateEnergyJFromVelocity(v.getX(), v.getZ(), v.getZ()); }
 
 void Particle::calculateBoundingBox() noexcept
 {
@@ -44,7 +24,7 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_centre(Point(x_, y_, z_)),
 	  m_energy(energy_eV)
 {
-	calculateVelocityFromEnergy_eV(thetaPhi);
+	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
 	calculateBoundingBox();
 }
 
@@ -55,7 +35,7 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_centre(Point(x_, y_, z_)),
 	  m_velocity(MathVector(vx_, vy_, vz_))
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
 	calculateBoundingBox();
 }
 
@@ -66,7 +46,7 @@ Particle::Particle(ParticleType type_, Point const &centre,
 	  m_centre(centre),
 	  m_velocity(MathVector(vx_, vy_, vz_))
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
 	calculateBoundingBox();
 }
 
@@ -77,7 +57,7 @@ Particle::Particle(ParticleType type_, Point &&centre,
 	  m_centre(std::move(centre)),
 	  m_velocity(MathVector(vx_, vy_, vz_))
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
 	calculateBoundingBox();
 }
 
@@ -88,7 +68,7 @@ Particle::Particle(ParticleType type_, Point const &centre, double energy_eV,
 	  m_centre(centre),
 	  m_energy(energy_eV)
 {
-	calculateVelocityFromEnergy_eV(thetaPhi);
+	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
 	calculateBoundingBox();
 }
 
@@ -99,7 +79,7 @@ Particle::Particle(ParticleType type_, Point &&centre, double energy_eV,
 	  m_centre(std::move(centre)),
 	  m_energy(energy_eV)
 {
-	calculateVelocityFromEnergy_eV(thetaPhi);
+	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
 	calculateBoundingBox();
 }
 
@@ -110,7 +90,7 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_centre(Point(x_, y_, z_)),
 	  m_velocity(velvec)
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 	calculateBoundingBox();
 }
 
@@ -121,7 +101,7 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_centre(Point(x_, y_, z_)),
 	  m_velocity(std::move(velvec))
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 	calculateBoundingBox();
 }
 
@@ -132,7 +112,7 @@ Particle::Particle(ParticleType type_, Point const &centre,
 	  m_centre(centre),
 	  m_velocity(velvec)
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 	calculateBoundingBox();
 }
 
@@ -143,7 +123,7 @@ Particle::Particle(ParticleType type_, Point &&centre,
 	  m_centre(std::move(centre)),
 	  m_velocity(std::move(velvec))
 {
-	calculateEnergyJFromVelocity(m_velocity);
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 	calculateBoundingBox();
 }
 
@@ -186,126 +166,6 @@ double Particle::getZ() const { return CGAL_TO_DOUBLE(m_centre.z()); }
 double Particle::getPositionModule() const { return PositionVector(CGAL_TO_DOUBLE(m_centre.x()), CGAL_TO_DOUBLE(m_centre.y()), CGAL_TO_DOUBLE(m_centre.z())).module(); }
 double Particle::getVelocityModule() const { return m_velocity.module(); }
 
-bool Particle::colide(Particle target, double n_concentration, std::string_view model, double time_step)
-{
-	if (std::string(model) == "HS")
-		return colideHS(target, n_concentration, time_step);
-	else if (std::string(model) == "VHS")
-		return colideVHS(target, n_concentration, target.getViscosityTemperatureIndex(), time_step);
-	else if (std::string(model) == "VSS")
-		return colideVSS(target, n_concentration, target.getViscosityTemperatureIndex(), target.getVSSDeflectionParameter(), time_step);
-	else
-	{
-		ERRMSG("No such kind of scattering model. Available only: HS/VHS/VSS");
-	}
-	return false;
-}
-
-bool Particle::colideHS(Particle target, double n_concentration, double time_step)
-{
-	double p_mass{getMass()},
-		t_mass{target.getMass()},
-		sigma{(START_PI_NUMBER)*std::pow(getRadius() + target.getRadius(), 2)};
-
-	// Probability of the scattering
-	double Probability{sigma * getVelocityModule() * n_concentration * time_step};
-
-	// Result of the collision: if colide -> change attributes of the particle
-	RealNumberGenerator rng;
-	bool iscolide{rng() < Probability};
-	if (iscolide)
-	{
-		double xi_cos{rng(-1, 1)}, xi_sin{sqrt(1 - xi_cos * xi_cos)},
-			phi{rng(0, 2 * START_PI_NUMBER)};
-
-		double x{xi_sin * cos(phi)}, y{xi_sin * sin(phi)}, z{xi_cos},
-			mass_cp{p_mass / (t_mass + p_mass)},
-			mass_ct{t_mass / (t_mass + p_mass)};
-
-		VelocityVector cm_vel(m_velocity * mass_cp), p_vec(mass_ct * m_velocity);
-		double mp{p_vec.module()};
-		VelocityVector dir_vector(x * mp, y * mp, z * mp);
-
-		m_velocity = dir_vector + cm_vel;
-	}
-	return iscolide;
-}
-
-bool Particle::colideVHS(Particle target, double n_concentration, double omega, double time_step)
-{
-	double d_reference{(getRadius() + target.getRadius())},
-		mass_constant{getMass() * target.getMass() / (getMass() + target.getMass())},
-		t_mass{target.getMass()}, p_mass{getMass()},
-		Exponent{omega - 1. / 2.};
-
-	double d_vhs_2{(std::pow(d_reference, 2) / std::tgamma(5. / 2. - omega)) *
-				   std::pow(2 * KT_reference /
-								(mass_constant * getVelocityModule() * getVelocityModule()),
-							Exponent)};
-
-	double sigma{START_PI_NUMBER * d_vhs_2},
-		Probability{sigma * getVelocityModule() * n_concentration * time_step};
-
-	RealNumberGenerator rng;
-	bool iscolide{rng() < Probability};
-	if (iscolide)
-	{
-		double xi_cos{rng(-1, 1)}, xi_sin{sqrt(1 - xi_cos * xi_cos)},
-			phi{rng(0, 2 * START_PI_NUMBER)};
-
-		double x{xi_sin * cos(phi)}, y{xi_sin * sin(phi)}, z{xi_cos},
-			mass_cp{p_mass / (t_mass + p_mass)},
-			mass_ct{t_mass / (t_mass + p_mass)};
-
-		VelocityVector cm_vel(m_velocity * mass_cp), p_vec(mass_ct * m_velocity);
-		double mp{p_vec.module()};
-		VelocityVector dir_vector(x * mp, y * mp, z * mp);
-
-		m_velocity = dir_vector + cm_vel;
-	}
-
-	return iscolide;
-}
-
-bool Particle::colideVSS(Particle target, double n_concentration, double omega,
-						 double alpha, double time_step)
-{
-	double d_reference{(getRadius() + target.getRadius())},
-		mass_constant{getMass() * target.getMass() / (getMass() + target.getMass())},
-		t_mass{target.getMass()},
-		p_mass{getMass()},
-		Exponent{omega - 1. / 2.};
-
-	double d_vhs_2{(std::pow(d_reference, 2) / std::tgamma(5. / 2. - omega)) *
-				   std::pow(2 * KT_reference /
-								(mass_constant * getVelocityModule() * getVelocityModule()),
-							Exponent)};
-
-	double sigma{START_PI_NUMBER * d_vhs_2},
-		Probability{sigma * getVelocityModule() * n_concentration * time_step};
-
-	RealNumberGenerator rng;
-	bool iscolide{rng() < Probability};
-	if (iscolide)
-	{
-		double xi_cos{2 * std::pow(rng(), 1. / alpha) - 1.}, xi_sin{sqrt(1 - xi_cos * xi_cos)},
-			phi{rng(0, 2 * START_PI_NUMBER)};
-
-		double x{xi_sin * cos(phi)}, y{xi_sin * sin(phi)}, z{xi_cos},
-			mass_cp{p_mass / (t_mass + p_mass)},
-			mass_ct{t_mass / (t_mass + p_mass)};
-
-		VelocityVector cm_vel(m_velocity * mass_cp), p_vec(mass_ct * m_velocity);
-		double mp{p_vec.module()};
-		auto angles{p_vec.calcBetaGamma()};
-		VelocityVector dir_vector(x * mp, y * mp, z * mp);
-		dir_vector.rotation(angles);
-
-		m_velocity = dir_vector + cm_vel;
-	}
-	return iscolide;
-}
-
 void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, ElectricField const &electricField, double time_step)
 {
 	// Checking 1. Time step can't be null.
@@ -322,23 +182,28 @@ void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, E
 	// 1. Calculating acceleration using II-nd Newton's Law:
 	MathVector<double> a_L{getCharge() * (electricField + m_velocity.crossProduct(magneticInduction)) / getMass()};
 
-	// 2. Acceleration semistep: V_- = V_old + a_L ⋅ Δt/2.
+	/// Update particle positions: \( x = x + V_x \cdot \Delta t \)
+	/// 2. Acceleration semistep: \( V_- = V_{\text{old}} + a_L \cdot \frac{\Delta t}{2} \)
 	MathVector<double> v_minus{m_velocity + a_L * time_step / 2.};
 
-	// 3. Rotation:
-	/*
-		t = qBΔt/(2m).
-		s = 2t/(1 + |t|^2).
-		V' = V_- + V_- × t.
-		V_+ = V_- + V' × s.
-	*/
+	/// 3. Rotation:
+	/// \f{align}{
+	/// t &= \frac{q B \Delta t}{2 m},
+	/// s &= \frac{2 t}{1 + |t|^2},
+	/// V' &= V_- + V_- \times t,
+	/// V_+ &= V_- + V' \times s.
+	/// \f}
 	MathVector<double> t{getCharge() * magneticInduction * time_step / (2. * getMass())},
 		s{2. * t / (1 + t.module() * t.module())},
 		v_apostrophe{v_minus + v_minus.crossProduct(t)},
 		v_plus{v_minus + v_apostrophe.crossProduct(s)};
 
-	// 4. Final acceleration semistep: v_upd = v_+ + a_L ⋅ Δt/2.
+	/// 4. Final acceleration semistep: \( v_{\text{upd}} = V_+ + a_L \cdot \frac{\Delta t}{2} \)
+	/// \( E_{\text{cell}} = \sum (\varphi_i \cdot \nabla \varphi_i) \), where \( i \) is the global index of the node.
 	m_velocity = v_plus + a_L * time_step / 2.;
+
+	// 5. Updating energy after updating velocity:
+	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), m_velocity.getX(), m_velocity.getY(), m_velocity.getZ());
 }
 
 std::ostream &operator<<(std::ostream &os, Particle const &particle)

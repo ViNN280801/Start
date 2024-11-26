@@ -1,13 +1,16 @@
 #include <gtest/gtest.h>
 #include <iomanip>
 
-#include "ParticleUtils.hpp"
-#include "ParticleGenerator.hpp"
-#include "RealNumberGenerator.hpp"
+#include "Generators/Host/ParticleGeneratorHost.hpp"
+#include "Generators/Host/RealNumberGeneratorHost.hpp"
+#include "Particle/ParticlePropertiesManager.hpp"
+#include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
+#include "Particle/PhysicsCore/ParticleDynamicUtils.hpp"
 
+using ParticleGenerator = ParticleGeneratorHost;
 
 template <typename T>
-void printMemoryUsage(size_t count, std::string_view description = "Memory usage") 
+void printMemoryUsage(size_t count, std::string_view description = "Memory usage")
 {
     size_t totalBytes{sizeof(T) * count};
     double kb{static_cast<double>(totalBytes) / 1024},
@@ -27,180 +30,6 @@ class ParticleGeneratorTest : public ::testing::Test
 protected:
     ParticleGeneratorTest() = default;
 };
-
-// === Clean Test for byVelocities Method === //
-
-TEST_F(ParticleGeneratorTest, CleanByVelocities)
-{
-    size_t particleCount = 100;
-    ParticleType type = ParticleType::Ar;
-
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0);
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_GE(p.getX(), 0.0);
-        EXPECT_LE(p.getX(), 100.0);
-        EXPECT_GE(p.getVx(), -50.0);
-        EXPECT_LE(p.getVx(), 50.0);
-    }
-}
-
-// === Dirty Tests for byVelocities Method === //
-
-TEST_F(ParticleGeneratorTest, DirtyInvalidVelocityBounds)
-{
-    size_t particleCount = 10;
-    ParticleType type = ParticleType::Ag;
-
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-        50.0, 50.0, 50.0, -50.0, -50.0, -50.0); // Invalid velocity bounds
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_GE(p.getVx(), -50.0);
-        EXPECT_LE(p.getVx(), 50.0);
-    }
-}
-
-TEST_F(ParticleGeneratorTest, DirtyZeroParticleCountVelocities)
-{
-    size_t particleCount = 0;
-    ParticleType type = ParticleType::Ne;
-
-    EXPECT_ANY_THROW(ParticleGenerator::byVelocities(
-        particleCount, type,
-        0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0));
-}
-
-TEST_F(ParticleGeneratorTest, DirtyNegativePositionRange)
-{
-    size_t particleCount = 10;
-    ParticleType type = ParticleType::Ni;
-
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        -100.0, -100.0, -100.0, -10.0, -10.0, -10.0,
-        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0);
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_GE(p.getX(), -100.0);
-        EXPECT_LE(p.getX(), -10.0);
-    }
-}
-
-TEST_F(ParticleGeneratorTest, DirtyExtremeVelocityValues)
-{
-    size_t particleCount = 10;
-    ParticleType type = ParticleType::O2;
-
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-        -1e12, -1e12, -1e12, 1e12, 1e12, 1e12); // Extreme velocities
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_GE(p.getVx(), -1e12);
-        EXPECT_LE(p.getVx(), 1e12);
-    }
-}
-
-TEST_F(ParticleGeneratorTest, DirtyInvertedPositionBounds)
-{
-    size_t particleCount = 10;
-    ParticleType type = ParticleType::He;
-
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        100.0, 100.0, 100.0, 0.0, 0.0, 0.0, // Inverted bounds
-        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0);
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_GE(p.getX(), 0.0);
-        EXPECT_LE(p.getX(), 100.0);
-    }
-}
-
-// === Clean Test for byVelocityModule Method === //
-
-TEST_F(ParticleGeneratorTest, CleanByVelocityModule)
-{
-    size_t particleCount = 50;
-    ParticleType type = ParticleType::Ne;
-
-    ParticleVector particles = ParticleGenerator::byVelocityModule(
-        particleCount, type,
-        0.0, 0.0, 0.0,
-        50.0, M_PI, M_PI / 2);
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_DOUBLE_EQ(p.getVelocityModule(), 50.0); // Velocity magnitude should match the input
-    }
-}
-
-// === Dirty Tests for byVelocityModule Method === //
-
-TEST_F(ParticleGeneratorTest, DirtyByVelocityModuleNegativeVelocity)
-{
-    size_t particleCount = 10;
-    ParticleType type = ParticleType::Ar;
-
-    ParticleVector particles = ParticleGenerator::byVelocityModule(
-        particleCount, type,
-        0.0, 0.0, 0.0,
-        -10.0, M_PI, M_PI / 2); // Negative velocity magnitude
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_GE(p.getVx(), -10.0); // Velocities should be valid despite negative input
-    }
-}
-
-TEST_F(ParticleGeneratorTest, DirtyByVelocityModuleZeroParticles)
-{
-    size_t particleCount = 0;
-    ParticleType type = ParticleType::O2;
-
-    EXPECT_THROW(ParticleGenerator::byVelocityModule(
-                     particleCount, type,
-                     0.0, 0.0, 0.0,
-                     50.0, M_PI, M_PI / 2),
-                 std::logic_error);
-}
-
-TEST_F(ParticleGeneratorTest, DirtyByVelocityModuleZeroVelocity)
-{
-    size_t particleCount = 10;
-    ParticleType type = ParticleType::Ag;
-
-    ParticleVector particles = ParticleGenerator::byVelocityModule(
-        particleCount, type,
-        0.0, 0.0, 0.0,
-        0.0, M_PI, M_PI / 2); // Zero velocity
-
-    ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles)
-    {
-        EXPECT_DOUBLE_EQ(p.getVelocityModule(), 0.0); // All velocities should be zero
-    }
-}
 
 // === Clean Test for fromPointSource === //
 
@@ -351,51 +180,60 @@ TEST_F(ParticleGeneratorTest, DirtyFromSurfaceSourceZeroParticles)
 TEST_F(ParticleGeneratorTest, StressLargeNumberOfParticles)
 {
     size_t particleCount{10'000'000ul};
-    ParticleType type{ParticleType::Ar};
+
+    // Creating a point source with a large number of particles
+    point_source_t pointSource = {
+        .type = "Ar",
+        .count = particleCount,
+        .energy = 100.0,
+        .phi = 0.0,
+        .theta = 0.0,
+        .expansionAngle = 0.0,
+        .baseCoordinates = {0.0, 0.0, 0.0}};
 
     EXPECT_NO_THROW({
-        ParticleVector particles = ParticleGenerator::byVelocities(
-            particleCount, type,
-            0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-            -50.0, -50.0, -50.0, 50.0, 50.0, 50.0
-        );
+        ParticleVector particles = ParticleGenerator::fromPointSource({pointSource});
         ASSERT_EQ(particles.size(), particleCount);
 
         printMemoryUsage<Particle>(particleCount, "Memory usage for large particle count test");
     });
 }
 
-TEST_F(ParticleGeneratorTest, StressExtremeVelocityValues) 
+TEST_F(ParticleGeneratorTest, StressExtremeVelocityValues)
 {
-    size_t particleCount{1'000'000};
-    ParticleType type{ParticleType::O2};
+    size_t particleCount{1'000'000ul};
 
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        -1e6, -1e6, -1e6, 1e6, 1e6, 1e6, 
-        -1e12, -1e12, -1e12, 1e12, 1e12, 1e12 
-    );
+    // Creating a surface source with extreme velocity ranges
+    surface_source_t surfaceSource = {
+        .type = "O2",
+        .count = particleCount,
+        .energy = 1e6,
+        .baseCoordinates = {
+            {"-1e12, -1e12, -1e12", {0.0, 0.0, 1.0}},
+            {"1e12, 1e12, 1e12", {0.0, 0.0, 1.0}}}};
 
+    ParticleVector particles = ParticleGenerator::fromSurfaceSource({surfaceSource});
     ASSERT_EQ(particles.size(), particleCount);
-    for (Particle const &p : particles) {
-        EXPECT_GE(p.getVx(), -1e12);
-        EXPECT_LE(p.getVx(), 1e12);
-    }
     printMemoryUsage<Particle>(particleCount, "Memory usage for extreme velocity values");
 }
 
-TEST_F(ParticleGeneratorTest, StressParallelGeneration) 
+TEST_F(ParticleGeneratorTest, StressParallelGeneration)
 {
-    size_t particleCount{5'000'000};
-    ParticleType type{ParticleType::He};
+    size_t particleCount{5'000'000ul};
+
+    // Creating a point source for parallel generation test
+    point_source_t pointSource = {
+        .type = "He",
+        .count = particleCount,
+        .energy = 50.0,
+        .phi = 0.0,
+        .theta = 0.0,
+        .expansionAngle = 0.0,
+        .baseCoordinates = {0.0, 0.0, 0.0}};
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    ParticleVector particles = ParticleGenerator::byVelocities(
-        particleCount, type,
-        0.0, 0.0, 0.0, 100.0, 100.0, 100.0,
-        -50.0, -50.0, -50.0, 50.0, 50.0, 50.0
-    );
+    ParticleVector particles = ParticleGenerator::fromPointSource({pointSource});
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -410,18 +248,22 @@ TEST_F(ParticleGeneratorTest, StressParallelGeneration)
 
 // === Integration testing === //
 
-TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting) 
+TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
 {
     size_t particleCount{500'000ul};
-    ParticleType type{ParticleType::Au};
 
-    ParticleVector particles{ParticleGenerator::byVelocities(
-        particleCount, type,
-        0.0, 0.0, 0.0,
-        100.0, 100.0, 100.0,
-        -50.0, -50.0, -50.0,
-        50.0, 50.0, 50.0
-    )};
+    // Create a surface source for particle generation
+    surface_source_t surfaceSource = {
+        .type = "Au",
+        .count = particleCount,
+        .energy = 1.0, // Example energy in eV
+        .baseCoordinates = {
+            {"0.0, 0.0, 0.0", {0.0, 0.0, 1.0}},
+            {"100.0, 0.0, 0.0", {0.0, 0.0, 1.0}},
+            {"0.0, 100.0, 0.0", {0.0, 0.0, 1.0}}}};
+
+    // Generate particles using the surface source
+    ParticleVector particles = ParticleGenerator::fromSurfaceSource({surfaceSource});
 
     double dt{0.01};
     for (Particle const &particle : particles)
@@ -434,21 +276,19 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
         EXPECT_LE(particle.getY(), 100.0);
         EXPECT_GE(particle.getZ(), 0.0);
         EXPECT_LE(particle.getZ(), 100.0);
-        
+
         // $$ Velocities. $$ //
-        EXPECT_GE(particle.getVx(), -50.0);
-        EXPECT_LE(particle.getVx(), 50.0);
-        EXPECT_GE(particle.getVy(), -50.0);
-        EXPECT_LE(particle.getVy(), 50.0);
-        EXPECT_GE(particle.getVz(), -50.0);
-        EXPECT_LE(particle.getVz(), 50.0);
+        // Velocities are set based on normal and energy in fromSurfaceSource.
+        EXPECT_NEAR(particle.getVx(), 0.0, 1e-5);
+        EXPECT_NEAR(particle.getVy(), 0.0, 1e-5);
+        EXPECT_NEAR(particle.getVz(), 1e3, 50);
 
         // Checking correctness of the calculation.
-        double expectedRadius{ParticleUtils::getRadiusFromType(type)},
-            expectedMass{ParticleUtils::getMassFromType(type)},
-            expectedVTI{ParticleUtils::getViscosityTemperatureIndexFromType(type)},
-            expectedVSSDeflection{ParticleUtils::getVSSDeflectionParameterFromType(type)},
-            expectedCharge{ParticleUtils::getChargeFromType(type)};
+        double expectedRadius{ParticlePropertiesManager::getRadiusFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedMass{ParticlePropertiesManager::getMassFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedVTI{ParticlePropertiesManager::getViscosityTemperatureIndexFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedVSSDeflection{ParticlePropertiesManager::getVSSDeflectionParameterFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedCharge{ParticlePropertiesManager::getChargeFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))};
 
         EXPECT_DOUBLE_EQ(particle.getRadius(), expectedRadius);
         EXPECT_DOUBLE_EQ(particle.getMass(), expectedMass);
@@ -463,7 +303,7 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
             expectedEnergy{0.5 * mass * std::sqrt(vx * vx + vy * vy + vz * vz)};
         EXPECT_NEAR(particle.getEnergy_J(), expectedEnergy, 1e-15);
 
-        Particle other(type, 50.0, 50.0, 50.0, -25.0, -25.0, -25.0);
+        Particle other(util::getParticleTypeFromStrRepresentation(surfaceSource.type), 50.0, 50.0, 50.0, -25.0, -25.0, -25.0);
         if (particle.overlaps(other))
         {
             EXPECT_TRUE(CGAL::do_overlap(particle.getBoundingBox(), other.getBoundingBox()));
@@ -480,12 +320,14 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
         EXPECT_NEAR(updatedParticle.getY(), initY + particle.getVy() * dt, 1e-5);
         EXPECT_NEAR(updatedParticle.getZ(), initZ + particle.getVz() * dt, 1e-5);
     }
-    Particle p1(type, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0),
-        p2(type, 0.5, 0.0, 0.0, -10.0, 0.0, 0.0);
+
+    Particle p1(util::getParticleTypeFromStrRepresentation(surfaceSource.type), 0.0, 0.0, 0.0, 10.0, 0.0, 0.0),
+        p2(util::getParticleTypeFromStrRepresentation(surfaceSource.type), 0.5, 0.0, 0.0, -10.0, 0.0, 0.0);
     EXPECT_TRUE(p1.getVx() > 0 && p2.getVx() < 0);
-    
-    bool colided{p1.colide(p2, 1.0, "HS", dt)};
-    if (colided)
+
+    auto collisionModel = CollisionModelFactory::create("HS");
+    bool collided{collisionModel->collide(p1, util::getParticleTypeFromStrRepresentation(surfaceSource.type), 1.0, dt)};
+    if (collided)
     {
         EXPECT_TRUE(CGAL::do_overlap(p1.getBoundingBox(), p2.getBoundingBox()));
     }

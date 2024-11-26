@@ -7,10 +7,13 @@ using json = nlohmann::json;
 #include "DataHandling/HDF5Handler.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
+#include "FiniteElementMethod/FEMInitializer.hpp"
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "FiniteElementMethod/FEMPrinter.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
+#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
@@ -29,8 +32,10 @@ void ModelingMainDriver::_broadcastTriangleMesh()
     if (rank == 0)
         numTriangles = _triangleMesh.size();
 
+#ifdef USE_MPI
     // Broadcast the number of triangles.
     MPI_Bcast(std::addressof(numTriangles), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+#endif
 
     // Prepare arrays for sending or receiving.
     std::vector<size_t> triangleIds(numTriangles);
@@ -62,11 +67,13 @@ void ModelingMainDriver::_broadcastTriangleMesh()
         }
     }
 
+#ifdef USE_MPI
     // Broadcast the data arrays.
     MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(counters.data(), numTriangles, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
 
     if (rank != 0)
     {
@@ -122,77 +129,41 @@ void ModelingMainDriver::_initializeParticles()
     if (m_config.isParticleSourcePoint())
     {
         auto tmp{ParticleGenerator::fromPointSource(m_config.getParticleSourcePoints())};
-        if (!tmp.empty())
-            m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
+        ParticleVector h_particles{ParticleDeviceMemoryConverter::copyToHost(tmp)};
+        if (!h_particles.empty())
+            m_particles.insert(m_particles.end(), std::begin(h_particles), std::end(h_particles));
     }
     if (m_config.isParticleSourceSurface())
     {
         auto tmp{ParticleGenerator::fromSurfaceSource(m_config.getParticleSourceSurfaces())};
-        if (!tmp.empty())
-            m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
+        ParticleVector h_particles{ParticleDeviceMemoryConverter::copyToHost(tmp)};
+        if (!h_particles.empty())
+            m_particles.insert(m_particles.end(), std::begin(h_particles), std::end(h_particles));
     }
 
     if (m_particles.empty())
         throw std::runtime_error("Particles are uninitialized, check your configuration file");
 }
 
-void ModelingMainDriver::_initialize()
+void ModelingMainDriver::_ginitialize()
 {
     _initializeSurfaceMesh();
     _initializeSurfaceMeshAABB();
+    _initializeParticles();
 }
 
-void ModelingMainDriver::_initializeFEM(std::shared_ptr<GSMAssemblier> &assemblier,
-                                        std::shared_ptr<CubicGrid> &cubicGrid,
-                                        std::map<GlobalOrdinal, double> &boundaryConditions,
-                                        std::shared_ptr<VectorManager> &solutionVector)
+void ModelingMainDriver::_updateSurfaceMesh()
 {
-    // Assembling global stiffness matrix from the mesh file.
-    assemblier = std::make_shared<GSMAssemblier>(m_config.getMeshFilename(), CellType::Tetrahedron, m_config.getDesiredCalculationAccuracy(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER);
+    // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
+    auto mapEnd{_settledParticlesCounterMap.cend()};
+    for (auto &meshParam : _triangleMesh)
+        if (auto it{_settledParticlesCounterMap.find(std::get<0>(meshParam))}; it != mapEnd)
+            std::get<3>(meshParam) = it->second;
 
-    // Creating cubic grid for the tetrahedron mesh.
-    cubicGrid = std::make_shared<CubicGrid>(assemblier->getMeshManager(), m_config.getEdgeSize());
-
-    // Setting boundary conditions.
-    for (auto const &[nodeIds, value] : m_config.getBoundaryConditions())
-        for (GlobalOrdinal nodeId : nodeIds)
-            boundaryConditions[nodeId] = value;
-    BoundaryConditionsManager::set(assemblier->getGlobalStiffnessMatrix(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
-
-    // Initializing the solution vector.
-    solutionVector = std::make_shared<VectorManager>(assemblier->getRows());
-    solutionVector->clear();
-}
-
-std::optional<size_t> ModelingMainDriver::_isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle)
-{
-    // Returning invalid index if ray or triangle is degenerate
-    if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
-        return std::nullopt;
-
-    return (RayTriangleIntersection::isIntersectTriangle(ray, std::get<1>(triangle)))
-               ? std::optional<size_t>{std::get<0>(triangle)}
-               : std::nullopt;
-}
-
-unsigned int ModelingMainDriver::_getNumThreads() const
-{
-    if (auto curThreads{m_config.getNumThreads()}; curThreads < 1 || curThreads > std::thread::hardware_concurrency())
-        throw std::runtime_error("The number of threads requested (1) exceeds the number of hardware threads supported by the system (" +
-                                 std::to_string(curThreads) +
-                                 "). Please run on a system with more resources.");
-
-    unsigned int num_threads{m_config.getNumThreads()},
-        hardware_threads{std::thread::hardware_concurrency()},
-        threshold{static_cast<unsigned int>(hardware_threads * 0.8)};
-    if (num_threads > threshold)
-    {
-        WARNINGMSG(util::stringify("Warning: The number of threads requested (", num_threads,
-                                   ") is close to or exceeds 80% of the available hardware threads (", hardware_threads, ").",
-                                   " This might cause the system to slow down or become unresponsive because the system also needs resources for its own tasks."));
-    }
-
-    return num_threads;
+    std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
+    hdf5filename += ".hdf5";
+    HDF5Handler hdf5handler(hdf5filename);
+    hdf5handler.saveMeshToHDF5(_triangleMesh);
 }
 
 void ModelingMainDriver::_saveParticleMovements() const
@@ -228,26 +199,7 @@ void ModelingMainDriver::_saveParticleMovements() const
             throw std::ios_base::failure("Failed to open file for writing");
         LOGMSG(util::stringify("Successfully written particle movements to the file ", filepath));
 
-        // Verify JSON file content after saving.
-        std::ifstream infile(filepath);
-        json loadedJson;
-        if (infile.is_open())
-        {
-            infile >> loadedJson;
-            infile.close();
-
-            // Check if the file contains null or is incorrectly formatted.
-            if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
-            {
-                throw std::runtime_error("File content is invalid. Ensure the format is like this:\n"
-                                         "{\n"
-                                         "    \"0\": [{\"x\": 0.0, \"y\": 0.0, \"z\": 0.0}, {\"x\": 1.0, \"y\": 1.0, \"z\": 1.0}],\n"
-                                         "    \"1\": [{\"x\": 0.0, \"y\": 1.0, \"z\": 2.0}, {\"x\": 1.0, \"y\": 2.0, \"z\": 3.0}]\n"
-                                         "}");
-            }
-        }
-        else
-            throw std::ios_base::failure("Failed to open file for reading back and check its content.");
+        util::check_json_validity(filepath);
     }
     catch (std::ios_base::failure const &e)
     {
@@ -263,18 +215,10 @@ void ModelingMainDriver::_saveParticleMovements() const
     }
 }
 
-void ModelingMainDriver::_updateSurfaceMesh()
+void ModelingMainDriver::_gfinalize()
 {
-    // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
-    auto mapEnd{_settledParticlesCounterMap.cend()};
-    for (auto &meshParam : _triangleMesh)
-        if (auto it{_settledParticlesCounterMap.find(std::get<0>(meshParam))}; it != mapEnd)
-            std::get<3>(meshParam) = it->second;
-
-    std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
-    hdf5filename += ".hdf5";
-    HDF5Handler hdf5handler(hdf5filename);
-    hdf5handler.saveMeshToHDF5(_triangleMesh);
+    _updateSurfaceMesh();
+    _saveParticleMovements();
 }
 
 template <typename Function, typename... Args>
@@ -330,12 +274,11 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_con
         WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", _gasConcentration, ". Simulation might considerably slows down"));
     }
 
-    // Initializing all the objects from the mesh.
-    _initialize();
-
-    // Spawning particles.
-    _initializeParticles();
+    // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
+    _ginitialize();
 }
+
+ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_index, double t,
                                                  std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssemblier> assemblier,
@@ -346,22 +289,7 @@ void ModelingMainDriver::_processParticleTracker(size_t start_index, size_t end_
 #ifdef USE_OMP
         // Check if the requested number of threads exceeds available hardware concurrency.
         unsigned int availableThreads{std::thread::hardware_concurrency()};
-        auto num_threads{m_config.getNumThreads()};
-
-        // Handle case where numThreads is zero.
-        if (num_threads == 0)
-        {
-            ERRMSG("Error: The number of threads must be greater than 0.");
-            std::exit(EXIT_FAILURE);
-        }
-
-        // Check if requested threads exceed available hardware threads.
-        if (num_threads > availableThreads)
-        {
-            ERRMSG(util::stringify("Error: The number of threads requested (", num_threads,
-                                   ") exceeds the available hardware threads (", availableThreads, ")."));
-            std::exit(EXIT_FAILURE);
-        }
+        auto num_threads{m_config.getNumThreads_s()};
 
         omp_set_num_threads(num_threads);
 
@@ -683,7 +611,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                     continue;
 
                 // Updating velocity of the particle according to the collision with gas.
-                particle.colide(m_config.getGas(), _gasConcentration, m_config.getScatteringModel(), m_config.getTimeStep());
+                auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
+                bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                 // Skip collision detection at initial time.
                 if (t == 0.0)
@@ -707,7 +636,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
 
                 if (matchedIt != _triangleMesh.cend())
                 {
-                    auto id = _isRayIntersectTriangle(ray, *matchedIt);
+                    auto id = Mesh::isRayIntersectTriangle(ray, *matchedIt);
                     if (id)
                     {
                         bool stopProcessing = false;
@@ -735,7 +664,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                     }
                 }
             } // end of for loop.
-        } // end of parallel region.
+        }     // end of parallel region.
 #else
         MagneticInduction magneticInduction{}; // For brevity assuming that induction vector B is 0.
         std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index,
@@ -755,8 +684,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               if (std::ranges::find_if(particlesInside, [particle](Particle const &storedParticle)
                                                        { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
 #else
-                              if (std::find_if(particlesInside, [particle](Particle const &storedParticle)
-                                                       { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
+                    if (std::find_if(particlesInside, [particle](Particle const &storedParticle)
+                                     { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
 #endif
                               {
                                   containingTetrahedron = tetraId;
@@ -789,7 +718,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               return;
 
                           // Updating velocity of the particle according to the coliding with gas.
-                          particle.colide(m_config.getGas(), _gasConcentration, m_config.getScatteringModel(), m_config.getTimeStep());
+                          auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
+                          bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                           // There is no need to check particle collision with surface mesh in initial time moment of the simulation (when t = 0).
                           if (t == 0.0)
@@ -807,12 +737,12 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                           auto matchedIt{std::ranges::find_if(_triangleMesh, [triangle](auto const &el)
                                                               { return triangle == std::get<1>(el); })};
 #else
-                          auto matchedIt{std::find_if(_triangleMesh, [triangle](auto const &el)
-                                                              { return triangle == std::get<1>(el); })};
+                auto matchedIt{std::find_if(_triangleMesh, [triangle](auto const &el)
+                                            { return triangle == std::get<1>(el); })};
 #endif
                           if (matchedIt != _triangleMesh.cend())
                           {
-                              auto id{_isRayIntersectTriangle(ray, *matchedIt)};
+                              auto id{Mesh::isRayIntersectTriangle(ray, *matchedIt)};
                               if (id)
                               {
                                   {
@@ -851,14 +781,14 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
 void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
-    std::shared_ptr<GSMAssemblier> assemblier;
-    std::shared_ptr<CubicGrid> cubicGrid;
-    std::map<GlobalOrdinal, double> boundaryConditions;
-    std::shared_ptr<VectorManager> solutionVector;
-    _initializeFEM(assemblier, cubicGrid, boundaryConditions, solutionVector);
+    FEMInitializer feminit(m_config);
+    auto assemblier{feminit.getGlobalStiffnessMatrixAssemblier()};
+    auto cubicGrid{feminit.getCubicGrid()};
+    auto boundaryConditions{feminit.getBoundaryConditions()};
+    auto solutionVector{feminit.getEquationRHS()};
     /* Ending of the FEM initialization. */
 
-    [[maybe_unused]] auto num_threads{_getNumThreads()};
+    [[maybe_unused]] auto num_threads{m_config.getNumThreads_s()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
 #if __cplusplus >= 202002L
@@ -887,7 +817,7 @@ void ModelingMainDriver::startModeling()
         // 2. Solve equation in the main thread.
         _solveEquation(nodeChargeDensityMap, assemblier, solutionVector, boundaryConditions, t);
 
-// 3. Process surface collision tracking in parallel.
+        // 3. Process surface collision tracking in parallel.
 #ifdef USE_OMP
         _processPIC_and_SurfaceCollisionTracker(0, m_particles.size(), t, cubicGrid, assemblier);
 #else
@@ -899,9 +829,5 @@ void ModelingMainDriver::startModeling()
         _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, assemblier);
 #endif
     }
-
-    _updateSurfaceMesh();
-    _saveParticleMovements();
-
     LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
 }

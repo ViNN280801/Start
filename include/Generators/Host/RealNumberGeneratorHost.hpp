@@ -1,5 +1,5 @@
-#ifndef REALNUMBERGENERATOR_HPP
-#define REALNUMBERGENERATOR_HPP
+#ifndef REALNUMBERGENERATORHOST_HPP
+#define REALNUMBERGENERATORHOST_HPP
 
 #include <random>
 #include <vector>
@@ -12,7 +12,7 @@
  * within a specified interval and allows the configuration of upper and lower
  * bounds for the generated numbers.
  */
-class RealNumberGenerator final
+class RealNumberGeneratorHost final
 {
 private:
     double m_from{kdefault_min_value}, // Lower bound.
@@ -29,29 +29,29 @@ private:
 
 public:
     /**
-     * @brief Constructs a RealNumberGenerator with default bounds (0.0, 1.0).
+     * @brief Constructs a RealNumberGeneratorHost with default bounds (0.0, 1.0).
      *
      * Initializes the random number generator with a non-deterministic seed.
      */
-    RealNumberGenerator();
+    RealNumberGeneratorHost();
 
     /**
-     * @brief Constructs a RealNumberGenerator with specified bounds.
+     * @brief Constructs a RealNumberGeneratorHost with specified bounds.
      *
      * Initializes the random number generator with the provided bounds [from, to].
      *
      * @param from Lower bound for generated numbers.
      * @param to Upper bound for generated numbers.
      */
-    RealNumberGenerator(double from, double to);
+    RealNumberGeneratorHost(double from, double to);
 
     /**
-     * @brief Destructor for RealNumberGenerator.
+     * @brief Destructor for RealNumberGeneratorHost.
      *
-     * Default destructor for RealNumberGenerator. It performs no special cleanup as the class
+     * Default destructor for RealNumberGeneratorHost. It performs no special cleanup as the class
      * does not manage any resources that require manual handling.
      */
-    ~RealNumberGenerator() = default;
+    ~RealNumberGeneratorHost() = default;
 
     /**
      * @brief Generates a random real number in the configured interval [m_from, m_to].
@@ -114,4 +114,4 @@ public:
     std::vector<double> get_sequence(size_t count, double from = 0.0, double to = 1.0);
 };
 
-#endif // !REALNUMBERGENERATOR_HPP
+#endif // !REALNUMBERGENERATORHOST_HPP

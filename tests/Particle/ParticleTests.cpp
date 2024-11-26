@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "../include/Particle/Particle.hpp"
+#include "Particle/Particle.hpp"
+#include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
 
 static constexpr std::array<double, 3> thetaPhi{1, 1, 1};
 
@@ -141,7 +142,7 @@ TEST(ParticleTest, EnergyGetters)
 {
     Particle particle(ParticleType::Ar, 0, 0, 0, 1, thetaPhi);
 
-    EXPECT_DOUBLE_EQ(particle.getEnergy_eV(), 1);                    // Should return 1 joules
+    EXPECT_DOUBLE_EQ(particle.getEnergy_eV(), 1);                        // Should return 1 joules
     EXPECT_NEAR(particle.getEnergy_J(), 1.0 / 6.241506363094e+18, 1e10); // Should return 1 eV
 }
 
@@ -154,21 +155,30 @@ TEST(ParticleTest, VelocityModule)
 
 TEST(ParticleTest, HardSphereCollision)
 {
-    Particle projective(ParticleType::Ti, 0, 0, 0, 1, thetaPhi), gas(ParticleType::Ar);
-    EXPECT_TRUE(projective.colideHS(gas, 1.0e20, 0.01));
-    EXPECT_FALSE(projective.colideHS(gas, 1, 1));
+    Particle projective(ParticleType::Ti, 0, 0, 0, 1, thetaPhi);
+    auto gas(ParticleType::Ar);
+    auto collisionModel = CollisionModelFactory::create("HS");
+
+    EXPECT_TRUE(collisionModel->collide(projective, gas, 1.0e20, 0.01));
+    EXPECT_FALSE(collisionModel->collide(projective, gas, 1, 1));
 }
 
 TEST(ParticleTest, VariableHardSphereCollision)
 {
-    Particle projective(ParticleType::Ag, 0, 0, 0, 1, thetaPhi), gas(ParticleType::Ne);
-    EXPECT_TRUE(projective.colideVHS(gas, 1.0e20, gas.getViscosityTemperatureIndex(), 0.01));
-    EXPECT_FALSE(projective.colideVHS(gas, 1, gas.getViscosityTemperatureIndex(), 1));
+    Particle projective(ParticleType::Ag, 0, 0, 0, 1, thetaPhi);
+    auto gas(ParticleType::Ne);
+    auto collisionModel = CollisionModelFactory::create("VHS");
+
+    EXPECT_TRUE(collisionModel->collide(projective, gas, 1.0e20, 0.01));
+    EXPECT_FALSE(collisionModel->collide(projective, gas, 1, 1));
 }
 
 TEST(ParticleTest, VariableSoftSphereCollision)
 {
-    Particle projective(ParticleType::Au, 0, 0, 0, 1, thetaPhi), gas(ParticleType::He);
-    EXPECT_TRUE(projective.colideVSS(gas, 1.0e20, gas.getViscosityTemperatureIndex(), gas.getVSSDeflectionParameter(), 0.01));
-    EXPECT_FALSE(projective.colideVSS(gas, 1, gas.getViscosityTemperatureIndex(), gas.getVSSDeflectionParameter(), 1));
+    Particle projective(ParticleType::Au, 0, 0, 0, 1, thetaPhi);
+    auto gas(ParticleType::He);
+    auto collisionModel = CollisionModelFactory::create("VSS");
+
+    EXPECT_TRUE(collisionModel->collide(projective, gas, 1.0e20, 0.01));
+    EXPECT_FALSE(collisionModel->collide(projective, gas, 1, 1));
 }

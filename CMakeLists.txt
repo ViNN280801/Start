@@ -1,7 +1,8 @@
+# CMakeLists.txt
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # --------{---(@    Setting custom options with default values   @}}>-----
-option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" OFF)
+option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
@@ -126,7 +127,7 @@ if(GPU_CUDA_ON)
     set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
 
     set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
-        "--expt-extended-lambda -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
+        "--expt-extended-lambda --expt-relaxed-constexpr -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
     )
     set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
@@ -217,7 +218,7 @@ if(GPU_CUDA_ON)
       "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES={${CMAKE_CUDA_ARCHITECTURES}}"
   )
 
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda --expt-relaxed-constexpr")
   message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
   # ############################################################################
   # End of CUDA Setup                        #
@@ -648,6 +649,8 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include/Generators
   ${CMAKE_SOURCE_DIR}/include/Geometry
   ${CMAKE_SOURCE_DIR}/include/Particle
+  ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore
+  ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore/CollisionModel
   ${CMAKE_SOURCE_DIR}/include/SessionManagement
   ${CMAKE_SOURCE_DIR}/include/Utilities)
 
@@ -656,7 +659,8 @@ add_subdirectory(src)
 set(CPP_SOURCES src/main.cpp src/ModelingMainDriver.cpp)
 set(SOURCES ${CPP_SOURCES})
 if(GPU_CUDA_ON)
-  set(CUDA_SOURCES # !!! Do not forget place .cu files here !!!
+  set(CUDA_SOURCES
+
   )
   set(SOURCES ${SOURCES} ${CUDA_SOURCES})
 endif()
@@ -687,6 +691,7 @@ target_link_libraries(
           Generators
           Geometry
           Particle
+          Particle_PhysicsCore_CollisionModel
           SessionManagers
           Utilities
 )

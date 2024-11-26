@@ -1,4 +1,4 @@
-# src/FiniteElementMethod/Cell
+# src/FiniteElementMethod/Cell/CMakeLists.txt
 
 set(CELL_SOURCES
     CellSelector.cpp

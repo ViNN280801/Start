@@ -1,4 +1,4 @@
-# src/FiniteElementMethod/BoundaryConditions
+# src/FiniteElementMethod/BoundaryConditions/CMakeLists.txt
 
 set(BOUNDARY_CONDITIONS_SOURCES
     VectorBoundaryConditionsManager.cpp

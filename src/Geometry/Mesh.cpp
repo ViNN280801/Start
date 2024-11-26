@@ -83,11 +83,15 @@ double calculateVolumeOfTetrahedron(Tetrahedron const &tetrahedron)
     return std::abs(scalarTripleProduct) / 6.0;
 }
 
-size_t Mesh::isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle)
+std::optional<size_t> Mesh::isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle)
 {
+    // Returning invalid index if ray or triangle is degenerate
+    if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
+        return std::nullopt;
+
     return (RayTriangleIntersection::isIntersectTriangle(ray, std::get<1>(triangle)))
-               ? std::get<0>(triangle)
-               : std::numeric_limits<size_t>::max();
+               ? std::optional<size_t>{std::get<0>(triangle)}
+               : std::nullopt;
 }
 
 std::optional<std::tuple<size_t, Point>>

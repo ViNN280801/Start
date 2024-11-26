@@ -1,3 +1,5 @@
+# src/CMakeLists.txt
+
 add_subdirectory(DataHandling)
 add_subdirectory(FiniteElementMethod)
 add_subdirectory(Generators)
