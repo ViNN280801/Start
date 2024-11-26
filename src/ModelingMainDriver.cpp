@@ -611,7 +611,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                     continue;
 
                 // Updating velocity of the particle according to the collision with gas.
-                auto collisionModel = CollisionModelFactory::createCollisionModel(m_config.getScatteringModel());
+                auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
                 bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                 // Skip collision detection at initial time.
@@ -718,7 +718,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               return;
 
                           // Updating velocity of the particle according to the coliding with gas.
-                          auto collisionModel = CollisionModelFactory::createCollisionModel(m_config.getScatteringModel());
+                          auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
                           bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                           // There is no need to check particle collision with surface mesh in initial time moment of the simulation (when t = 0).
