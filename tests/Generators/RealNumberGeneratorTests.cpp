@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "RealNumberGenerator.hpp"
+#include "Generators/Host/RealNumberGeneratorHost.hpp"
+using RealNumberGenerator = RealNumberGeneratorHost;
 
 class RealNumberGeneratorTest : public ::testing::Test
 {

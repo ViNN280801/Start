@@ -426,8 +426,8 @@ set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
 )
 set(GENERATORS_SOURCES
-    ${GENERATORS_SRC_PATH}/ParticleGenerator.cpp
-    ${GENERATORS_SRC_PATH}/RealNumberGenerator.cpp
+    ${GENERATORS_SRC_PATH}/Host/ParticleGeneratorHost.cpp
+    ${GENERATORS_SRC_PATH}/Host/RealNumberGeneratorHost.cpp
 )
 set(GEOMETRY_SOURCES
     ${GEOMETRY_SRC_PATH}/Mesh.cpp
@@ -435,6 +435,11 @@ set(GEOMETRY_SOURCES
 )
 set(PARTICLES_SOURCES
     ${PARTICLES_SRC_PATH}/Particle.cpp
+
+    ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/CollisionModelFactory.cpp
+    ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/HSModel.cpp
+    ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/VHSModel.cpp
+    ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/VSSModel.cpp
 )
 set(UTILITIES_SOURCES
     ${UTILITIES_SRC_PATH}/Utilities.cpp
@@ -502,7 +507,6 @@ set(INCLUDE_DIRECTORIES
     ${GENERATORS_INC_PATH}
     ${GEOMETRY_INC_PATH}
     ${PARTICLES_INC_PATH}
-    ${CMAKE_SOURCE_DIR}/../include/ParticleTracker
     ${UTILITIES_INC_PATH}
 )
 

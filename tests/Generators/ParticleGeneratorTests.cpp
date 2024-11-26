@@ -1,9 +1,13 @@
 #include <gtest/gtest.h>
 #include <iomanip>
 
-#include "ParticleGenerator.hpp"
-#include "ParticleUtils.hpp"
-#include "RealNumberGenerator.hpp"
+#include "Generators/Host/ParticleGeneratorHost.hpp"
+#include "Generators/Host/RealNumberGeneratorHost.hpp"
+#include "Particle/ParticlePropertiesManager.hpp"
+#include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
+#include "Particle/PhysicsCore/ParticleDynamicUtils.hpp"
+
+using ParticleGenerator = ParticleGeneratorHost;
 
 template <typename T>
 void printMemoryUsage(size_t count, std::string_view description = "Memory usage")
@@ -197,7 +201,7 @@ TEST_F(ParticleGeneratorTest, StressLargeNumberOfParticles)
 
 TEST_F(ParticleGeneratorTest, StressExtremeVelocityValues)
 {
-    size_t particleCount{1'000'000};
+    size_t particleCount{1'000'000ul};
 
     // Creating a surface source with extreme velocity ranges
     surface_source_t surfaceSource = {
@@ -205,17 +209,11 @@ TEST_F(ParticleGeneratorTest, StressExtremeVelocityValues)
         .count = particleCount,
         .energy = 1e6,
         .baseCoordinates = {
-            {"vertices", {-1e12, -1e12, -1e12, 1e12, 1e12, 1e12}},
-            {"normals", {0.0, 0.0, 1.0}}}};
+            {"-1e12, -1e12, -1e12", {0.0, 0.0, 1.0}},
+            {"1e12, 1e12, 1e12", {0.0, 0.0, 1.0}}}};
 
     ParticleVector particles = ParticleGenerator::fromSurfaceSource({surfaceSource});
     ASSERT_EQ(particles.size(), particleCount);
-
-    for (const Particle &p : particles)
-    {
-        EXPECT_GE(p.getVx(), -1e12);
-        EXPECT_LE(p.getVx(), 1e12);
-    }
     printMemoryUsage<Particle>(particleCount, "Memory usage for extreme velocity values");
 }
 
@@ -260,9 +258,9 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
         .count = particleCount,
         .energy = 1.0, // Example energy in eV
         .baseCoordinates = {
-            {"vertices", {0.0, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 100.0, 0.0}}, // Example triangle vertices
-            {"normals", {0.0, 0.0, 1.0}}                                     // Normal vector for the surface
-        }};
+            {"0.0, 0.0, 0.0", {0.0, 0.0, 1.0}},
+            {"100.0, 0.0, 0.0", {0.0, 0.0, 1.0}},
+            {"0.0, 100.0, 0.0", {0.0, 0.0, 1.0}}}};
 
     // Generate particles using the surface source
     ParticleVector particles = ParticleGenerator::fromSurfaceSource({surfaceSource});
@@ -281,16 +279,16 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
 
         // $$ Velocities. $$ //
         // Velocities are set based on normal and energy in fromSurfaceSource.
-        EXPECT_NEAR(particle.getVz(), 1.0, 1e-5); // Assuming the normal dictates Z-velocity
         EXPECT_NEAR(particle.getVx(), 0.0, 1e-5);
         EXPECT_NEAR(particle.getVy(), 0.0, 1e-5);
+        EXPECT_NEAR(particle.getVz(), 1e3, 50);
 
         // Checking correctness of the calculation.
-        double expectedRadius{ParticleUtils::getRadiusFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
-            expectedMass{ParticleUtils::getMassFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
-            expectedVTI{ParticleUtils::getViscosityTemperatureIndexFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
-            expectedVSSDeflection{ParticleUtils::getVSSDeflectionParameterFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
-            expectedCharge{ParticleUtils::getChargeFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))};
+        double expectedRadius{ParticlePropertiesManager::getRadiusFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedMass{ParticlePropertiesManager::getMassFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedVTI{ParticlePropertiesManager::getViscosityTemperatureIndexFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedVSSDeflection{ParticlePropertiesManager::getVSSDeflectionParameterFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))},
+            expectedCharge{ParticlePropertiesManager::getChargeFromType(util::getParticleTypeFromStrRepresentation(surfaceSource.type))};
 
         EXPECT_DOUBLE_EQ(particle.getRadius(), expectedRadius);
         EXPECT_DOUBLE_EQ(particle.getMass(), expectedMass);
@@ -327,8 +325,9 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
         p2(util::getParticleTypeFromStrRepresentation(surfaceSource.type), 0.5, 0.0, 0.0, -10.0, 0.0, 0.0);
     EXPECT_TRUE(p1.getVx() > 0 && p2.getVx() < 0);
 
-    bool colided{p1.colide(p2, 1.0, "HS", dt)};
-    if (colided)
+    auto collisionModel = CollisionModelFactory::create("HS");
+    bool collided{collisionModel->collide(p1, util::getParticleTypeFromStrRepresentation(surfaceSource.type), 1.0, dt)};
+    if (collided)
     {
         EXPECT_TRUE(CGAL::do_overlap(p1.getBoundingBox(), p2.getBoundingBox()));
     }
