@@ -130,16 +130,22 @@ void ModelingMainDriver::_initializeParticles()
     if (m_config.isParticleSourcePoint())
     {
         auto tmp{ParticleGenerator::fromPointSource(m_config.getParticleSourcePoints())};
+#ifdef USE_CUDA
         ParticleVector h_particles{ParticleDeviceMemoryConverter::copyToHost(tmp)};
         if (!h_particles.empty())
             m_particles.insert(m_particles.end(), std::begin(h_particles), std::end(h_particles));
+#endif
+        m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
     }
     if (m_config.isParticleSourceSurface())
     {
         auto tmp{ParticleGenerator::fromSurfaceSource(m_config.getParticleSourceSurfaces())};
+#ifdef USE_CUDA
         ParticleVector h_particles{ParticleDeviceMemoryConverter::copyToHost(tmp)};
         if (!h_particles.empty())
             m_particles.insert(m_particles.end(), std::begin(h_particles), std::end(h_particles));
+#endif
+        m_particles.insert(m_particles.end(), std::begin(tmp), std::end(tmp));
     }
 
     if (m_particles.empty())
@@ -263,7 +269,9 @@ void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function 
         f.get();
 }
 
-ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) : m_config(config_filename), __expt_m_config_filename(config_filename)
+ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) 
+    : __expt_m_config_filename(config_filename), 
+      m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
@@ -399,7 +407,7 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
 
                 // Updating velocity of the particle according to the collision with gas.
                 auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
-                bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
+                collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                 // Skip collision detection at initial time.
                 if (t == 0.0)
