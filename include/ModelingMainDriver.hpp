@@ -43,7 +43,7 @@
 class ModelingMainDriver final
 {
 private:
-    std::string __expt_m_config_filename;
+    std::string m_config_filename; ///< Filename of the configuration to parse it.
 
     static constexpr short const kdefault_max_numparticles_to_anim{5'000}; ///< Maximal count of particles to do animation.
 
@@ -150,23 +150,6 @@ private:
      */
     template <typename Function, typename... Args>
     void _processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_plicy, Args &&...args);
-
-    /**
-     * @brief Solves the equation for the system using node charge density and boundary conditions.
-     *
-     * This function solves the system of equations based on the provided node charge density map
-     * and boundary conditions. It updates the solution vector accordingly.
-     *
-     * @param nodeChargeDensityMap A reference to a map containing the charge density at each node.
-     * @param gsmAssembler A shared pointer to the GSM assembler that constructs the system of equations.
-     * @param solutionVector A shared pointer to the vector manager that holds the solution.
-     * @param boundaryConditions A reference to a map containing boundary conditions for the system.
-     * @param time The current simulation time.
-     */
-    void _solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                        std::shared_ptr<GSMAssembler> &gsmAssembler,
-                        std::shared_ptr<VectorManager> &solutionVector,
-                        std::map<GlobalOrdinal, double> &boundaryConditions, double time);
 
     /**
      * @brief Processes particle-in-cell (PIC) and surface collision tracking within a particle range.

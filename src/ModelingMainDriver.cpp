@@ -14,6 +14,7 @@ using json = nlohmann::json;
 #include "ModelingMainDriver.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
+#include "ParticleInCellEngine/ChargeDensityEquationSolver.hpp"
 #include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
 
 std::mutex ModelingMainDriver::m_PICTracker_mutex;
@@ -270,7 +271,7 @@ void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function 
 }
 
 ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) 
-    : __expt_m_config_filename(config_filename), 
+    : m_config_filename(config_filename), 
       m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
@@ -288,44 +289,6 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
 }
 
 ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
-
-void ModelingMainDriver::_solveEquation(std::map<GlobalOrdinal, double> &nodeChargeDensityMap,
-                                        std::shared_ptr<GSMAssembler> &gsmAssembler,
-                                        std::shared_ptr<VectorManager> &solutionVector,
-                                        std::map<GlobalOrdinal, double> &boundaryConditions, double time)
-{
-    try
-    {
-        auto nonChangebleNodes{m_config.getNonChangeableNodes()};
-        for (auto const &[nodeId, nodeChargeDensity] : nodeChargeDensityMap)
-#if __cplusplus >= 202002L
-            if (std::ranges::find(nonChangebleNodes, nodeId) == nonChangebleNodes.cend())
-#else
-            if (std::find(nonChangebleNodes.cbegin(), nonChangebleNodes.cend(), nodeId) == nonChangebleNodes.cend())
-#endif
-                boundaryConditions[nodeId] = nodeChargeDensity;
-        BoundaryConditionsManager::set(solutionVector->get(), FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER, boundaryConditions);
-
-        MatrixEquationSolver solver(gsmAssembler, solutionVector);
-        auto solverParams{solver.createSolverParams(m_config.getSolverName(), m_config.getMaxIterations(), m_config.getConvergenceTolerance(),
-                                                    m_config.getVerbosity(), m_config.getOutputFrequency(), m_config.getNumBlocks(), m_config.getBlockSize(),
-                                                    m_config.getMaxRestarts(), m_config.getFlexibleGMRES(), m_config.getOrthogonalization(),
-                                                    m_config.getAdaptiveBlockSize(), m_config.getConvergenceTestFrequency())};
-        solver.solve(m_config.getSolverName(), solverParams);
-        solver.calculateElectricField(); // Getting electric field for the each cell.
-
-        solver.writeElectricPotentialsToPosFile(time);
-        solver.writeElectricFieldVectorsToPosFile(time);
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(util::stringify("Can't solve the equation: ", ex.what()));
-    }
-    catch (...)
-    {
-        ERRMSG("Some error occured while solving the matrix equation Ax=b");
-    }
-}
 
 void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
                                                                  std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler)
@@ -598,7 +561,7 @@ void ModelingMainDriver::startModeling()
 #endif
 
         NodeChargeDensityProcessor::gather(t,
-                                           __expt_m_config_filename,
+                                           m_config_filename,
                                            cubicGrid,
                                            gsmAssembler,
                                            m_particles,
@@ -607,7 +570,12 @@ void ModelingMainDriver::startModeling()
                                            nodeChargeDensityMap);
 
         // 2. Solve equation in the main thread.
-        _solveEquation(nodeChargeDensityMap, gsmAssembler, solutionVector, boundaryConditions, t);
+        ChargeDensityEquationSolver::solve(t,
+                                           m_config_filename,
+                                           nodeChargeDensityMap, 
+                                           gsmAssembler, 
+                                           solutionVector,
+                                           boundaryConditions);
 
         // 3. Process surface collision tracking in parallel.
 #ifdef USE_OMP

@@ -1,6 +1,7 @@
 # src/ParticleInCellEngine/CMakeLists.txt
 
 set(PARTICLE_IN_CELL_ENGINE_SOURCES
+    ChargeDensityEquationSolver.cpp
     NodeChargeDensityProcessor.cpp
 )
 

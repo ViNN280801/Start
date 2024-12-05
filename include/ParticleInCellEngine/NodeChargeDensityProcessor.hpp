@@ -6,36 +6,8 @@
 
 #include "FiniteElementMethod/GSMAssembler.hpp"
 #include "Geometry/CubicGrid.hpp"
-#include "Particle/Particle.hpp"
+#include "ParticleInCellEngine/PICTypes.hpp"
 #include "Utilities/ConfigParser.hpp"
-
-/**
- * @brief Map of charge densities for nodes in a mesh.
- * @details This type associates each node ID with its corresponding charge density.
- *          The structure is as follows:
- *          - Key: Node ID (GlobalOrdinal)
- *          - Value: Charge density at the node (double)
- */
-using NodeChargeDensitiesMap = std::map<GlobalOrdinal, double>;
-
-/**
- * @brief Tracker for particles inside tetrahedrons over time.
- * @details This type organizes particles by simulation time and tetrahedron ID.
- *          The structure is as follows:
- *          - Key: Simulation time (double)
- *          - Value: Map of tetrahedron ID to the particles inside it:
- *            - Key: Tetrahedron ID (size_t)
- *            - Value: Vector of particles inside the tetrahedron (ParticleVector)
- */
-using ParticleTrackerMap = std::map<double, std::map<size_t, ParticleVector>>;
-
-/**
- * @brief Set of particle IDs that have settled on a 2D mesh.
- * @details This type stores the IDs of particles that are considered settled
- *          after colliding or interacting with the 2D mesh.
- *          - Element: Particle ID (size_t)
- */
-using ParticlesIDSet = std::set<size_t>;
 
 static std::mutex g_nodeChargeDensityMap_mutex;    ///< Mutex for synchronizing access to the charge densities in nodes.
 static std::mutex g_particleTrackerMap_mutex;      ///< Mutex for synchronizing access to the particles in tetrahedrons.
