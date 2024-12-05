@@ -270,8 +270,8 @@ void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function 
         f.get();
 }
 
-ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) 
-    : m_config_filename(config_filename), 
+ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
+    : m_config_filename(config_filename),
       m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
@@ -291,14 +291,13 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
 ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler)
+                                                                 std::shared_ptr<CubicGrid> cubicGrid,
+                                                                 std::shared_ptr<GSMAssembler> gsmAssembler)
 {
     try
     {
-#ifdef USE_OMP
-        // OpenMP implementation.
         MagneticInduction magneticInduction{}; // Assuming induction vector B is 0.
-
+#ifdef USE_OMP
 #pragma omp parallel
         {
             // Each thread will process a subset of particles.
@@ -317,26 +316,14 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                 if (isSettled)
                     continue;
 
-                size_t containingTetrahedron = 0;
-
+                size_t containingTetrahedron = 0ul;
                 {
                     // Access m_particleTracker[t] safely.
                     std::lock_guard<std::mutex> lock(m_PICTracker_mutex);
-                    auto it = m_particleTracker.find(t);
-                    if (it != m_particleTracker.end())
-                    {
-                        auto &particleMap = it->second;
-                        for (auto const &[tetraId, particlesInside] : particleMap)
-                        {
-                            if (std::any_of(particlesInside.cbegin(), particlesInside.cend(),
-                                            [&particle](Particle const &storedParticle)
-                                            { return particle.getId() == storedParticle.getId(); }))
-                            {
-                                containingTetrahedron = tetraId;
-                                break;
-                            }
-                        }
-                    }
+                    auto containingTetrahedronOpt{CubicGrid::getContainingTetrahedron(m_particleTracker, particle, t)};
+                    if (!containingTetrahedronOpt.has_value())
+                        continue;
+                    containingTetrahedron = *containingTetrahedronOpt;
                 }
 
                 if (auto tetrahedron = gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron))
@@ -422,9 +409,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                     }
                 }
             } // end of for loop.
-        }     // end of parallel region.
+        } // end of parallel region.
 #else
-        MagneticInduction magneticInduction{}; // For brevity assuming that induction vector B is 0.
         std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index,
                       [this, &cubicGrid, gsmAssembler, magneticInduction, t](auto &particle)
                       {
@@ -436,19 +422,12 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                           }
 
                           size_t containingTetrahedron{};
-                          for (auto const &[tetraId, particlesInside] : m_particleTracker[t])
                           {
-#if __cplusplus >= 202002L
-                              if (std::ranges::find_if(particlesInside, [particle](Particle const &storedParticle)
-                                                       { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
-#else
-                    if (std::find_if(particlesInside, [particle](Particle const &storedParticle)
-                                     { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
-#endif
-                              {
-                                  containingTetrahedron = tetraId;
-                                  break;
-                              }
+                              std::lock_guard<std::mutex> lock(m_PICTracker_mutex);
+                              auto containingTetrahedronOpt{CubicGrid::getContainingTetrahedron(m_particleTracker, particle, t)};
+                              if (!containingTetrahedronOpt.has_value())
+                                  return;
+                              containingTetrahedron = *containingTetrahedronOpt;
                           }
 
                           if (auto tetrahedron{gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron)})
@@ -476,8 +455,8 @@ void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_in
                               return;
 
                           // Updating velocity of the particle according to the coliding with gas.
-                          auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
-                          bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
+                          auto collisionModel{CollisionModelFactory::create(m_config.getScatteringModel())};
+                          collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
 
                           // There is no need to check particle collision with surface mesh in initial time moment of the simulation (when t = 0).
                           if (t == 0.0)
@@ -572,8 +551,8 @@ void ModelingMainDriver::startModeling()
         // 2. Solve equation in the main thread.
         ChargeDensityEquationSolver::solve(t,
                                            m_config_filename,
-                                           nodeChargeDensityMap, 
-                                           gsmAssembler, 
+                                           nodeChargeDensityMap,
+                                           gsmAssembler,
                                            solutionVector,
                                            boundaryConditions);
 
