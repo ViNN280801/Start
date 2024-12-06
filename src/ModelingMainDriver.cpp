@@ -239,11 +239,7 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
 
     // Calculating and checking gas concentration.
-    _gasConcentration = util::calculateConcentration(config_filename);
-    if (_gasConcentration < constants::gasConcentrationMinimalValue)
-    {
-        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", _gasConcentration, ". Simulation might considerably slows down"));
-    }
+    _gasConcentration = util::calculateConcentration_w(config_filename);
 
     // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
     _ginitialize();

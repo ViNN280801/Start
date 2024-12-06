@@ -43,10 +43,7 @@
 class ModelingMainDriver final
 {
 private:
-    std::string m_config_filename; ///< Filename of the configuration to parse it.
-
-    static constexpr short const kdefault_max_numparticles_to_anim{5'000}; ///< Maximal count of particles to do animation.
-
+    std::string m_config_filename;                    ///< Filename of the configuration to parse it.
     static std::mutex m_PICTrackerMutex;              ///< Mutex for synchronizing access to the particles in tetrahedrons.
     static std::mutex m_nodeChargeDensityMapMutex;    ///< Mutex for synchronizing access to the charge densities in nodes.
     static std::mutex m_particlesMovementMutex;       ///< Mutex for synchronizing access to the trajectories of particles.

@@ -21,7 +21,7 @@
  * @param particleTrackerMap A map that tracks particles within tetrahedra over time.
  * @param nodeChargeDensityMap A map that stores calculated charge densities for nodes in the mesh.
  */
-static void _get__stdver__helper(
+static void _gather_stdver__helper(
     size_t start_index,
     size_t end_index,
     double timeMoment,
@@ -113,7 +113,7 @@ static void _get__stdver__helper(
  * @brief Helper function for processing charge densities using standard threading.
  * @details This function divides particle processing across threads and calculates charge densities
  *          for tetrahedra and nodes in the mesh. Results are stored in shared data structures.
- * @param num_threads Number of threads to use for processing.
+ * @param numThreads Number of threads to use for processing.
  * @param timeMoment The current simulation time step.
  * @param cubicGrid Shared pointer to a cubic grid instance for spatial indexing.
  * @param gsmAssembler Shared pointer to a GSMAssembler instance for mesh management and volume calculations.
@@ -122,8 +122,8 @@ static void _get__stdver__helper(
  * @param particleTrackerMap A map that tracks particles within tetrahedra over time.
  * @param nodeChargeDensityMap A map that stores calculated charge densities for nodes in the mesh.
  */
-static void _get__stdver__(
-    unsigned int num_threads,
+static void _gather_stdver__(
+    unsigned int numThreads,
     double timeMoment,
     std::shared_ptr<CubicGrid> cubicGrid,
     std::shared_ptr<GSMAssembler> gsmAssembler,
@@ -137,8 +137,8 @@ static void _get__stdver__(
     // different nodes, and tracking them requires processing large numbers of particles across multiple threads.
     // By using `std::launch::async`, we ensure that the processing starts immediately on separate threads,
     // maximizing CPU usage and speeding up the computation to avoid bottlenecks in the simulation.
-    ThreadedProcessor::launch(particles.size(), num_threads, std::launch::async,
-                              &_get__stdver__helper,
+    ThreadedProcessor::launch(particles.size(), numThreads, std::launch::async,
+                              &_gather_stdver__helper,
                               timeMoment,
                               cubicGrid,
                               gsmAssembler,
@@ -154,7 +154,7 @@ static void _get__stdver__(
  * @brief Helper function for processing charge densities using OpenMP.
  * @details This function uses OpenMP for parallelizing particle processing and charge density calculations.
  *          It divides the work across threads and combines results from per-thread data structures.
- * @param num_threads Number of threads to use for processing.
+ * @param numThreads Number of threads to use for processing.
  * @param numParticles Total number of particles to process.
  * @param timeMoment The current simulation time step.
  * @param cubicGrid Shared pointer to a cubic grid instance for spatial indexing.
@@ -164,8 +164,8 @@ static void _get__stdver__(
  * @param particleTrackerMap A map that tracks particles within tetrahedra over time.
  * @param nodeChargeDensityMap A map that stores calculated charge densities for nodes in the mesh.
  */
-static void _get__ompver__(
-    unsigned int num_threads,
+static void _gather_ompver__(
+    unsigned int numThreads,
     size_t numParticles,
     double timeMoment,
     std::shared_ptr<CubicGrid> cubicGrid,
@@ -177,11 +177,11 @@ static void _get__ompver__(
 {
     try
     {
-        omp_set_num_threads(num_threads);
+        omp_set_num_threads(numThreads);
 
-        std::vector<std::map<size_t, ParticleVector>> particleTracker_per_thread(num_threads);
-        std::vector<std::map<size_t, double>> tetrahedronChargeDensityMap_per_thread(num_threads);
-        std::vector<std::map<GlobalOrdinal, double>> nodeChargeDensityMap_per_thread(num_threads);
+        std::vector<std::map<size_t, ParticleVector>> particleTracker_per_thread(numThreads);
+        std::vector<std::map<size_t, double>> tetrahedronChargeDensityMap_per_thread(numThreads);
+        std::vector<std::map<GlobalOrdinal, double>> nodeChargeDensityMap_per_thread(numThreads);
 
         // First parallel region: process particles
 #pragma omp parallel
@@ -336,11 +336,11 @@ void NodeChargeDensityProcessor::gather(double timeMoment,
 {
     // Check if the requested number of threads exceeds available hardware concurrency.
     ConfigParser configParser(configFilename);
-    auto num_threads{configParser.getNumThreads_s()};
+    auto numThreads{configParser.getNumThreads_s()};
 
 #ifdef USE_OMP
-    _get__ompver__(num_threads, particles.size(), timeMoment, cubicGrid, gsmAssembler, particles, settledParticleIDs, particleTrackerMap, nodeChargeDensityMap);
+    _gather_ompver__(numThreads, particles.size(), timeMoment, cubicGrid, gsmAssembler, particles, settledParticleIDs, particleTrackerMap, nodeChargeDensityMap);
 #else
-    _get__stdver__(num_threads, timeMoment, cubicGrid, gsmAssembler, particles, settledParticleIDs, particleTrackerMap, nodeChargeDensityMap);
+    _gather_stdver__(numThreads, timeMoment, cubicGrid, gsmAssembler, particles, settledParticleIDs, particleTrackerMap, nodeChargeDensityMap);
 #endif // !USE_OMP
 }
