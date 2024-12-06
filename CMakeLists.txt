@@ -708,6 +708,7 @@ target_link_libraries(
           Particle
           Particle_PhysicsCore_CollisionModel
           ParticleInCellEngine
+          ParticleInCellEngine_DynamicSolver
           SessionManagers
           Utilities
 )

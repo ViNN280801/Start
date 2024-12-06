@@ -130,6 +130,20 @@ double util::calculateConcentration(std::string_view config)
     return (parser.getPressure() / (constants::physical_constants::R * parser.getTemperature())) * constants::physical_constants::N_av;
 }
 
+double util::calculateConcentration_w(std::string_view config)
+{
+    ConfigParser parser(config);
+
+    // PV = nRT: https://en.wikipedia.org/wiki/Ideal_gas_law.
+    double gasConcentration{(parser.getPressure() / (constants::physical_constants::R * parser.getTemperature())) *
+                            constants::physical_constants::N_av};
+    if (gasConcentration < constants::gasConcentrationMinimalValue)
+    {
+        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
+    }
+    return gasConcentration;
+}
+
 bool util::exists(std::string_view filename)
 {
     struct stat buf;

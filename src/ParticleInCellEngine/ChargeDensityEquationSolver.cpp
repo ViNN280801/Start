@@ -2,13 +2,15 @@
 #include "FiniteElementMethod/FEMLimits.hpp"
 #include "FiniteElementMethod/MatrixEquationSolver.hpp"
 
-void ChargeDensityEquationSolver::solve(
-    double timeMoment, std::string_view configFilename,
-    NodeChargeDensitiesMap &nodeChargeDensityMap,
-    std::shared_ptr<GSMAssembler> &gsmAssembler,
-    std::shared_ptr<VectorManager> &solutionVector,
-    BoundaryConditionsMap &boundaryConditions) {
-    try {
+void ChargeDensityEquationSolver::solve(double timeMoment,
+                                        std::string_view configFilename,
+                                        NodeChargeDensitiesMap &nodeChargeDensityMap,
+                                        std::shared_ptr<GSMAssembler> &gsmAssembler,
+                                        std::shared_ptr<VectorManager> &solutionVector,
+                                        BoundaryConditionsMap &boundaryConditions)
+{
+    try
+    {
         ConfigParser configParser(configFilename);
 
         auto nonChangebleNodes{configParser.getNonChangeableNodes()};
@@ -41,9 +43,13 @@ void ChargeDensityEquationSolver::solve(
 
         solver.writeElectricPotentialsToPosFile(timeMoment);
         solver.writeElectricFieldVectorsToPosFile(timeMoment);
-    } catch (std::exception const &ex) {
+    }
+    catch (std::exception const &ex)
+    {
         ERRMSG(util::stringify("Can't solve the equation: ", ex.what()));
-    } catch (...) {
+    }
+    catch (...)
+    {
         ERRMSG("Some error occured while solving the matrix equation Ax=b");
     }
 }

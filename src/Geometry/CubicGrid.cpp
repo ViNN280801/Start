@@ -25,33 +25,36 @@ CubicGrid::CubicGrid(TetrahedronMeshManager const &meshData, double edgeSize)
     m_divisionsY = static_cast<short>(std::ceil((m_commonBbox.ymax() - m_commonBbox.ymin()) / m_cubeEdgeSize));
     m_divisionsZ = static_cast<short>(std::ceil((m_commonBbox.zmax() - m_commonBbox.zmin()) / m_cubeEdgeSize));
 
-    // 3. Limitation on grid cells
-    if (m_divisionsX * m_divisionsY * m_divisionsZ > MAX_GRID_SIZE)
-        throw std::runtime_error("The grid is too small, you risk to overflow your memory with it");
-
-        // 4. Mapping each tetrahedron with cells using parallelization
-    for (size_t i = 0; i < m_meshData.getMeshComponents().size(); ++i)
+    try
     {
-        const auto &tetrahedronData = m_meshData.getMeshComponents()[i];
-        for (short x = 0; x < m_divisionsX; ++x)
+        // 3. Mapping each tetrahedron with cells using parallelization
+        for (size_t i{}; i < m_meshData.getMeshComponents().size(); ++i)
         {
-            for (short y = 0; y < m_divisionsY; ++y)
+            const auto &tetrahedronData = m_meshData.getMeshComponents()[i];
+            for (short x{}; x < m_divisionsX; ++x)
             {
-                for (short z = 0; z < m_divisionsZ; ++z)
+                for (short y{}; y < m_divisionsY; ++y)
                 {
-                    CGAL::Bbox_3 cellBox(
-                        m_commonBbox.xmin() + x * edgeSize,
-                        m_commonBbox.ymin() + y * edgeSize,
-                        m_commonBbox.zmin() + z * edgeSize,
-                        m_commonBbox.xmin() + (x + 1) * edgeSize,
-                        m_commonBbox.ymin() + (y + 1) * edgeSize,
-                        m_commonBbox.zmin() + (z + 1) * edgeSize);
+                    for (short z{}; z < m_divisionsZ; ++z)
+                    {
+                        CGAL::Bbox_3 cellBox(
+                            m_commonBbox.xmin() + x * edgeSize,
+                            m_commonBbox.ymin() + y * edgeSize,
+                            m_commonBbox.zmin() + z * edgeSize,
+                            m_commonBbox.xmin() + (x + 1) * edgeSize,
+                            m_commonBbox.ymin() + (y + 1) * edgeSize,
+                            m_commonBbox.zmin() + (z + 1) * edgeSize);
 
-                    if (CGAL::do_overlap(cellBox, tetrahedronData.tetrahedron.bbox()))
-                        m_tetrahedronCells[tetrahedronData.globalTetraId].emplace_back(x, y, z);
+                        if (CGAL::do_overlap(cellBox, tetrahedronData.tetrahedron.bbox()))
+                            m_tetrahedronCells[tetrahedronData.globalTetraId].emplace_back(x, y, z);
+                    }
                 }
             }
         }
+    }
+    catch (std::exception const &ex)
+    {
+        WARNINGMSG(util::stringify("Error while constructing cubic grid: ", ex.what()));
     }
 }
 
@@ -82,7 +85,7 @@ bool CubicGrid::isInsideTetrahedronMesh(Point const &point) const
     // One cube grid component can return multiple tetrahedra, so we need to fill the vector of checkings with results of checkings.
     boost::dynamic_bitset<> checks(tetrahedrons.size());
 
-    for (size_t i = 0; i < tetrahedrons.size(); ++i)
+    for (size_t i{}; i < tetrahedrons.size(); ++i)
         checks[i] = Mesh::isPointInsideTetrahedron(point, tetrahedrons[i].tetrahedron);
 
     // If bitset contains at least one `true` - it means that point is inside the tetrahedron mesh.
@@ -116,4 +119,30 @@ void CubicGrid::printGrid() const
             std::cout << "[" << x << "][" << y << "][" << z << "] ";
         std::cout << std::endl;
     }
+}
+
+std::optional<size_t> CubicGrid::getContainingTetrahedron(ParticleTrackerMap const &particleTracker,
+                                                          Particle const &particle,
+                                                          double timeMoment)
+{
+    if (timeMoment < 0)
+        throw std::logic_error("Time moment can't be negative, but you passed: " + std::to_string(timeMoment));
+    if (particleTracker.empty())
+        throw std::invalid_argument("Particle tracker map is empty. Cannot search for tetrahedrons.");
+    auto it{particleTracker.find(timeMoment)};
+    if (it == particleTracker.end())
+        throw std::runtime_error("No data available for the specified time moment: " + std::to_string(timeMoment));
+
+    for (auto const &[tetraId, particlesInside] : it->second)
+    {
+#if __cplusplus >= 202002L
+        if (std::ranges::find_if(particlesInside, [&particle](Particle const &storedParticle)
+                                 { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
+#else
+        if (std::find_if(particlesInside, [&particle](Particle const &storedParticle)
+                         { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
+#endif
+            return tetraId;
+    }
+    return std::nullopt;
 }

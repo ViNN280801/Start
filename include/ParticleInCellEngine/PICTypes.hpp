@@ -5,6 +5,7 @@
 #include <set>
 
 #include "FiniteElementMethod/FEMTypes.hpp"
+#include "Geometry/GeometryTypes.hpp"
 #include "Particle/Particle.hpp"
 
 /**
@@ -43,5 +44,9 @@ using ParticlesIDSet = std::set<size_t>;
  *          - Value: Value of the boundary conditions (double)
  */
 using BoundaryConditionsMap = std::map<GlobalOrdinal, double>;
+
+using ParticleMovementMap = std::map<size_t, std::vector<Point>>;
+
+using SettledParticlesCounterMap = std::map<size_t, size_t>;
 
 #endif // !PICTYPES_HPP

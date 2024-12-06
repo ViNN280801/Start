@@ -12,16 +12,18 @@ using json = nlohmann::json;
 #include "FiniteElementMethod/FEMPrinter.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
-#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
-#include "Particle/PhysicsCore/CollisionModel/CollisionModelFactory.hpp"
 #include "ParticleInCellEngine/ChargeDensityEquationSolver.hpp"
+#include "ParticleInCellEngine/DynamicSolver/DynamicSolver.hpp"
 #include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
 
-std::mutex ModelingMainDriver::m_PICTracker_mutex;
-std::mutex ModelingMainDriver::m_nodeChargeDensityMap_mutex;
-std::mutex ModelingMainDriver::m_particlesMovement_mutex;
-std::shared_mutex ModelingMainDriver::m_settledParticles_mutex;
-std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
+#ifdef USE_CUDA
+#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#endif
+
+std::mutex ModelingMainDriver::m_PICTrackerMutex;
+std::mutex ModelingMainDriver::m_nodeChargeDensityMapMutex;
+std::mutex ModelingMainDriver::m_particlesMovementMutex;
+std::shared_mutex ModelingMainDriver::m_settledParticlesMutex;
 
 void ModelingMainDriver::_broadcastTriangleMesh()
 {
@@ -229,49 +231,8 @@ void ModelingMainDriver::_gfinalize()
     _saveParticleMovements();
 }
 
-template <typename Function, typename... Args>
-void ModelingMainDriver::_processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_policy, Args &&...args)
-{
-    // Static assert to ensure the number of threads is greater than 0.
-    static_assert(sizeof...(args) > 0, "You must provide at least one argument to pass to the function.");
-
-    // Check if the requested number of threads exceeds available hardware concurrency.
-    unsigned int available_threads{std::thread::hardware_concurrency()};
-    if (num_threads > available_threads)
-        throw std::invalid_argument("The number of threads requested exceeds the available hardware threads.");
-
-    // Handle edge case of num_threads == 0.
-    if (num_threads == 0)
-        throw std::invalid_argument("The number of threads must be greater than 0.");
-
-    size_t particles_per_thread{m_particles.size() / num_threads}, start_index{},
-        managed_particles{particles_per_thread * num_threads}; // Count of the managed particles.
-
-    std::vector<std::future<void>> futures;
-
-    // Create threads and assign each a segment of particles to process.
-    for (size_t i{}; i < num_threads; ++i)
-    {
-        size_t end_index{(i == num_threads - 1) ? m_particles.size() : start_index + particles_per_thread};
-
-        // If, for example, the simulation started with 1,000 particles and 18 threads, we would lose 10 particles: 1000/18=55 => 55*18=990.
-        // In this case, we assign all remaining particles to the last thread to manage them.
-        if (i == num_threads - 1 && managed_particles < m_particles.size())
-            end_index = m_particles.size();
-
-        // Launch the function asynchronously for the current segment.
-        futures.emplace_back(std::async(launch_policy, [this, start_index, end_index, &function, &args...]()
-                                        { std::invoke(function, this, start_index, end_index, std::forward<Args>(args)...); }));
-        start_index = end_index;
-    }
-
-    // Wait for all threads to complete their work.
-    for (auto &f : futures)
-        f.get();
-}
-
-ModelingMainDriver::ModelingMainDriver(std::string_view config_filename) 
-    : m_config_filename(config_filename), 
+ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
+    : m_config_filename(config_filename),
       m_config(config_filename)
 {
     // Checking mesh filename on validity and assign it to the class member.
@@ -290,252 +251,6 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
 
 ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
-void ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler)
-{
-    try
-    {
-#ifdef USE_OMP
-        // OpenMP implementation.
-        MagneticInduction magneticInduction{}; // Assuming induction vector B is 0.
-
-#pragma omp parallel
-        {
-            // Each thread will process a subset of particles.
-#pragma omp for
-            for (size_t idx = start_index; idx < end_index; ++idx)
-            {
-                auto &particle = m_particles[idx];
-
-                // Check if particle is already settled.
-                bool isSettled = false;
-                {
-                    std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
-                    if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.end())
-                        isSettled = true;
-                }
-                if (isSettled)
-                    continue;
-
-                size_t containingTetrahedron = 0;
-
-                {
-                    // Access m_particleTracker[t] safely.
-                    std::lock_guard<std::mutex> lock(m_PICTracker_mutex);
-                    auto it = m_particleTracker.find(t);
-                    if (it != m_particleTracker.end())
-                    {
-                        auto &particleMap = it->second;
-                        for (auto const &[tetraId, particlesInside] : particleMap)
-                        {
-                            if (std::any_of(particlesInside.cbegin(), particlesInside.cend(),
-                                            [&particle](Particle const &storedParticle)
-                                            { return particle.getId() == storedParticle.getId(); }))
-                            {
-                                containingTetrahedron = tetraId;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (auto tetrahedron = gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron))
-                {
-                    if (tetrahedron->electricField.has_value())
-                    {
-                        // Updating velocity of the particle according to the Lorentz force.
-                        particle.electroMagneticPush(
-                            magneticInduction,
-                            ElectricField(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
-                            m_config.getTimeStep());
-                    }
-                }
-
-                Point prev(particle.getCentre());
-
-                {
-                    // Lock m_particlesMovement_mutex when modifying m_particlesMovement.
-                    std::lock_guard<std::mutex> lock(m_particlesMovement_mutex);
-
-                    // Adding only those particles which are inside tetrahedron mesh.
-                    if (cubicGrid->isInsideTetrahedronMesh(prev) && m_particlesMovement.size() <= kdefault_max_numparticles_to_anim)
-                        m_particlesMovement[particle.getId()].emplace_back(prev);
-                }
-
-                particle.updatePosition(m_config.getTimeStep());
-                Ray ray(prev, particle.getCentre());
-
-                if (ray.is_degenerate())
-                    continue;
-
-                // Updating velocity of the particle according to the collision with gas.
-                auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
-                collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
-
-                // Skip collision detection at initial time.
-                if (t == 0.0)
-                    continue;
-
-                auto intersection = _surfaceMeshAABBtree.any_intersection(ray);
-                if (!intersection)
-                    continue;
-
-                auto triangle = *intersection->second;
-                if (triangle.is_degenerate())
-                    continue;
-
-#if __cplusplus >= 202002L
-                auto matchedIt = std::ranges::find_if(_triangleMesh, [triangle](auto const &el)
-                                                      { return triangle == std::get<1>(el); });
-#else
-                auto matchedIt = std::find_if(_triangleMesh.cbegin(), _triangleMesh.cend(), [triangle](auto const &el)
-                                              { return triangle == std::get<1>(el); });
-#endif
-
-                if (matchedIt != _triangleMesh.cend())
-                {
-                    auto id = Mesh::isRayIntersectTriangle(ray, *matchedIt);
-                    if (id)
-                    {
-                        bool stopProcessing = false;
-                        {
-                            std::unique_lock<std::shared_mutex> lock(m_settledParticles_mutex);
-                            ++_settledParticlesCounterMap[id.value()];
-                            _settledParticlesIds.insert(particle.getId());
-
-                            if (_settledParticlesIds.size() >= m_particles.size())
-                            {
-                                m_stop_processing.test_and_set();
-                                stopProcessing = true;
-                            }
-                        }
-
-                        {
-                            std::lock_guard<std::mutex> lock(m_particlesMovement_mutex);
-                            auto intersection_point = RayTriangleIntersection::getIntersectionPoint(ray, triangle);
-                            if (intersection_point)
-                                m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
-                        }
-
-                        if (stopProcessing)
-                            continue;
-                    }
-                }
-            } // end of for loop.
-        }     // end of parallel region.
-#else
-        MagneticInduction magneticInduction{}; // For brevity assuming that induction vector B is 0.
-        std::for_each(m_particles.begin() + start_index, m_particles.begin() + end_index,
-                      [this, &cubicGrid, gsmAssembler, magneticInduction, t](auto &particle)
-                      {
-                          {
-                              // If particles is already settled on surface - there is no need to proceed handling it.
-                              std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
-                              if (_settledParticlesIds.find(particle.getId()) != _settledParticlesIds.end())
-                                  return;
-                          }
-
-                          size_t containingTetrahedron{};
-                          for (auto const &[tetraId, particlesInside] : m_particleTracker[t])
-                          {
-#if __cplusplus >= 202002L
-                              if (std::ranges::find_if(particlesInside, [particle](Particle const &storedParticle)
-                                                       { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
-#else
-                    if (std::find_if(particlesInside, [particle](Particle const &storedParticle)
-                                     { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
-#endif
-                              {
-                                  containingTetrahedron = tetraId;
-                                  break;
-                              }
-                          }
-
-                          if (auto tetrahedron{gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(containingTetrahedron)})
-                              if (tetrahedron->electricField.has_value())
-                                  // Updating velocity of the particle according to the Lorentz force.
-                                  particle.electroMagneticPush(magneticInduction,
-                                                               ElectricField(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
-                                                               m_config.getTimeStep());
-
-                          Point prev(particle.getCentre());
-
-                          {
-                              std::lock_guard<std::mutex> lock(m_particlesMovement_mutex);
-
-                              // Adding only those particles which are inside tetrahedron mesh.
-                              // There is no need to spawn large count of particles and load PC, fixed count must be enough.
-                              if (cubicGrid->isInsideTetrahedronMesh(prev) && m_particlesMovement.size() <= kdefault_max_numparticles_to_anim)
-                                  m_particlesMovement[particle.getId()].emplace_back(prev);
-                          }
-
-                          particle.updatePosition(m_config.getTimeStep());
-                          Ray ray(prev, particle.getCentre());
-
-                          if (ray.is_degenerate())
-                              return;
-
-                          // Updating velocity of the particle according to the coliding with gas.
-                          auto collisionModel = CollisionModelFactory::create(m_config.getScatteringModel());
-                          bool collided = collisionModel->collide(particle, m_config.getGas(), _gasConcentration, m_config.getTimeStep());
-
-                          // There is no need to check particle collision with surface mesh in initial time moment of the simulation (when t = 0).
-                          if (t == 0.0)
-                              return;
-
-                          auto intersection{_surfaceMeshAABBtree.any_intersection(ray)};
-                          if (!intersection)
-                              return;
-
-                          auto triangle{*intersection->second};
-                          if (triangle.is_degenerate())
-                              return;
-
-#if __cplusplus >= 202002L
-                          auto matchedIt{std::ranges::find_if(_triangleMesh, [triangle](auto const &el)
-                                                              { return triangle == std::get<1>(el); })};
-#else
-                auto matchedIt{std::find_if(_triangleMesh, [triangle](auto const &el)
-                                            { return triangle == std::get<1>(el); })};
-#endif
-                          if (matchedIt != _triangleMesh.cend())
-                          {
-                              auto id{Mesh::isRayIntersectTriangle(ray, *matchedIt)};
-                              if (id)
-                              {
-                                  {
-                                      std::shared_lock<std::shared_mutex> lock(m_settledParticles_mutex);
-                                      ++_settledParticlesCounterMap[id.value()];
-                                      _settledParticlesIds.insert(particle.getId());
-
-                                      if (_settledParticlesIds.size() >= m_particles.size())
-                                      {
-                                          m_stop_processing.test_and_set();
-                                          return;
-                                      }
-                                  }
-
-                                  {
-                                      std::lock_guard<std::mutex> lock(m_particlesMovement_mutex);
-                                      auto intersection_point{RayTriangleIntersection::getIntersectionPoint(ray, triangle)};
-                                      if (intersection_point)
-                                          m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
-                                  }
-                              }
-                          }
-                      });
-#endif // !USE_OMP
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces: ", ex.what()));
-    }
-    catch (...)
-    {
-        ERRMSG("Some error occured while detecting particles collisions with surfaces");
-    }
-}
-
 void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
@@ -549,18 +264,9 @@ void ModelingMainDriver::startModeling()
     [[maybe_unused]] auto num_threads{m_config.getNumThreads_s()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
-#if __cplusplus >= 202002L
-    for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test(); t += m_config.getTimeStep())
-#else
-    for (double t{}; t <= m_config.getSimulationTime() && !m_stop_processing.test_and_set(); t += m_config.getTimeStep())
-#endif
+    for (double timeMoment{}; timeMoment <= m_config.getSimulationTime(); timeMoment += m_config.getTimeStep())
     {
-#if __cplusplus < 202002L
-        // Clear the flag immediately so it doesn't stay set.
-        m_stop_processing.clear();
-#endif
-
-        NodeChargeDensityProcessor::gather(t,
+        NodeChargeDensityProcessor::gather(timeMoment,
                                            m_config_filename,
                                            cubicGrid,
                                            gsmAssembler,
@@ -570,24 +276,18 @@ void ModelingMainDriver::startModeling()
                                            nodeChargeDensityMap);
 
         // 2. Solve equation in the main thread.
-        ChargeDensityEquationSolver::solve(t,
+        ChargeDensityEquationSolver::solve(timeMoment,
                                            m_config_filename,
-                                           nodeChargeDensityMap, 
-                                           gsmAssembler, 
+                                           nodeChargeDensityMap,
+                                           gsmAssembler,
                                            solutionVector,
                                            boundaryConditions);
 
         // 3. Process surface collision tracking in parallel.
-#ifdef USE_OMP
-        _processPIC_and_SurfaceCollisionTracker(0, m_particles.size(), t, cubicGrid, gsmAssembler);
-#else
-        // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
-        // after particle tracking. It can be deferred until it is needed, allowing for potential optimizations
-        // such as saving resources when not required right away. Deferring this task ensures that the function
-        // only runs when explicitly requested via `get()` or `wait()`, thereby reducing overhead if the results are
-        // not immediately needed. This approach also helps avoid contention with more urgent tasks running in parallel.
-        _processWithThreads(num_threads, &ModelingMainDriver::_processPIC_and_SurfaceCollisionTracker, std::launch::deferred, t, cubicGrid, gsmAssembler);
-#endif
+        DynamicSolver dynamicSolver(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
+                                    _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
+                                    _settledParticlesCounterMap, m_particlesMovement);
+        dynamicSolver.process(m_config_filename, m_particles, timeMoment, cubicGrid, gsmAssembler, m_particleTracker);
     }
     LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
 }

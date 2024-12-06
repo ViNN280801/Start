@@ -2,11 +2,12 @@
 #define CUBICGRID_HPP
 
 #include <CGAL/Bbox_3.h>
+#include <optional>
 
 #include "DataHandling/TetrahedronMeshManager.hpp"
 #include "Geometry/Mesh.hpp"
-
-#define MAX_GRID_SIZE 0x7A1200 ///< Maximum allowed grid size to prevent memory overflow (default: 8'000'000).
+#include "Particle/Particle.hpp"
+#include "ParticleInCellEngine/PICTypes.hpp"
 
 /// @brief Represents a 3D grid index with x, y, and z components.
 struct GridIndex
@@ -80,6 +81,29 @@ public:
 
     /// @brief Prints a list of which tetrahedrons intersect with which grid cells.
     void printGrid() const;
+
+    /**
+     * @brief Finds the ID of the tetrahedron containing the given particle at a specified simulation time.
+     *
+     * This method searches for the tetrahedron that contains the given particle at a specified
+     * simulation time using the provided particle tracker map. If no such tetrahedron is found,
+     * the method returns `std::nullopt`.
+     *
+     * @param particleTracker A reference to the particle tracker map, which organizes particles
+     *                        by simulation time and tetrahedron ID.
+     * @param particle The particle to locate within the tracker.
+     * @param timeMoment The simulation time at which to find the tetrahedron containing the particle.
+     *                   Must be non-negative.
+     * @return An optional containing the ID of the tetrahedron if the particle is found;
+     *         otherwise, `std::nullopt`.
+     *
+     * @throws std::logic_error If the time moment is negative.
+     * @throws std::invalid_argument If the particle tracker is empty or if the particle is invalid.
+     * @throws std::runtime_error If the specified time moment does not exist in the particle tracker.
+     */
+    static std::optional<size_t> getContainingTetrahedron(ParticleTrackerMap const &particleTracker,
+                                                          Particle const &particle,
+                                                          double timeMoment);
 };
 
 #endif // !CUBICGRID_HPP
