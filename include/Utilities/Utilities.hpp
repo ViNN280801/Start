@@ -51,6 +51,15 @@ namespace util
     double calculateConcentration(std::string_view config);
 
     /**
+     * @brief Calculating concentration from the configuration file with printing error msg,
+     *        when calculated gas concentration is too small according to the constants.
+     * @param config Name of the configuration file.
+     * @return Concentration. [N] (count).
+     * `-1` if smth went wrong.
+     */
+    double calculateConcentration_w(std::string_view config);
+
+    /**
      * @brief Checker for file on existence.
      * @param filaname Name of the file (or path) to check it.
      * @return `true` if file exists, otherwise `false`.

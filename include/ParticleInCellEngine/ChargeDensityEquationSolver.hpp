@@ -35,8 +35,7 @@ public:
 	 * @throws std::runtime_error If a critical error occurs while parsing the configuration or solving equations.
 	 * @throws std::exception For any generic error during processing.
 	 */
-	static void solve(double timeMoment,
-					  std::string_view configFilename,
+	static void solve(double timeMoment, std::string_view configFilename,
 					  NodeChargeDensitiesMap &nodeChargeDensityMap,
 					  std::shared_ptr<GSMAssembler> &gsmAssembler,
 					  std::shared_ptr<VectorManager> &solutionVector,

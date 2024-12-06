@@ -662,6 +662,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore/CollisionModel
 
   ${CMAKE_SOURCE_DIR}/include/ParticleInCellEngine
+  ${CMAKE_SOURCE_DIR}/include/ParticleInCellEngine/DynamicSolver
 
   ${CMAKE_SOURCE_DIR}/include/SessionManagement
 
@@ -675,7 +676,7 @@ set(CPP_SOURCES src/main.cpp src/ModelingMainDriver.cpp)
 set(SOURCES ${CPP_SOURCES})
 if(GPU_CUDA_ON)
   set(CUDA_SOURCES
-
+    # !!! TODO: DO NOT FORGET TO ADD CUDA SOURCES HERE !!!
   )
   set(SOURCES ${SOURCES} ${CUDA_SOURCES})
 endif()
@@ -708,6 +709,7 @@ target_link_libraries(
           Particle
           Particle_PhysicsCore_CollisionModel
           ParticleInCellEngine
+          ParticleInCellEngine_DynamicSolver
           SessionManagers
           Utilities
 )

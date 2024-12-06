@@ -43,15 +43,11 @@
 class ModelingMainDriver final
 {
 private:
-    std::string m_config_filename; ///< Filename of the configuration to parse it.
-
-    static constexpr short const kdefault_max_numparticles_to_anim{5'000}; ///< Maximal count of particles to do animation.
-
-    static std::mutex m_PICTracker_mutex;              ///< Mutex for synchronizing access to the particles in tetrahedrons.
-    static std::mutex m_nodeChargeDensityMap_mutex;    ///< Mutex for synchronizing access to the charge densities in nodes.
-    static std::mutex m_particlesMovement_mutex;       ///< Mutex for synchronizing access to the trajectories of particles.
-    static std::shared_mutex m_settledParticles_mutex; ///< Mutex for synchronizing access to settled particle IDs.
-    static std::atomic_flag m_stop_processing;         ///< Flag-checker for condition (counter >= size of particles).
+    std::string m_config_filename;                    ///< Filename of the configuration to parse it.
+    static std::mutex m_PICTrackerMutex;              ///< Mutex for synchronizing access to the particles in tetrahedrons.
+    static std::mutex m_nodeChargeDensityMapMutex;    ///< Mutex for synchronizing access to the charge densities in nodes.
+    static std::mutex m_particlesMovementMutex;       ///< Mutex for synchronizing access to the trajectories of particles.
+    static std::shared_mutex m_settledParticlesMutex; ///< Mutex for synchronizing access to settled particle IDs.
 
     /* All the neccessary data members from the mesh. */
     MeshTriangleParamVector _triangleMesh;   ///< Triangle mesh params acquired from the mesh file. Surface mesh.
@@ -60,10 +56,10 @@ private:
     GmshSessionManager _gmshSessionManager;  ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
 
     /* All the neccessary data members for the simulation. */
-    ParticleVector m_particles;                        ///< Projective particles.
-    double _gasConcentration;                          ///< Gas concentration. Needed to use colide projectives with gas mechanism.
-    std::set<size_t> _settledParticlesIds;             ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
-    std::map<size_t, int> _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
+    ParticleVector m_particles;                           ///< Projective particles.
+    double _gasConcentration;                             ///< Gas concentration. Needed to use colide projectives with gas mechanism.
+    std::set<size_t> _settledParticlesIds;                ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
+    std::map<size_t, size_t> _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
 
     ConfigParser m_config;                                                ///< `ConfigParser` object to get all the simulation physical paramters.
     std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
@@ -131,41 +127,6 @@ private:
 
     /// @brief Global finalizator. Updates
     void _gfinalize();
-
-    /**
-     * @brief Processes particles in parallel using multiple threads.
-     *
-     * This function splits the particles among the given number of threads and asynchronously or
-     * deferred processes each segment of particles using the provided function. The launch policy
-     * can be either immediate execution (async) or deferred execution.
-     *
-     * @tparam Function A callable type that represents the function to be executed in each thread.
-     * @tparam Args Variadic template for additional arguments to be passed to the function.
-     * @param num_threads The number of threads to use for processing.
-     * @param function The member function to be executed in each thread.
-     * @param launch_policy The launch policy, which can be std::launch::async or std::launch::deferred.
-     * @param args Additional arguments to be forwarded to the function.
-     *
-     * @throws std::invalid_argument if num_threads exceeds the number of available hardware threads.
-     */
-    template <typename Function, typename... Args>
-    void _processWithThreads(unsigned int num_threads, Function &&function, std::launch launch_plicy, Args &&...args);
-
-    /**
-     * @brief Processes particle-in-cell (PIC) and surface collision tracking within a particle range.
-     *
-     * This function tracks particle-in-cell interactions and surface collisions for particles
-     * in the specified range [start_index, end_index). It updates the state of the particles based on
-     * the time `t` and interactions with the provided cubic grid and GSM assembler.
-     *
-     * @param start_index The starting index of the particles to process.
-     * @param end_index The ending index of the particles to process.
-     * @param t The current time of the simulation.
-     * @param cubicGrid A shared pointer to the 3D cubic grid object used for particle tracking.
-     * @param gsmAssembler A shared pointer to the GSM assembler that handles particle and surface interactions.
-     */
-    void _processPIC_and_SurfaceCollisionTracker(size_t start_index, size_t end_index, double t,
-                                                 std::shared_ptr<CubicGrid> cubicGrid, std::shared_ptr<GSMAssembler> gsmAssembler);
 
 public:
     /**

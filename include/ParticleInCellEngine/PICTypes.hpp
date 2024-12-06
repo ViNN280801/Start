@@ -5,6 +5,7 @@
 #include <set>
 
 #include "FiniteElementMethod/FEMTypes.hpp"
+#include "Geometry/GeometryTypes.hpp"
 #include "Particle/Particle.hpp"
 
 /**
@@ -43,5 +44,27 @@ using ParticlesIDSet = std::set<size_t>;
  *          - Value: Value of the boundary conditions (double)
  */
 using BoundaryConditionsMap = std::map<GlobalOrdinal, double>;
+
+/**
+ * @typedef ParticleMovementMap
+ * @brief Tracks the movement of particles across a simulation.
+ *
+ * This type maps particle IDs to a vector of points representing their movement over time.
+ *
+ * - Key: Particle ID (size_t)
+ * - Value: Vector of points representing the particle's trajectory (std::vector<Point>)
+ */
+using ParticleMovementMap = std::map<size_t, std::vector<Point>>;
+
+/**
+ * @typedef SettledParticlesCounterMap
+ * @brief Tracks the number of particles settled on each triangle.
+ *
+ * This type maps triangle IDs to a counter of the number of particles settled on the triangle.
+ *
+ * - Key: Triangle ID (size_t)
+ * - Value: Count of settled particles (size_t)
+ */
+using SettledParticlesCounterMap = std::map<size_t, size_t>;
 
 #endif // !PICTYPES_HPP
