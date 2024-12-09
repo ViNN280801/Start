@@ -1,5 +1,5 @@
-#ifndef SURFACECOLLISIONHANDLER_HPP
-#define SURFACECOLLISIONHANDLER_HPP
+#ifndef PARTICLESURFACECOLLISIONHANDLER_HPP
+#define PARTICLESURFACECOLLISIONHANDLER_HPP
 
 #include <optional>
 #include <shared_mutex>
@@ -9,13 +9,13 @@
 #include "ParticleInCellEngine/PICTypes.hpp"
 
 /**
- * @class SurfaceCollisionHandler
+ * @class ParticleSurfaceCollisionHandler
  * @brief Handles collisions between particles and surface meshes.
  *
  * This class detects and resolves collisions of particles with the surface mesh,
  * updating settlement states and recording intersection points.
  */
-class SurfaceCollisionHandler
+class ParticleSurfaceCollisionHandler
 {
 private:
     std::shared_mutex &m_settledParticlesMutex;               ///< Mutex for protecting settled particle data.
@@ -28,7 +28,7 @@ private:
 
 public:
     /**
-     * @brief Constructs a SurfaceCollisionHandler object.
+     * @brief Constructs a ParticleSurfaceCollisionHandler object.
      * @param settledParticlesMutex Mutex for settled particle data.
      * @param particlesMovementMutex Mutex for particle movement data.
      * @param tree AABB tree for surface mesh collision detection.
@@ -37,7 +37,7 @@ public:
      * @param settledParticlesCounterMap Reference to the map of triangle settlement counts.
      * @param particlesMovement Reference to the map of particle movements.
      */
-    SurfaceCollisionHandler(
+    ParticleSurfaceCollisionHandler(
         std::shared_mutex &settledParticlesMutex,
         std::mutex &particlesMovementMutex,
         AABB_Tree_Triangle const &tree,
@@ -56,4 +56,4 @@ public:
     std::optional<size_t> handle(Particle const &particle, Ray const &ray, size_t particlesNumber);
 };
 
-#endif // SURFACECOLLISIONHANDLER_HPP
+#endif // PARTICLESURFACECOLLISIONHANDLER_HPP

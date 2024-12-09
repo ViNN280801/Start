@@ -1,15 +1,15 @@
-#ifndef DYNAMICSOLVER_HPP
-#define DYNAMICSOLVER_HPP
+#ifndef PARTICLEDYNAMICSPROCESSOR_HPP
+#define PARTICLEDYNAMICSPROCESSOR_HPP
 
 #include "Geometry/CubicGrid.hpp"
-#include "ParticleInCellEngine/DynamicSolver/ParticleMovementTracker.hpp"
-#include "ParticleInCellEngine/DynamicSolver/ParticlePhysicsUpdater.hpp"
-#include "ParticleInCellEngine/DynamicSolver/ParticleSettler.hpp"
-#include "ParticleInCellEngine/DynamicSolver/SurfaceCollisionHandler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticlePhysicsUpdater.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
 #include "Utilities/ThreadedProcessor.hpp"
 
 /**
- * @class DynamicSolver
+ * @class ParticleDynamicsProcessor
  * @brief Encapsulates the dynamics simulation loop for particle tracking and updates.
  *
  * This class provides methods to process particles in a simulation, including:
@@ -21,13 +21,13 @@
  *
  * It utilizes parallel execution to handle particle operations efficiently.
  */
-class DynamicSolver
+class ParticleDynamicsProcessor
 {
 private:
     ParticleSettler m_particleSettler;          ///< Handles particle settlement on surfaces.
     ParticlePhysicsUpdater m_physicsUpdater;    ///< Updates particle physical properties.
     ParticleMovementTracker m_movementTracker;  ///< Tracks particle movements.
-    SurfaceCollisionHandler m_collisionHandler; ///< Detects and handles surface collisions.
+    ParticleSurfaceCollisionHandler m_collisionHandler; ///< Detects and handles surface collisions.
 
     /**
      * @brief Helper function for processing a segment of particles using standard parallel execution.
@@ -99,7 +99,7 @@ private:
 
 public:
     /**
-     * @brief Constructs the DynamicSolver, initializing its dependencies.
+     * @brief Constructs the ParticleDynamicsProcessor, initializing its dependencies.
      * @param config_filename The configuration file for the simulation.
      * @param settledParticlesMutex Mutex for accessing settled particle data.
      * @param particlesMovementMutex Mutex for accessing particle movement data.
@@ -109,14 +109,14 @@ public:
      * @param settledParticlesCounterMap Counter map for settled particles on triangles.
      * @param particlesMovement Map tracking particle movements.
      */
-    DynamicSolver(std::string_view config_filename,
-                  std::shared_mutex &settledParticlesMutex,
-                  std::mutex &particlesMovementMutex,
-                  AABB_Tree_Triangle const &surfaceMeshAABBtree,
-                  MeshTriangleParamVector const &triangleMesh,
-                  ParticlesIDSet &settledParticlesIds,
-                  SettledParticlesCounterMap &settledParticlesCounterMap,
-                  ParticleMovementMap &particlesMovement);
+    ParticleDynamicsProcessor(std::string_view config_filename,
+                              std::shared_mutex &settledParticlesMutex,
+                              std::mutex &particlesMovementMutex,
+                              AABB_Tree_Triangle const &surfaceMeshAABBtree,
+                              MeshTriangleParamVector const &triangleMesh,
+                              ParticlesIDSet &settledParticlesIds,
+                              SettledParticlesCounterMap &settledParticlesCounterMap,
+                              ParticleMovementMap &particlesMovement);
 
     /**
      * @brief Processes all particles at the given time moment.
@@ -139,4 +139,4 @@ public:
                  ParticleTrackerMap &particleTracker);
 };
 
-#endif // !DYNAMICSOLVER_HPP
+#endif // !PARTICLEDYNAMICSPROCESSOR_HPP

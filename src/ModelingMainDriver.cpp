@@ -13,8 +13,8 @@ using json = nlohmann::json;
 #include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
 #include "ParticleInCellEngine/ChargeDensityEquationSolver.hpp"
-#include "ParticleInCellEngine/DynamicSolver/DynamicSolver.hpp"
 #include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 
 #ifdef USE_CUDA
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
@@ -280,10 +280,10 @@ void ModelingMainDriver::startModeling()
                                            boundaryConditions);
 
         // 3. Process surface collision tracking in parallel.
-        DynamicSolver dynamicSolver(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
-                                    _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
-                                    _settledParticlesCounterMap, m_particlesMovement);
-        dynamicSolver.process(m_config_filename, m_particles, timeMoment, cubicGrid, gsmAssembler, m_particleTracker);
+        ParticleDynamicsProcessor particleDynamicProcessor(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
+                                                           _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
+                                                           _settledParticlesCounterMap, m_particlesMovement);
+        particleDynamicProcessor.process(m_config_filename, m_particles, timeMoment, cubicGrid, gsmAssembler, m_particleTracker);
     }
     LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
 }

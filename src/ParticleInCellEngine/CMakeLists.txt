@@ -1,6 +1,6 @@
 # src/ParticleInCellEngine/CMakeLists.txt
 
-add_subdirectory(DynamicSolver)
+add_subdirectory(ParticleDynamicsProcessor)
 
 set(PARTICLE_IN_CELL_ENGINE_SOURCES
     ChargeDensityEquationSolver.cpp

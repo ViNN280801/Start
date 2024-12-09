@@ -1,4 +1,4 @@
-#include "ParticleInCellEngine/DynamicSolver/ParticlePhysicsUpdater.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticlePhysicsUpdater.hpp"
 
 ParticlePhysicsUpdater::ParticlePhysicsUpdater(std::string_view config_filename)
     : m_config(config_filename),

@@ -4,30 +4,30 @@
 #include <omp.h>
 #endif
 
-#include "ParticleInCellEngine/DynamicSolver/DynamicSolver.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 #include "Utilities/ConfigParser.hpp"
 
-DynamicSolver::DynamicSolver(std::string_view config_filename,
-                             std::shared_mutex &settledParticlesMutex,
-                             std::mutex &particlesMovementMutex,
-                             AABB_Tree_Triangle const &surfaceMeshAABBtree,
-                             MeshTriangleParamVector const &triangleMesh,
-                             ParticlesIDSet &settledParticlesIds,
-                             SettledParticlesCounterMap &settledParticlesCounterMap,
-                             ParticleMovementMap &particlesMovement)
+ParticleDynamicsProcessor::ParticleDynamicsProcessor(std::string_view config_filename,
+                                                     std::shared_mutex &settledParticlesMutex,
+                                                     std::mutex &particlesMovementMutex,
+                                                     AABB_Tree_Triangle const &surfaceMeshAABBtree,
+                                                     MeshTriangleParamVector const &triangleMesh,
+                                                     ParticlesIDSet &settledParticlesIds,
+                                                     SettledParticlesCounterMap &settledParticlesCounterMap,
+                                                     ParticleMovementMap &particlesMovement)
     : m_particleSettler(settledParticlesMutex, settledParticlesIds, settledParticlesCounterMap),
       m_physicsUpdater(config_filename),
       m_movementTracker(particlesMovement, particlesMovementMutex),
       m_collisionHandler(settledParticlesMutex, particlesMovementMutex, surfaceMeshAABBtree,
                          triangleMesh, settledParticlesIds, settledParticlesCounterMap, particlesMovement) {}
 
-void DynamicSolver::_process_stdver__helper(size_t start_index,
-                                            size_t end_index,
-                                            double timeMoment,
-                                            ParticleVector &particles,
-                                            std::shared_ptr<CubicGrid> cubicGrid,
-                                            std::shared_ptr<GSMAssembler> gsmAssembler,
-                                            ParticleTrackerMap &particleTracker)
+void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
+                                                        size_t end_index,
+                                                        double timeMoment,
+                                                        ParticleVector &particles,
+                                                        std::shared_ptr<CubicGrid> cubicGrid,
+                                                        std::shared_ptr<GSMAssembler> gsmAssembler,
+                                                        ParticleTrackerMap &particleTracker)
 {
     try
     {
@@ -78,12 +78,12 @@ void DynamicSolver::_process_stdver__helper(size_t start_index,
     }
 }
 
-void DynamicSolver::_process_stdver__(unsigned int numThreads,
-                                      double timeMoment,
-                                      ParticleVector &particles,
-                                      std::shared_ptr<CubicGrid> cubicGrid,
-                                      std::shared_ptr<GSMAssembler> gsmAssembler,
-                                      ParticleTrackerMap &particleTracker)
+void ParticleDynamicsProcessor::_process_stdver__(unsigned int numThreads,
+                                                  double timeMoment,
+                                                  ParticleVector &particles,
+                                                  std::shared_ptr<CubicGrid> cubicGrid,
+                                                  std::shared_ptr<GSMAssembler> gsmAssembler,
+                                                  ParticleTrackerMap &particleTracker)
 {
     // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
     // after particle tracking. It can be deferred until it is needed, allowing for potential optimizations
@@ -106,12 +106,12 @@ void DynamicSolver::_process_stdver__(unsigned int numThreads,
 }
 
 #ifdef USE_OMP
-void DynamicSolver::_process_ompver__(unsigned int numThreads,
-                                      double timeMoment,
-                                      ParticleVector &particles,
-                                      std::shared_ptr<CubicGrid> cubicGrid,
-                                      std::shared_ptr<GSMAssembler> gsmAssembler,
-                                      ParticleTrackerMap &particleTracker)
+void ParticleDynamicsProcessor::_process_ompver__(unsigned int numThreads,
+                                                  double timeMoment,
+                                                  ParticleVector &particles,
+                                                  std::shared_ptr<CubicGrid> cubicGrid,
+                                                  std::shared_ptr<GSMAssembler> gsmAssembler,
+                                                  ParticleTrackerMap &particleTracker)
 {
     try
     {
@@ -166,12 +166,12 @@ void DynamicSolver::_process_ompver__(unsigned int numThreads,
 }
 #endif // !USE_OMP
 
-void DynamicSolver::process(std::string_view config_filename,
-                            ParticleVector &particles,
-                            double timeMoment,
-                            std::shared_ptr<CubicGrid> cubicGrid,
-                            std::shared_ptr<GSMAssembler> gsmAssembler,
-                            ParticleTrackerMap &particleTracker)
+void ParticleDynamicsProcessor::process(std::string_view config_filename,
+                                        ParticleVector &particles,
+                                        double timeMoment,
+                                        std::shared_ptr<CubicGrid> cubicGrid,
+                                        std::shared_ptr<GSMAssembler> gsmAssembler,
+                                        ParticleTrackerMap &particleTracker)
 {
     // Check if the requested number of threads exceeds available hardware concurrency.
     ConfigParser configParser(config_filename);

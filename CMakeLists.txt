@@ -662,7 +662,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include/Particle/PhysicsCore/CollisionModel
 
   ${CMAKE_SOURCE_DIR}/include/ParticleInCellEngine
-  ${CMAKE_SOURCE_DIR}/include/ParticleInCellEngine/DynamicSolver
+  ${CMAKE_SOURCE_DIR}/include/ParticleInCellEngine/ParticleDynamicsProcessor
 
   ${CMAKE_SOURCE_DIR}/include/SessionManagement
 
@@ -709,7 +709,7 @@ target_link_libraries(
           Particle
           Particle_PhysicsCore_CollisionModel
           ParticleInCellEngine
-          ParticleInCellEngine_DynamicSolver
+          ParticleInCellEngine_ParticleDynamicsProcessor
           SessionManagers
           Utilities
 )

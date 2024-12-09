@@ -1,4 +1,4 @@
-#include "ParticleInCellEngine/DynamicSolver/ParticleMovementTracker.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
 
 ParticleMovementTracker::ParticleMovementTracker(ParticleMovementMap &movements,
                                                  std::mutex &mutex)

@@ -1,6 +1,6 @@
-#include "ParticleInCellEngine/DynamicSolver/SurfaceCollisionHandler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
 
-SurfaceCollisionHandler::SurfaceCollisionHandler(
+ParticleSurfaceCollisionHandler::ParticleSurfaceCollisionHandler(
     std::shared_mutex &settledParticlesMutex,
     std::mutex &particlesMovementMutex,
     AABB_Tree_Triangle const &tree,
@@ -15,7 +15,7 @@ SurfaceCollisionHandler::SurfaceCollisionHandler(
                                               m_settledParticlesCounterMap(settledParticlesCounterMap),
                                               m_particlesMovement(particlesMovement) {}
 
-std::optional<size_t> SurfaceCollisionHandler::handle(Particle const &particle, Ray const &ray, size_t particlesNumber)
+std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &particle, Ray const &ray, size_t particlesNumber)
 {
     auto intersection{m_surfaceMeshAABBtree.any_intersection(ray)};
     if (!intersection)

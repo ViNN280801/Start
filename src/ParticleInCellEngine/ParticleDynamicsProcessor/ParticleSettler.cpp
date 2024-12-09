@@ -1,4 +1,4 @@
-#include "ParticleInCellEngine/DynamicSolver/ParticleSettler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
 
 ParticleSettler::ParticleSettler(std::shared_mutex &mutex,
                                  ParticlesIDSet &ids,
