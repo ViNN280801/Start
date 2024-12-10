@@ -1,5 +1,5 @@
 {
-    "Mesh File": "/home/nia_employee_prog/Documents/Work/Start/configs/camera_manual.msh",
+    "Mesh File": "/home/nia_employee_prog/Documents/Work/Start/meshes/camera_manual.msh",
     "Threads": 10,
     "Time Step": 0.001,
     "Simulation Time": 0.01,
