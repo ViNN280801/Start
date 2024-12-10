@@ -25,8 +25,7 @@ public:
      * @param movements Reference to the map storing particle movements.
      * @param mutex Reference to the mutex for thread-safe operations.
      */
-    ParticleMovementTracker(ParticleMovementMap &movements,
-                            std::mutex &mutex);
+    ParticleMovementTracker(ParticleMovementMap &movements, std::mutex &mutex);
 
     /**
      * @brief Records the movement of a particle.
@@ -34,7 +33,7 @@ public:
      * @param position The current position of the particle.
      * @param maxParticles Maximum number of particles to track.
      */
-    void recordMovement(Particle const &particle, Point const &position, size_t maxParticles = kdefault_max_particles_to_record);
+    void recordMovement(Particle const &particle, Point const &position, size_t maxParticles = kdefault_max_particles_to_record) noexcept;
 };
 
 #endif // PARTICLEMOVEMENTTRACKER_HPP
