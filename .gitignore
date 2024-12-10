@@ -44,6 +44,7 @@ all_tests
 *.msh
 *.msh.opt
 *.geo
+!meshes/*.msh
 
 # HDF5 format
 *.hdf5
