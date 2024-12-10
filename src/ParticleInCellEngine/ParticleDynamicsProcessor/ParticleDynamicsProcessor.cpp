@@ -31,7 +31,11 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 {
     try
     {
+#if __cplusplus >= 202002L
+        std::for_each(std::execution::par_unseq,
+#else
         std::for_each(std::execution::par,
+#endif
                       particles.begin() + start_index,
                       particles.begin() + end_index,
                       [this, &cubicGrid, gsmAssembler, timeMoment, &particleTracker, &particles](auto &particle)
@@ -41,12 +45,11 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                               return;
 
                           // 2. Apply electromagnetic forces to the particle.
-                          auto containingTetrahedronOpt{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)};
-                          if (containingTetrahedronOpt.has_value())
-                              m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, containingTetrahedronOpt.value());
+                          if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
+                              m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetraId);
 
                           // 3. Record the particle's previous position for movement tracking.
-                          Point prev{particle.getCentre()};
+                          Point const prev{particle.getCentre()};
                           m_movementTracker.recordMovement(particle, prev);
 
                           // 4. Update the particle's position.
@@ -59,13 +62,10 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                           m_physicsUpdater.collideWithGas(particle);
 
                           // 6. Skip surface collision checks at the initial simulation time (t == 0).
-                          if (timeMoment == 0.0)
-                              return;
-
                           // 7. Detect and handle collisions with the surface mesh.
-                          auto triangleIdOpt{m_collisionHandler.handle(particle, ray, particles.size())};
-                          if (triangleIdOpt.has_value())
-                              m_particleSettler.settle(particle.getId(), triangleIdOpt.value(), particles.size());
+                          if (timeMoment != 0.0)
+                              if (auto triangleId{m_collisionHandler.handle(particle, ray, particles.size())})
+                                  m_particleSettler.settle(particle.getId(), *triangleId, particles.size());
                       });
     }
     catch (std::exception const &ex)
