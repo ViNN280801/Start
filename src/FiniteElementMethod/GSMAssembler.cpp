@@ -191,34 +191,6 @@ DynRankView GSMAssembler::_computeLocalStiffnessMatrices()
     return DynRankView();
 }
 
-void GSMAssembler::_assembleGlobalStiffnessMatrix()
-{
-    try
-    {
-        // 1. Preparing to fill matrix.
-        getGlobalStiffnessMatrix()->resumeFill();
-
-        // 2. Adding local stiffness matrices to the global.
-        for (auto const &entry : m_matrix_manager.getMatrixEntries())
-        {
-            Teuchos::ArrayView<GlobalOrdinal const> colsView(std::addressof(entry.col), 1);
-            Teuchos::ArrayView<Scalar const> valsView(std::addressof(entry.value), 1);
-            getGlobalStiffnessMatrix()->sumIntoGlobalValues(entry.row, colsView, valsView);
-        }
-
-        // 3. Filling completion.
-        getGlobalStiffnessMatrix()->fillComplete();
-    }
-    catch (std::exception const &ex)
-    {
-        ERRMSG(ex.what());
-    }
-    catch (...)
-    {
-        ERRMSG("Unknown error was occured while assemblying global stiffness matrix. Probably solution: decrease polynom order or desired accuracy");
-    }
-}
-
 GSMAssembler::GSMAssembler(std::string_view mesh_filename, CellType cell_type, short desired_calc_accuracy, short polynom_order)
     : m_mesh_filename(mesh_filename.data()),
       m_cell_type(cell_type),
@@ -231,6 +203,4 @@ GSMAssembler::GSMAssembler(std::string_view mesh_filename, CellType cell_type, s
     FEMCheckers::checkMeshFile(mesh_filename);
     FEMCheckers::checkPolynomOrder(polynom_order);
     FEMCheckers::checkDesiredAccuracy(desired_calc_accuracy);
-
-    _assembleGlobalStiffnessMatrix();
 }

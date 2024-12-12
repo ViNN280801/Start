@@ -70,12 +70,6 @@ private:
      */
     DynRankView _computeLocalStiffnessMatrices();
 
-    /**
-     * @brief Assemlies global stiffness matrix from the GMSH mesh file (.msh).
-     * @return Sparse matrix: global stiffness matrix of the tetrahedron mesh.
-     */
-    void _assembleGlobalStiffnessMatrix();
-
 public:
     /**
      * @brief Constructor for the `GSMAssembler` class.
