@@ -1,9 +1,12 @@
+
+import sys
+import tempfile
+
 from vtk import vtkRenderer
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import *
 from constants import *
 from numpy import all, array
-import tempfile
 
 
 def get_cur_datetime() -> str:
@@ -221,3 +224,18 @@ def create_secure_tempfile() -> str:
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_file_path = temp_file.name
     return temp_file_path 
+
+
+def warning_unrealized_or_malfunctionating_function(functionality: str):
+    """
+    Prints to stdout warning message about breaked or unimplemented functionality.
+    
+    Parameters:
+    functionality (str): String that presents functionality, for example: "Creating geometry object cone".
+    
+    Raises:
+    An exception to prevent breaking program with unimplemented or bad, or dummy functionality.
+    """
+    if not functionality:
+        raise ValueError("'functionality' param is empty, nothing to show")
+    raise Exception(f"Warning: {functionality}: is unimplemented or breaken functionality.")

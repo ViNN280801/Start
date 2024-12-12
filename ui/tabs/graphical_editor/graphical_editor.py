@@ -22,6 +22,7 @@ from util.vtk_helpers import (
     remove_actor, remove_actors, colorize_actor_with_rgb, add_gradient, add_shadows
 )
 from util.gmsh_helpers import convert_stp_to_msh
+from util.util import warning_unrealized_or_malfunctionating_function
 from logger import LogConsole
 from .geometry import GeometryManager
 from .particle_source_manager import ParticleSourceManager
@@ -471,7 +472,7 @@ class GraphicalEditor(QFrame):
                     point_dimtags = GeometryManager.get_dimtags_by_actor(point_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'point', point_actor, point_dimtags)
                 
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Point", str(e))
 
     def create_line(self):
@@ -487,7 +488,7 @@ class GraphicalEditor(QFrame):
                     line_dimtags = GeometryManager.get_dimtags_by_actor(line_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'line', line_actor, line_dimtags)
                 
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Line", str(e))
 
     def create_surface(self):
@@ -506,7 +507,7 @@ class GraphicalEditor(QFrame):
                     surface_dimtags = GeometryManager.get_dimtags_by_actor(surface_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'surface', surface_actor, surface_dimtags)
                 
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Surface", str(e))
 
     def create_sphere(self):
@@ -522,7 +523,7 @@ class GraphicalEditor(QFrame):
                     sphere_dimtags = GeometryManager.get_dimtags_by_actor(sphere_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'sphere', sphere_actor, sphere_dimtags)
                 
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Sphere", str(e))
 
     def create_box(self):
@@ -538,7 +539,7 @@ class GraphicalEditor(QFrame):
                     box_dimtags = GeometryManager.get_dimtags_by_actor(box_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'box', box_actor, box_dimtags)
             
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Box", str(e))
 
     def create_cone(self):        
@@ -554,13 +555,14 @@ class GraphicalEditor(QFrame):
                     cone_dimtags = GeometryManager.get_dimtags_by_actor(cone_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'cone', cone_actor, cone_dimtags)
             
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Cone", str(e))
     
     def create_cylinder(self):
         dialog = CylinderDialog(self)
         if dialog.exec_() == QDialog.Accepted and dialog.getValues() is not None:
             try:
+                warning_unrealized_or_malfunctionating_function("Creating cylinder")
                 cylinder = dialog.getCylinder()
                 cylinder_actor = GeometryManager.create_cylinder(cylinder)
 
@@ -570,7 +572,7 @@ class GraphicalEditor(QFrame):
                     cylinder_dimtags = GeometryManager.get_dimtags_by_actor(cylinder_actor)
                     self.add_action(ACTION_ACTOR_CREATING, 'cylinder', cylinder_actor, cylinder_dimtags)
             
-            except RuntimeError as e:
+            except Exception as e:
                 QMessageBox.warning(self, "Create Cylinder", str(e))
 
     def upload_custom(self):
@@ -1396,15 +1398,19 @@ class GraphicalEditor(QFrame):
             self.deselect()
     
     def scale_actors(self):
-        dialog = ScaleDialog(self)
-        if dialog.exec_() == QDialog.Accepted:
-            x_scale, y_scale, z_scale = dialog.getValues()
-            
-            for actor in self.selected_actors:
-                GeometryManager.scale(actor, x_scale, y_scale, z_scale)
-                self.add_action(ACTION_ACTOR_TRANSFORMATION, 'scale', actor, x_scale, y_scale, z_scale)
-            
-            self.deselect()
+        try:
+            dialog = ScaleDialog(self)
+            if dialog.exec_() == QDialog.Accepted:
+                x_scale, y_scale, z_scale = dialog.getValues()
+                
+                for actor in self.selected_actors:
+                    GeometryManager.scale(actor, x_scale, y_scale, z_scale)
+                    self.add_action(ACTION_ACTOR_TRANSFORMATION, 'scale', actor, x_scale, y_scale, z_scale)
+                
+                self.deselect()
+            warning_unrealized_or_malfunctionating_function(f"Adjusting actor {actor}")
+        except Exception as e:
+            QMessageBox.warning(self, "Scale Object", str(e))
             
     def change_interactor(self, style: str):
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()

@@ -1,4 +1,3 @@
-import stat
 from vtk import vtkActor
 
 from tabs.graphical_editor.geometry.point import Point
