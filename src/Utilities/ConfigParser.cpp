@@ -191,6 +191,21 @@ void ConfigParser::getConfigData(std::string_view config)
 
                 m_config.boundaryConditions.emplace_back(nodes, val);
             }
+
+            // Check for duplicate nodes.
+            for (auto const &[nodeId, values] : m_config.nodeValues)
+            {
+                if (values.size() > 1)
+                {
+                    std::cerr << "Node ID " << nodeId << " has multiple values assigned: ";
+                    for (double val : values)
+                        std::cerr << val << ' ';
+                    std::cerr << std::endl;
+
+                    ifs.close();
+                    throw std::runtime_error("Duplicate node values found. Temporary file with boundary conditions has been deleted.");
+                }
+            }
         }
     }
     catch (json::exception const &e)
