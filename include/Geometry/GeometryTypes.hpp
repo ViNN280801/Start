@@ -8,8 +8,6 @@
 #include <CGAL/Segment_3.h>
 #include <CGAL/intersections.h>
 
-#define CGAL_TO_DOUBLE(var) CGAL::to_double(var)
-
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 using Point = Kernel::Point_3;
 using Ray = Kernel::Segment_3; // Finite ray - line segment.

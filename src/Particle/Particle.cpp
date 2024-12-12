@@ -130,9 +130,9 @@ Particle::Particle(ParticleType type_, Point &&centre,
 void Particle::updatePosition(double dt)
 {
 	// Update particle positions: x = x + Vx ⋅ Δt
-	double upd_x{CGAL_TO_DOUBLE(m_centre.x()) + getVx() * dt},
-		upd_y{CGAL_TO_DOUBLE(m_centre.y()) + getVy() * dt},
-		upd_z{CGAL_TO_DOUBLE(m_centre.z()) + getVz() * dt};
+	double upd_x{m_centre.x() + getVx() * dt},
+		upd_y{m_centre.y() + getVy() * dt},
+		upd_z{m_centre.z() + getVz() * dt};
 
 	m_centre = Point(upd_x, upd_y, upd_z);
 }
@@ -140,30 +140,30 @@ void Particle::updatePosition(double dt)
 bool Particle::overlaps(Particle const &other) const
 {
 	// Distance between particles
-	double distance_{PositionVector(CGAL_TO_DOUBLE(m_centre.x()),
-									CGAL_TO_DOUBLE(m_centre.y()),
-									CGAL_TO_DOUBLE(m_centre.z()))
-						 .distance(PositionVector(CGAL_TO_DOUBLE(other.m_centre.x()),
-												  CGAL_TO_DOUBLE(other.m_centre.y()),
-												  CGAL_TO_DOUBLE(other.m_centre.z())))};
+	double distance_{PositionVector(m_centre.x(),
+									m_centre.y(),
+									m_centre.z())
+						 .distance(PositionVector(other.m_centre.x(),
+												  other.m_centre.y(),
+												  other.m_centre.z()))};
 	return distance_ < (getRadius() + other.getRadius());
 }
 
 bool Particle::overlaps(Particle &&other) const
 {
-	double distance_{PositionVector(CGAL_TO_DOUBLE(m_centre.x()),
-									CGAL_TO_DOUBLE(m_centre.y()),
-									CGAL_TO_DOUBLE(m_centre.z()))
-						 .distance(PositionVector(CGAL_TO_DOUBLE(other.m_centre.x()),
-												  CGAL_TO_DOUBLE(other.m_centre.y()),
-												  CGAL_TO_DOUBLE(other.m_centre.z())))};
+	double distance_{PositionVector(m_centre.x(),
+									m_centre.y(),
+									m_centre.z())
+						 .distance(PositionVector(other.m_centre.x(),
+												  other.m_centre.y(),
+												  other.m_centre.z()))};
 	return distance_ < (getRadius() + other.getRadius());
 }
 
-double Particle::getX() const { return CGAL_TO_DOUBLE(m_centre.x()); }
-double Particle::getY() const { return CGAL_TO_DOUBLE(m_centre.y()); }
-double Particle::getZ() const { return CGAL_TO_DOUBLE(m_centre.z()); }
-double Particle::getPositionModule() const { return PositionVector(CGAL_TO_DOUBLE(m_centre.x()), CGAL_TO_DOUBLE(m_centre.y()), CGAL_TO_DOUBLE(m_centre.z())).module(); }
+double Particle::getX() const { return m_centre.x(); }
+double Particle::getY() const { return m_centre.y(); }
+double Particle::getZ() const { return m_centre.z(); }
+double Particle::getPositionModule() const { return PositionVector(m_centre.x(), m_centre.y(), m_centre.z()).module(); }
 double Particle::getVelocityModule() const { return m_velocity.module(); }
 
 void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, ElectricField const &electricField, double time_step)
