@@ -53,29 +53,8 @@ void MatrixEquationSolver::calculateElectricField()
 {
     try
     {
-        // Filling node potentials before calculating the electric field in the cell.
         fillNodesPotential();
-
-        // We have map: (Tetrahedron ID | map<Node ID | Basis function gradient math vector (3 components)>).
-        // To get electric field of the cell we just need to accumulate all the basis func grads for each node for each tetrahedron:
-        // \f$ E_{\text{cell}} = \sum (\varphi_i \cdot \nabla \varphi_i) \f$,
-        // where \( i \) is the global index of the node.
-        for (auto const &tetrahedronData : m_assembler->getMeshManager().getMeshComponents())
-        {
-            ElectricField electricField{};
-            for (auto const &node : tetrahedronData.nodes)
-            {
-                if (node.potential && node.nablaPhi)
-                    electricField += ElectricField(node.nablaPhi.value().x(), node.nablaPhi.value().y(), node.nablaPhi.value().z()) *
-                                     node.potential.value();
-                else
-                {
-                    WARNINGMSG(util::stringify("Node potential or nablaPhi is not set for the ",
-                                               node.globalNodeId, " vertex of the ", tetrahedronData.globalTetraId, " tetrahedron"));
-                }
-            }
-            m_assembler->getMeshManager().assignElectricField(tetrahedronData.globalTetraId, Point(electricField.getX(), electricField.getY(), electricField.getZ()));
-        }
+        m_assembler->getMeshManager().computeElectricFields();
     }
     catch (std::exception const &ex)
     {
