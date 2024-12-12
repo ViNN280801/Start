@@ -5,6 +5,9 @@
 #endif
 
 #include "DataHandling/TetrahedronMeshManager.hpp"
+#include "FiniteElementMethod/Cell/CellSelector.hpp"
+#include "FiniteElementMethod/FEMLimits.hpp"
+#include "Geometry/MathVector.hpp"
 
 Point TetrahedronMeshManager::TetrahedronData::getTetrahedronCenter() const
 {
@@ -225,6 +228,28 @@ void TetrahedronMeshManager::_constructLocalMesh()
     }
 }
 
+void TetrahedronMeshManager::_buildViews()
+{
+    m_tetraVertices = DynRankViewHost("tetraVertices", getNumTetrahedrons(), 4, 3);
+    m_tetraGlobalIds = DynRankViewHost("tetraGlobalIds", getNumTetrahedrons());
+
+    for (size_t localId{}; localId < getNumTetrahedrons(); ++localId)
+    {
+        auto const &data{m_meshComponents[localId]};
+        m_tetraGlobalIds(localId) = data.globalTetraId;
+        for (short node{}; node < 4; ++node)
+        {
+            m_tetraVertices(localId, node, 0) = data.nodes[node].nodeCoords.x();
+            m_tetraVertices(localId, node, 1) = data.nodes[node].nodeCoords.y();
+            m_tetraVertices(localId, node, 2) = data.nodes[node].nodeCoords.z();
+        }
+    }
+
+    m_globalToLocalTetraId.reserve(getNumTetrahedrons());
+    for (size_t localId{}; localId < getNumTetrahedrons(); ++localId)
+        m_globalToLocalTetraId[m_tetraGlobalIds(localId)] = localId;
+}
+
 TetrahedronMeshManager::TetrahedronMeshManager(std::string_view mesh_filename)
 {
     util::check_gmsh_mesh_file(mesh_filename);
@@ -245,6 +270,7 @@ TetrahedronMeshManager::TetrahedronMeshManager(std::string_view mesh_filename)
         _receiveData();
 
     _constructLocalMesh();
+    _buildViews();
 }
 
 void TetrahedronMeshManager::print() const noexcept
@@ -305,7 +331,7 @@ std::optional<TetrahedronMeshManager::TetrahedronData> TetrahedronMeshManager::g
                                  { return data.globalTetraId == globalTetrahedronId; })};
 #else
     auto it{std::find_if(m_meshComponents.cbegin(), m_meshComponents.cend(), [globalTetrahedronId](const TetrahedronData &data)
-                                 { return data.globalTetraId == globalTetrahedronId; })};
+                         { return data.globalTetraId == globalTetrahedronId; })};
 #endif
     if (it != m_meshComponents.cend())
         return *it;
@@ -319,7 +345,7 @@ void TetrahedronMeshManager::assignNablaPhi(size_t tetrahedronId, size_t nodeId,
                                  { return data.globalTetraId == tetrahedronId; })};
 #else
     auto it{std::find_if(m_meshComponents.begin(), m_meshComponents.end(), [tetrahedronId](const TetrahedronData &data)
-                                 { return data.globalTetraId == tetrahedronId; })};
+                         { return data.globalTetraId == tetrahedronId; })};
 #endif
     if (it != m_meshComponents.cend())
     {
@@ -349,7 +375,7 @@ void TetrahedronMeshManager::assignElectricField(size_t tetrahedronId, Point con
                                  { return data.globalTetraId == tetrahedronId; })};
 #else
     auto it{std::find_if(m_meshComponents.begin(), m_meshComponents.end(), [tetrahedronId](const TetrahedronData &data)
-                                 { return data.globalTetraId == tetrahedronId; })};
+                         { return data.globalTetraId == tetrahedronId; })};
 #endif
     if (it != m_meshComponents.end())
     {
@@ -399,4 +425,111 @@ std::map<size_t, Point> TetrahedronMeshManager::getTetrahedronCenters() const
         WARNINGMSG("Tetrahedron centres map is empty");
     }
     return tetraCentres;
+}
+
+DynRankView TetrahedronMeshManager::computeLocalStiffnessMatricesAndNablaPhi(
+    Intrepid2::Basis<DeviceType, Scalar, Scalar> *basis,
+    DynRankView const &cubPoints,
+    DynRankView const &cubWeights,
+    size_t numBasisFunctions,
+    size_t numCubaturePoints)
+{
+    auto const numTetrahedrons{getNumTetrahedrons()};
+
+    // 1. Reference basis grads
+    DynRankView referenceBasisGrads("referenceBasisGrads", numBasisFunctions, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
+    basis->getValues(referenceBasisGrads, cubPoints, Intrepid2::OPERATOR_GRAD);
+
+#ifdef USE_CUDA
+    auto vertices{Kokkos::create_mirror_view_and_copy(MemorySpaceDevice(), m_tetraVertices)}; // From host to device.
+#else
+    DynRankView vertices(m_tetraVertices);
+#endif
+
+    // 2. Jacobians and measures
+    DynRankView jacobians("jacobians", numTetrahedrons, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
+    Intrepid2::CellTools<DeviceType>::setJacobian(jacobians, cubPoints, vertices, CellSelector::get(CellType::Tetrahedron));
+
+    DynRankView invJacobians("invJacobians", numTetrahedrons, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
+    Intrepid2::CellTools<DeviceType>::setJacobianInv(invJacobians, jacobians);
+
+    DynRankView jacobiansDet("jacobiansDet", numTetrahedrons, numCubaturePoints);
+    Intrepid2::CellTools<DeviceType>::setJacobianDet(jacobiansDet, jacobians);
+
+    DynRankView cellMeasures("cellMeasures", numTetrahedrons, numCubaturePoints);
+    Intrepid2::FunctionSpaceTools<DeviceType>::computeCellMeasure(cellMeasures, jacobiansDet, cubWeights);
+
+    // 3. Transform reference grads
+    DynRankView transformedBasisGradients("transformedBasisGradients", numTetrahedrons, numBasisFunctions, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
+    Intrepid2::FunctionSpaceTools<DeviceType>::HGRADtransformGRAD(transformedBasisGradients, invJacobians, referenceBasisGrads);
+
+    // 4. Weighted basis grads
+    DynRankView weightedBasisGrads("weightedBasisGrads", numTetrahedrons, numBasisFunctions, numCubaturePoints, FEM_LIMITS_DEFAULT_SPACE_DIMENSION);
+    Intrepid2::FunctionSpaceTools<DeviceType>::multiplyMeasure(weightedBasisGrads, cellMeasures, transformedBasisGradients);
+
+    // 5. Integrate local stiffness matrices
+    DynRankView localStiffnessMatrices("localStiffnessMatrices", numTetrahedrons, numBasisFunctions, numBasisFunctions);
+    Intrepid2::FunctionSpaceTools<DeviceType>::integrate(localStiffnessMatrices, weightedBasisGrads, transformedBasisGradients);
+
+#ifdef USE_CUDA
+    auto localStiffnessMatrices_host{Kokkos::create_mirror_view_and_copy(MemorySpaceHost(), localStiffnessMatrices)};
+    auto weightedBasisGrads_host{Kokkos::create_mirror_view_and_copy(MemorySpaceHost(), weightedBasisGrads)};
+#else
+    auto &weightedBasisGrads_host{weightedBasisGrads};
+#endif
+
+    // 6. Assign nablaPhi
+    for (size_t localTetraId{}; localTetraId < numTetrahedrons; ++localTetraId)
+    {
+        auto globalTetraId{getGlobalTetraId(localTetraId)};
+        auto const &nodes{getTetrahedronNodes(localTetraId)};
+
+        if (numBasisFunctions > nodes.size())
+        {
+            WARNINGMSG("Basis function count exceeds the number of nodes.");
+        }
+
+        for (short localNodeId{}; localNodeId < (short)numBasisFunctions; ++localNodeId)
+        {
+            auto globalNodeId{nodes[localNodeId].globalNodeId};
+            Point grad(weightedBasisGrads_host(localTetraId, localNodeId, 0, 0),
+                       weightedBasisGrads_host(localTetraId, localNodeId, 0, 1),
+                       weightedBasisGrads_host(localTetraId, localNodeId, 0, 2));
+
+            assignNablaPhi(globalTetraId, globalNodeId, grad);
+        }
+    }
+
+    return localStiffnessMatrices;
+}
+
+void TetrahedronMeshManager::computeElectricFields()
+{
+    // We have a mapping of (Tetrahedron ID -> (Node ID -> Gradient of basis function)).
+    // To obtain the electric field of the cell, we need to sum over all nodes the product
+    // of the node's potential (φ_i) and the node's basis function gradient (∇φ_i).
+    //
+    // The formula is:
+    // E_cell = Σ(φ_i * ∇φ_i)
+    // where i is the global index of the node.
+    for (auto &tetra : m_meshComponents)
+    {
+        ElectricField electricField{};
+        bool missingData{};
+        for (auto const &node : tetra.nodes)
+        {
+            if (node.potential && node.nablaPhi)
+                electricField += ElectricField(node.nablaPhi->x(), node.nablaPhi->y(), node.nablaPhi->z()) * node.potential.value();
+            else
+                missingData = true;
+        }
+
+        if (missingData)
+        {
+            WARNINGMSG(util::stringify("Warning: Node potential or nablaPhi is not set for one or more nodes of tetrahedron ",
+                                       tetra.globalTetraId, ". Those nodes are skipped in electric field computation.\n"));
+        }
+
+        tetra.electricField = Point(electricField.getX(), electricField.getY(), electricField.getZ());
+    }
 }

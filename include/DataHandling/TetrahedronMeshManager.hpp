@@ -4,6 +4,7 @@
 #include <array>
 #include <optional>
 
+#include "FiniteElementMethod/FEMTypes.hpp"
 #include "Geometry/GeometryTypes.hpp"
 #include "Utilities/Utilities.hpp"
 
@@ -51,6 +52,10 @@ private:
     std::vector<std::vector<std::pair<size_t, std::array<size_t, 4>>>> m_elementsPerProc; ///< Elements partitioned by process (used for MPI distribution).
     std::vector<std::vector<size_t>> m_nodeTagsPerProc;                                   ///< Node tags partitioned by process (used for MPI distribution).
 
+    DynRankViewHost m_tetraVertices;                           ///< A view storing coordinates of all tetrahedron vertices.
+    DynRankViewHost m_tetraGlobalIds;                          ///< A view mapping local tetrahedron index to its global ID.
+    std::unordered_map<size_t, size_t> m_globalToLocalTetraId; ///< Map from global tetra ID to local index.
+
     /**
      * @brief Reads and partitions the mesh file. Only called by the root process (rank 0).
      * @param mesh_filename Path to the mesh file to be read and partitioned.
@@ -71,6 +76,16 @@ private:
 
     /// @brief Constructs the local mesh representation using the received data.
     void _constructLocalMesh();
+
+    /**
+     * @brief Build DynRankViews and maps for easier index access.
+     *
+     * This method populates:
+     * - `m_tetraVertices`: A DynRankViewHost with shape [numTets,4,3], storing coordinates.
+     * - `m_tetraGlobalIds`: A DynRankViewHost mapping local indices to global tetra IDs.
+     * - `m_globalToLocalTetraId`: An unordered_map for global-to-local tetra ID lookup.
+     */
+    void _buildViews();
 
 public:
     using NodeData = TetrahedronMeshManager::TetrahedronData::NodeData;
@@ -259,6 +274,62 @@ public:
      */
     [[nodiscard("Tetrahedron centers are vital for geometric and physical calculations.")]]
     std::map<size_t, Point> getTetrahedronCenters() const;
+
+    /**
+     * @brief Get the local tetrahedron ID given a global tetrahedron ID.
+     *
+     * @param globalId The global ID of the tetrahedron (from Gmsh).
+     * @return The local index (0-based) of the tetrahedron.
+     * @throw std::out_of_range if globalId is not found.
+     */
+    size_t getLocalTetraId(size_t globalId) const { return m_globalToLocalTetraId.at(globalId); }
+
+    /**
+     * @brief Access the DynRankView of tetrahedron vertices.
+     *
+     * @return A copy of the DynRankViewHost that stores tetrahedron vertices.
+     */
+    inline DynRankViewHost getTetraVerticesView() const noexcept { return m_tetraVertices; }
+
+    /**
+     * @brief Access the DynRankView of global tetrahedron IDs.
+     *
+     * @return A copy of the DynRankViewHost that stores global IDs for each local tetrahedron index.
+     */
+    inline DynRankViewHost getTetraGlobalIdsView() const noexcept { return m_tetraGlobalIds; }
+
+    /**
+     * @brief Compute local stiffness matrices and assign nablaPhi for each node of each tetrahedron.
+     *
+     * This method internally computes jacobians, inverse jacobians, cell measures,
+     * transforms the reference gradients of the basis functions, and integrates
+     * to form local stiffness matrices. It also assigns nablaPhi to each node.
+     *
+     * @param basis The chosen basis functions object (already constructed outside).
+     * @param cubPoints The cubature points.
+     * @param cubWeights The cubature weights.
+     * @param numBasisFunctions The number of basis functions per tetrahedron.
+     * @param numCubaturePoints The number of cubature points.
+     * @return DynRankView with shape (numTetrahedrons, numBasisFunctions, numBasisFunctions)
+     *         containing the local stiffness matrices.
+     */
+    DynRankView computeLocalStiffnessMatricesAndNablaPhi(
+        Intrepid2::Basis<DeviceType, Scalar, Scalar> *basis,
+        DynRankView const &cubPoints,
+        DynRankView const &cubWeights,
+        size_t numBasisFunctions,
+        size_t numCubaturePoints);
+
+    /**
+     * @brief Compute the electric field for each tetrahedron based on assigned potentials and nablaPhi.
+     *
+     * This method loops over all tetrahedrons, computes:
+     * \f$ E_{\text{cell}} = \sum_i (\varphi_i * \nabla \varphi_i) \f$
+     * for each tetrahedron, and updates the tetrahedron's electricField field.
+     *
+     * If either potential or nablaPhi is not set for a node, a warning is issued and that node is skipped in the sum.
+     */
+    void computeElectricFields();
 };
 
 #endif // !TETRAHEDRONMESHMANAGER_HPP
