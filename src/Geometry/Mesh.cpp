@@ -13,9 +13,9 @@ std::ostream &operator<<(std::ostream &os, MeshTriangleParam const &meshParam)
         v2{triangle.vertex(2)};
 
     os << "Triangle[" << std::get<0>(meshParam) << "]:\n"
-       << "Vertex A: " << CGAL_TO_DOUBLE(v0.x()) << " " << CGAL_TO_DOUBLE(v0.y()) << " " << CGAL_TO_DOUBLE(v0.z()) << "\n"
-       << "Vertex B: " << CGAL_TO_DOUBLE(v1.x()) << " " << CGAL_TO_DOUBLE(v1.y()) << " " << CGAL_TO_DOUBLE(v1.z()) << "\n"
-       << "Vertex C: " << CGAL_TO_DOUBLE(v2.x()) << " " << CGAL_TO_DOUBLE(v2.y()) << " " << CGAL_TO_DOUBLE(v2.z()) << "\n"
+       << "Vertex A: " << v0.x() << " " << v0.y() << " " << v0.z() << "\n"
+       << "Vertex B: " << v1.x() << " " << v1.y() << " " << v1.z() << "\n"
+       << "Vertex C: " << v2.x() << " " << v2.y() << " " << v2.z() << "\n"
        << "Surface area: " << std::get<2>(meshParam) << "\n"
        << "Settled particle count: " << std::get<3>(meshParam) << "\n\n";
 
@@ -32,10 +32,10 @@ std::ostream &operator<<(std::ostream &os, MeshTetrahedronParam const &meshParam
         v3{tetrahedron.vertex(3)};
 
     os << "Tetrahedron[" << std::get<0>(meshParam) << "]:\n"
-       << "Vertex A: " << CGAL_TO_DOUBLE(v0.x()) << " " << CGAL_TO_DOUBLE(v0.y()) << " " << CGAL_TO_DOUBLE(v0.z()) << "\n"
-       << "Vertex B: " << CGAL_TO_DOUBLE(v1.x()) << " " << CGAL_TO_DOUBLE(v1.y()) << " " << CGAL_TO_DOUBLE(v1.z()) << "\n"
-       << "Vertex C: " << CGAL_TO_DOUBLE(v2.x()) << " " << CGAL_TO_DOUBLE(v2.y()) << " " << CGAL_TO_DOUBLE(v2.z()) << "\n"
-       << "Vertex D: " << CGAL_TO_DOUBLE(v3.x()) << " " << CGAL_TO_DOUBLE(v3.y()) << " " << CGAL_TO_DOUBLE(v3.z()) << "\n"
+       << "Vertex A: " << v0.x() << " " << v0.y() << " " << v0.z() << "\n"
+       << "Vertex B: " << v1.x() << " " << v1.y() << " " << v1.z() << "\n"
+       << "Vertex C: " << v2.x() << " " << v2.y() << " " << v2.z() << "\n"
+       << "Vertex D: " << v3.x() << " " << v3.y() << " " << v3.z() << "\n"
        << "Volume: " << std::get<2>(meshParam) << "\n\n";
 
     return os;

@@ -16,9 +16,9 @@ DynRankViewHost GSMAssembler::_getTetrahedronVertices()
             auto tetrahedron{meshParam.tetrahedron};
             for (short node{}; node < FEM_LIMITS_DEFAULT_TETRAHEDRON_VERTICES_COUNT; ++node)
             {
-                vertices(i, node, 0) = CGAL_TO_DOUBLE(tetrahedron.vertex(node).x());
-                vertices(i, node, 1) = CGAL_TO_DOUBLE(tetrahedron.vertex(node).y());
-                vertices(i, node, 2) = CGAL_TO_DOUBLE(tetrahedron.vertex(node).z());
+                vertices(i, node, 0) = tetrahedron.vertex(node).x();
+                vertices(i, node, 1) = tetrahedron.vertex(node).y();
+                vertices(i, node, 2) = tetrahedron.vertex(node).z();
             }
             ++i;
         }

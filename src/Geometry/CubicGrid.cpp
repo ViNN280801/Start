@@ -68,13 +68,10 @@ GridIndex CubicGrid::getGridIndexByPosition(double x, double y, double z) const
 
 GridIndex CubicGrid::getGridIndexByPosition(Point const &point) const
 {
-    double x{CGAL_TO_DOUBLE(point.x())},
-        y{CGAL_TO_DOUBLE(point.y())},
-        z{CGAL_TO_DOUBLE(point.z())};
     return {
-        std::clamp(short((x - m_commonBbox.xmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsX - 1)),
-        std::clamp(short((y - m_commonBbox.ymin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsY - 1)),
-        std::clamp(short((z - m_commonBbox.zmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsZ - 1))};
+        std::clamp(short((point.x() - m_commonBbox.xmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsX - 1)),
+        std::clamp(short((point.y() - m_commonBbox.ymin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsY - 1)),
+        std::clamp(short((point.z() - m_commonBbox.zmin()) / m_cubeEdgeSize), short(0), static_cast<short>(m_divisionsZ - 1))};
 }
 
 bool CubicGrid::isInsideTetrahedronMesh(Point const &point) const
