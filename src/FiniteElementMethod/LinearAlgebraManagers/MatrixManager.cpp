@@ -38,7 +38,7 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
 
     // 3. Build the graph entries
     std::map<GlobalOrdinal, std::set<GlobalOrdinal>> graphEntries;
-    for (const auto &entry : m_entries)
+    for (auto const &entry : m_entries)
     {
         graphEntries[entry.row].insert(entry.col);
     }
@@ -52,7 +52,7 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
         return m_map->getLocalElement(globalRow);
     };
 
-    for (const auto &rowEntry : graphEntries)
+    for (auto const &rowEntry : graphEntries)
     {
         auto localIndex{globalToLocalRow(rowEntry.first)};
         if (localIndex == Teuchos::OrdinalTraits<LocalOrdinal>::invalid())
@@ -77,14 +77,14 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
     m_matrix = Teuchos::rcp(new TpetraMatrixType(graph));
 
     // 6. Insert matrix entries
-    for (const auto &entry : m_entries)
+    for (auto const &entry : m_entries)
     {
         if (!m_map->isNodeGlobalElement(entry.row))
         {
             continue; // Skip entries not owned by this process
         }
-        Teuchos::ArrayView<const GlobalOrdinal> colsView(&entry.col, 1);
-        Teuchos::ArrayView<const Scalar> valsView(&entry.value, 1);
+        Teuchos::ArrayView<GlobalOrdinal const> colsView(std::addressof(entry.col), 1);
+        Teuchos::ArrayView<Scalar const> valsView(std::addressof(entry.value), 1);
         m_matrix->sumIntoGlobalValues(entry.row, colsView, valsView);
     }
 
