@@ -295,7 +295,7 @@ void ModelingMainDriver::startModeling()
 
         if (m_stop_processing.test())
         {
-            SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop.\n",
+            SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
         }
         SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
