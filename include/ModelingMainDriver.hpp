@@ -10,6 +10,7 @@
 #include "Geometry/CubicGrid.hpp"
 #include "Geometry/Mesh.hpp"
 #include "Particle/Particle.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 #include "SessionManagement/GmshSessionManager.hpp"
 #include "Utilities/ConfigParser.hpp"
 
@@ -40,7 +41,7 @@
  * 13. Save all collected particles in triangles (surface mesh) to an \texttt{.hdf5} file.
  * 14. Optionally, save all trajectories of the particles to create an animation.
  */
-class ModelingMainDriver final
+class ModelingMainDriver : public StopSubject
 {
 private:
     std::string m_config_filename;                    ///< Filename of the configuration to parse it.
@@ -48,6 +49,8 @@ private:
     static std::mutex m_nodeChargeDensityMapMutex;    ///< Mutex for synchronizing access to the charge densities in nodes.
     static std::mutex m_particlesMovementMutex;       ///< Mutex for synchronizing access to the trajectories of particles.
     static std::shared_mutex m_settledParticlesMutex; ///< Mutex for synchronizing access to settled particle IDs.
+    static std::atomic_flag m_stop_processing;        ///< Flag-checker for condition (counter >= size of particles).
+    std::shared_ptr<StopFlagObserver> m_stopObserver; ///< Observer for managing stop requests.
 
     /* All the neccessary data members from the mesh. */
     MeshTriangleParamVector _triangleMesh;   ///< Triangle mesh params acquired from the mesh file. Surface mesh.
@@ -64,6 +67,9 @@ private:
     ConfigParser m_config;                                                ///< `ConfigParser` object to get all the simulation physical paramters.
     std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
     std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
+
+    /// @brief Initializes observer for the stopping modeling process when all particles are settled.
+    void _initializeObservers();
 
     /**
      * @brief Broadcasts the triangle mesh data from the root rank (rank 0) to all other ranks.

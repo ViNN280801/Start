@@ -5,9 +5,9 @@ ParticleMovementTracker::ParticleMovementTracker(ParticleMovementMap &movements,
 	: m_particlesMovement(movements),
 	  m_particlesMovementMutex(mutex) {}
 
-void ParticleMovementTracker::recordMovement(Particle const &particle, Point const &position, size_t maxParticles) noexcept
+void ParticleMovementTracker::recordMovement(size_t particleId, Point const &position, size_t maxParticles) noexcept
 {
-	std::scoped_lock lock(m_particlesMovementMutex);
+	std::lock_guard<std::mutex> lock(m_particlesMovementMutex);
 	if (m_particlesMovement.size() <= maxParticles)
-		m_particlesMovement[particle.getId()].emplace_back(position);
+		m_particlesMovement[particleId].emplace_back(position);
 }

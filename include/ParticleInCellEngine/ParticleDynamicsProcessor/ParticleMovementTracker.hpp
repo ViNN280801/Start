@@ -29,11 +29,11 @@ public:
 
     /**
      * @brief Records the movement of a particle.
-     * @param particle The particle being tracked.
+     * @param particleId The particle ID being tracked.
      * @param position The current position of the particle.
      * @param maxParticles Maximum number of particles to track.
      */
-    void recordMovement(Particle const &particle, Point const &position, size_t maxParticles = kdefault_max_particles_to_record) noexcept;
+    void recordMovement(size_t particleId, Point const &position, size_t maxParticles = kdefault_max_particles_to_record) noexcept;
 };
 
 #endif // PARTICLEMOVEMENTTRACKER_HPP

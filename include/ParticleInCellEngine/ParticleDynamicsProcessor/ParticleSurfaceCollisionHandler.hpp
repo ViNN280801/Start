@@ -7,6 +7,7 @@
 #include "Geometry/Mesh.hpp"
 #include "Particle/Particle.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 
 /**
  * @class ParticleSurfaceCollisionHandler
@@ -25,6 +26,7 @@ private:
     ParticlesIDSet &m_settledParticleIds;                     ///< Set of settled particle IDs.
     SettledParticlesCounterMap &m_settledParticlesCounterMap; ///< Map of triangle IDs to settled particle counts.
     ParticleMovementMap &m_particlesMovement;                 ///< Map of particle movements.
+    StopSubject &m_subject;                                   ///< Reference to StopSubject for signaling stop requests.
 
 public:
     /**
@@ -36,6 +38,7 @@ public:
      * @param settledParticlesIds Reference to the set of settled particle IDs.
      * @param settledParticlesCounterMap Reference to the map of triangle settlement counts.
      * @param particlesMovement Reference to the map of particle movements.
+     * @param subject Reference to a StopSubject for notifying stop requests.
      */
     ParticleSurfaceCollisionHandler(
         std::shared_mutex &settledParticlesMutex,
@@ -44,7 +47,8 @@ public:
         MeshTriangleParamVector const &mesh,
         ParticlesIDSet &settledParticlesIds,
         SettledParticlesCounterMap &settledParticlesCounterMap,
-        ParticleMovementMap &particlesMovement);
+        ParticleMovementMap &particlesMovement,
+        StopSubject &subject);
 
     /**
      * @brief Handles a collision between a particle and the surface mesh.
