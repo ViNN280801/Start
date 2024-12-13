@@ -6,6 +6,7 @@
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticlePhysicsUpdater.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 #include "Utilities/ThreadedProcessor.hpp"
 
 /**
@@ -24,9 +25,9 @@
 class ParticleDynamicsProcessor
 {
 private:
-    ParticleSettler m_particleSettler;          ///< Handles particle settlement on surfaces.
-    ParticlePhysicsUpdater m_physicsUpdater;    ///< Updates particle physical properties.
-    ParticleMovementTracker m_movementTracker;  ///< Tracks particle movements.
+    ParticleSettler m_particleSettler;                  ///< Handles particle settlement on surfaces.
+    ParticlePhysicsUpdater m_physicsUpdater;            ///< Updates particle physical properties.
+    ParticleMovementTracker m_movementTracker;          ///< Tracks particle movements.
     ParticleSurfaceCollisionHandler m_collisionHandler; ///< Detects and handles surface collisions.
 
     /**
@@ -108,6 +109,7 @@ public:
      * @param settledParticlesIds Set of IDs of settled particles.
      * @param settledParticlesCounterMap Counter map for settled particles on triangles.
      * @param particlesMovement Map tracking particle movements.
+     * @param subject Reference to a StopSubject for triggering stop events.
      */
     ParticleDynamicsProcessor(std::string_view config_filename,
                               std::shared_mutex &settledParticlesMutex,
@@ -116,7 +118,8 @@ public:
                               MeshTriangleParamVector const &triangleMesh,
                               ParticlesIDSet &settledParticlesIds,
                               SettledParticlesCounterMap &settledParticlesCounterMap,
-                              ParticleMovementMap &particlesMovement);
+                              ParticleMovementMap &particlesMovement,
+                              StopSubject &subject);
 
     /**
      * @brief Processes all particles at the given time moment.

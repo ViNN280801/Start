@@ -14,12 +14,13 @@ ParticleDynamicsProcessor::ParticleDynamicsProcessor(std::string_view config_fil
                                                      MeshTriangleParamVector const &triangleMesh,
                                                      ParticlesIDSet &settledParticlesIds,
                                                      SettledParticlesCounterMap &settledParticlesCounterMap,
-                                                     ParticleMovementMap &particlesMovement)
-    : m_particleSettler(settledParticlesMutex, settledParticlesIds, settledParticlesCounterMap),
+                                                     ParticleMovementMap &particlesMovement,
+                                                     StopSubject &subject)
+    : m_particleSettler(settledParticlesMutex, settledParticlesIds, settledParticlesCounterMap, subject),
       m_physicsUpdater(config_filename),
       m_movementTracker(particlesMovement, particlesMovementMutex),
       m_collisionHandler(settledParticlesMutex, particlesMovementMutex, surfaceMeshAABBtree,
-                         triangleMesh, settledParticlesIds, settledParticlesCounterMap, particlesMovement) {}
+                         triangleMesh, settledParticlesIds, settledParticlesCounterMap, particlesMovement, subject) {}
 
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                                                         size_t end_index,
@@ -50,7 +51,7 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 
                           // 3. Record the particle's previous position for movement tracking.
                           Point const prev{particle.getCentre()};
-                          m_movementTracker.recordMovement(particle, prev);
+                          m_movementTracker.recordMovement(particle.getId(), prev);
 
                           // 4. Update the particle's position.
                           m_physicsUpdater.updatePosition(particle);
@@ -128,13 +129,12 @@ void ParticleDynamicsProcessor::_process_ompver__(unsigned int numThreads,
                 continue;
 
             // 2. Electromagnetic push.
-            auto containingTetrahedronOpt = CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment);
-            if (containingTetrahedronOpt.has_value())
-                m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, containingTetrahedronOpt.value());
+            if (auto tetrahedronId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
+                m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetrahedronId);
 
             // 3. Record previous position.
             Point prev{particle.getCentre()};
-            m_movementTracker.recordMovement(particle, prev);
+            m_movementTracker.recordMovement(particle.getId(), prev);
 
             // 4. Update position.
             m_physicsUpdater.updatePosition(particle);
@@ -150,9 +150,8 @@ void ParticleDynamicsProcessor::_process_ompver__(unsigned int numThreads,
                 continue;
 
             // 7. Surface collision.
-            auto triangleIdOpt{m_collisionHandler.handle(particle, ray, particles.size())};
-            if (triangleIdOpt.has_value())
-                m_particleSettler.settle(particle.getId(), triangleIdOpt.value(), particles.size());
+            if (auto triangleId{m_collisionHandler.handle(particle, ray, particles.size())})
+                m_particleSettler.settle(particle.getId(), *triangleId, particles.size());
         }
     }
     catch (std::exception const &ex)

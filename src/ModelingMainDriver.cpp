@@ -24,6 +24,13 @@ std::mutex ModelingMainDriver::m_PICTrackerMutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMapMutex;
 std::mutex ModelingMainDriver::m_particlesMovementMutex;
 std::shared_mutex ModelingMainDriver::m_settledParticlesMutex;
+std::atomic_flag ModelingMainDriver::m_stop_processing = ATOMIC_FLAG_INIT;
+
+void ModelingMainDriver::_initializeObservers()
+{
+    m_stopObserver = std::make_shared<StopFlagObserver>(m_stop_processing);
+    addObserver(m_stopObserver);
+}
 
 void ModelingMainDriver::_broadcastTriangleMesh()
 {
@@ -157,6 +164,7 @@ void ModelingMainDriver::_initializeParticles()
 
 void ModelingMainDriver::_ginitialize()
 {
+    _initializeObservers();
     _initializeSurfaceMesh();
     _initializeSurfaceMeshAABB();
     _initializeParticles();
@@ -260,7 +268,7 @@ void ModelingMainDriver::startModeling()
     [[maybe_unused]] auto num_threads{m_config.getNumThreads_s()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
-    for (double timeMoment{}; timeMoment <= m_config.getSimulationTime(); timeMoment += m_config.getTimeStep())
+    for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
     {
         NodeChargeDensityProcessor::gather(timeMoment,
                                            m_config_filename,
@@ -282,8 +290,14 @@ void ModelingMainDriver::startModeling()
         // 3. Process surface collision tracking in parallel.
         ParticleDynamicsProcessor particleDynamicProcessor(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
                                                            _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
-                                                           _settledParticlesCounterMap, m_particlesMovement);
+                                                           _settledParticlesCounterMap, m_particlesMovement, *this);
         particleDynamicProcessor.process(m_config_filename, m_particles, timeMoment, cubicGrid, gsmAssembler, m_particleTracker);
+
+        if (m_stop_processing.test())
+        {
+            SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop.\n",
+                                       "Last time moment is: ", timeMoment, "s."));
+        }
+        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
     }
-    LOGMSG(util::stringify("Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
 }

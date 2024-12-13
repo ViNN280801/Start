@@ -6,6 +6,7 @@ set(PICE_DYNAMIC_SOLVER_SOURCES
     ParticlePhysicsUpdater.cpp
     ParticleSettler.cpp
     ParticleSurfaceCollisionHandler.cpp
+    StopModelingObserver.cpp
 )
 
 set(LIB_PICE_DYNAMIC_SOLVER ParticleInCellEngine_ParticleDynamicsProcessor)

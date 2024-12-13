@@ -4,6 +4,7 @@
 #include <shared_mutex>
 
 #include "ParticleInCellEngine/PICTypes.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 
 /**
  * @class ParticleSettler
@@ -13,12 +14,13 @@
  * and to update settlement information when a particle collides with a surface.
  * It ensures thread safety using a shared mutex.
  */
-class ParticleSettler
+class ParticleSettler : public StopObserver
 {
 private:
     std::shared_mutex &m_settledParticlesMutex;               ///< Mutex to protect access to settled particles.
     ParticlesIDSet &m_settledParticleIds;                     ///< Set of IDs of particles that have settled.
     SettledParticlesCounterMap &m_settledParticlesCounterMap; ///< Map of triangle IDs to particle counts.
+    StopSubject &m_subject;                                   ///< Subject reference to manage stop modeling flag.
 
 public:
     /**
@@ -29,7 +31,8 @@ public:
      */
     ParticleSettler(std::shared_mutex &mutex,
                     ParticlesIDSet &ids,
-                    SettledParticlesCounterMap &counterMap);
+                    SettledParticlesCounterMap &counterMap,
+                    StopSubject &subject);
 
     /**
      * @brief Checks if a particle is already settled.
@@ -46,6 +49,12 @@ public:
      * @throws std::runtime_error If all particles are settled.
      */
     void settle(size_t particleId, size_t triangleId, size_t totalParticles);
+
+    /**
+     * @brief Implementation of StopObserver's onStopRequested.
+     * In this case, ParticleSettler not need special action, but it's here for correct compiling.
+     */
+    void onStopRequested() override {}
 };
 
 #endif // !PARTICLESETTLER_HPP

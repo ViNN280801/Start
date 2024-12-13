@@ -121,16 +121,33 @@ void CubicGrid::printGrid() const
 std::optional<size_t> CubicGrid::getContainingTetrahedron(ParticleTrackerMap const &particleTracker,
                                                           Particle const &particle,
                                                           double timeMoment)
+#ifndef USE_SERIAL
+    noexcept
+#endif
 {
+    auto particleInTetrahedronMapIter{particleTracker.find(timeMoment)}; // std::map<size_t, ParticleVector>, where size_t - ID of the tetrahedron.
+    if (particleInTetrahedronMapIter == particleTracker.end())
+        return std::nullopt;
+
+#ifdef USE_SERIAL
     if (timeMoment < 0)
         throw std::logic_error("Time moment can't be negative, but you passed: " + std::to_string(timeMoment));
     if (particleTracker.empty())
         throw std::invalid_argument("Particle tracker map is empty. Cannot search for tetrahedrons.");
-    auto it{particleTracker.find(timeMoment)};
-    if (it == particleTracker.end())
-        throw std::runtime_error("No data available for the specified time moment: " + std::to_string(timeMoment));
+#else
+    if (timeMoment < 0)
+    {
+        WARNINGMSG(util::stringify("Time moment can't be negative, but you passed: ", timeMoment));
+        return std::nullopt;
+    }
+    if (particleTracker.empty())
+    {
+        WARNINGMSG("Particle tracker map is empty. Cannot search for tetrahedrons.");
+        return std::nullopt;
+    }
+#endif
 
-    for (auto const &[tetraId, particlesInside] : it->second)
+    for (auto const &[tetraId, particlesInside] : particleInTetrahedronMapIter->second)
     {
 #if __cplusplus >= 202002L
         if (std::ranges::find_if(particlesInside, [&particle](Particle const &storedParticle)

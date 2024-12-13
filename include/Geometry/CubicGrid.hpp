@@ -103,7 +103,11 @@ public:
      */
     static std::optional<size_t> getContainingTetrahedron(ParticleTrackerMap const &particleTracker,
                                                           Particle const &particle,
-                                                          double timeMoment);
+                                                          double timeMoment)
+#ifndef USE_SERIAL
+        noexcept
+#endif
+        ;
 };
 
 #endif // !CUBICGRID_HPP

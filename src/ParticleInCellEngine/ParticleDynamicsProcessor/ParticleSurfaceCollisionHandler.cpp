@@ -7,13 +7,15 @@ ParticleSurfaceCollisionHandler::ParticleSurfaceCollisionHandler(
     MeshTriangleParamVector const &mesh,
     ParticlesIDSet &settledParticlesIds,
     SettledParticlesCounterMap &settledParticlesCounterMap,
-    ParticleMovementMap &particlesMovement) : m_settledParticlesMutex(settledParticlesMutex),
-                                              m_particlesMovementMutex(particlesMovementMutex),
-                                              m_surfaceMeshAABBtree(tree),
-                                              m_triangleMesh(mesh),
-                                              m_settledParticleIds(settledParticlesIds),
-                                              m_settledParticlesCounterMap(settledParticlesCounterMap),
-                                              m_particlesMovement(particlesMovement) {}
+    ParticleMovementMap &particlesMovement,
+    StopSubject &subject) : m_settledParticlesMutex(settledParticlesMutex),
+                            m_particlesMovementMutex(particlesMovementMutex),
+                            m_surfaceMeshAABBtree(tree),
+                            m_triangleMesh(mesh),
+                            m_settledParticleIds(settledParticlesIds),
+                            m_settledParticlesCounterMap(settledParticlesCounterMap),
+                            m_particlesMovement(particlesMovement),
+                            m_subject(subject) {}
 
 std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &particle, Ray const &ray, size_t particlesNumber)
 {
@@ -44,7 +46,10 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
                 m_settledParticleIds.insert(particle.getId());
 
                 if (m_settledParticleIds.size() >= particlesNumber)
+                {
+                    m_subject.notifyStopRequested();
                     return std::nullopt;
+                }
             }
 
             {
