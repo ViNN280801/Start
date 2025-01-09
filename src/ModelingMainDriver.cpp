@@ -265,7 +265,6 @@ void ModelingMainDriver::startModeling()
     auto solutionVector{feminit.getEquationRHS()};
     /* Ending of the FEM initialization. */
 
-    [[maybe_unused]] auto num_threads{m_config.getNumThreads_s()};
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
 
     for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
@@ -287,7 +286,7 @@ void ModelingMainDriver::startModeling()
                                            solutionVector,
                                            boundaryConditions);
 
-        // 3. Process surface collision tracking in parallel.
+        // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
         ParticleDynamicsProcessor particleDynamicProcessor(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
                                                            _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
                                                            _settledParticlesCounterMap, m_particlesMovement, *this);
