@@ -10,7 +10,7 @@ namespace constants
         static STARTCONSTINIT const double R{8.314};                           ///< [J/k*mol].
         static STARTCONSTINIT const double T{300};                             ///< [K].
         static STARTCONSTEXPR const double KT_reference{297.0 * 1.380658e-23}; ///< KT referevnce value [J/kg].
-        static STARTCONSTINIT const double N_av{6.22e23};                      ///< Avogadro number.
+        static STARTCONSTINIT const double N_av{6.02214076e23};                ///< Avogadro number. [mol^-1]
         static STARTCONSTEXPR const double e_charge{1.602176565e-19};          ///< Charge of the electron.
         static STARTCONSTINIT const double eV_J{1.60217733000001e-19};         ///< Conversion factor of eV to J (1 eV is ...  J).
         static STARTCONSTINIT const double J_eV{6.241506363094e+18};           ///< Conversion factor of J to eV (1 J  is ... eV).
