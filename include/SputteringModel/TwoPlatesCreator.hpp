@@ -1,6 +1,8 @@
+#include <array>
 #include <iostream>
 #include <map>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 #include "SessionManagement/GmshSessionManager.hpp"
@@ -18,20 +20,13 @@ enum class MeshType
 class TwoPlatesCreator
 {
 private:
-    GmshSessionManager m_gmsh_session; ///< RAII class to manage Gmsh session;
-    MeshType m_mesh_type;              ///< The type of mesh to apply.
-    double m_cell_size;                ///< The size of the mesh cells (for uniform mesh).
-    double m_unit;                     ///< Scaling coefficient (e.g., for millimeters).
+    GmshSessionManager m_gmsh_session;  ///< RAII class to manage Gmsh session;
+    MeshType m_mesh_type;               ///< The type of mesh to apply.
+    double m_cell_size;                 ///< The size of the mesh cells (for uniform mesh).
+    double m_unit;                      ///< Scaling coefficient (e.g., for millimeters).
+    std::array<int, 2ul> m_volume_tags; ///< Stores volume tags of the plates.
 
-    /**
-     * @brief Adds two plates to the model.
-     *
-     * Algorithm:
-     * 1. Use `gmsh::model::occ::addBox` to create the first plate.
-     * 2. Use `gmsh::model::occ::addBox` to create the second plate.
-     * 3. Synchronize the OpenCASCADE model with Gmsh.
-     */
-    void _addPlates();
+    static constexpr std::string kdefault_mesh_filename{"TwoPlates.msh"}; ///< Default mesh filename.
 
     /**
      * @brief Retrieves all boundary tags for all volumes in the model.
@@ -73,6 +68,42 @@ private:
      */
     void _applyAdaptiveMesh(const std::vector<int> &boundary_tags);
 
+public:
+    /**
+     * @brief Constructor to initialize the TwoPlatesCreator and create two plates by default.
+     * @param mesh_type The type of mesh to apply.
+     * @param cell_size The size of the mesh cells (used only for uniform mesh).
+     * @param unit Scaling coefficient (e.g., 1.0 for millimeters).
+     * @throws std::invalid_argument If cell_size is non-positive for uniform mesh.
+     *
+     * Example usage:
+     * @code
+     * TwoPlatesCreator creator(MeshType::Uniform, 1.0, 1.0); // For uniform mesh
+     * @endcode
+     */
+    TwoPlatesCreator(MeshType mesh_type, double cell_size = 1.0, double unit = 1.0);
+
+    /**
+     * @brief Adds two plates to the model.
+     *
+     * Algorithm:
+     * 1. Use `gmsh::model::occ::addBox` to create the first plate.
+     * 2. Use `gmsh::model::occ::addBox` to create the second plate.
+     * 3. Synchronize the OpenCASCADE model with Gmsh.
+     */
+    void addPlates();
+
+    /**
+     * @brief Assigns materials (physical groups) to each plate.
+     *
+     * @param material1_name Material for the 1st plate (e.g. Ti, Au, Ag, W, etc.).
+     * @param material2_name Material for the 2nd plate (e.g. Ti, Au, Ag, W, etc.).
+     *
+     * Restrictions: params material<n>_name must be simple (non-composite) materials.
+     *               1 <= len <= 2
+     */
+    void assignMaterials(std::string_view material1_name, std::string_view material2_name);
+
     /**
      * @brief Generates the mesh based on the specified mesh type.
      *
@@ -96,23 +127,19 @@ private:
      * creator.generateMesh();
      * @endcode
      */
-    void _generateMesh();
-
-public:
-    /**
-     * @brief Constructor to initialize the TwoPlatesCreator and create two plates by default.
-     * @param mesh_type The type of mesh to apply.
-     * @param cell_size The size of the mesh cells (used only for uniform mesh).
-     * @param unit Scaling coefficient (e.g., 1.0 for millimeters).
-     * @throws std::invalid_argument If cell_size is non-positive for uniform mesh.
-     *
-     * Example usage:
-     * @code
-     * TwoPlatesCreator creator(MeshType::Uniform, 1.0, 1.0); // For uniform mesh
-     * @endcode
-     */
-    TwoPlatesCreator(MeshType mesh_type, double cell_size = 1.0, double unit = 1.0);
+    void generateMeshfile();
 
     /// @brief Runs the Gmsh application to show the model.
     void show(int argc, char *argv[]);
+
+    /**
+     * @brief Get the material of the specified plate
+     *
+     * @param plate_number number of the plate. 1 or 2.
+     * @return std::string Material name (Ti, Ni, etc.).
+     */
+    std::string getMaterial(int plate_number) const;
+
+    /// @brief Get mesh filename with generated plates in '.msh' format.
+    std::string getMeshFilename() const;
 };
