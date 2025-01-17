@@ -1,9 +1,9 @@
-#include <concepts>
-#include <gmsh.h>
 #include <iostream>
 #include <map>
 #include <stdexcept>
 #include <vector>
+
+#include "SessionManagement/GmshSessionManager.hpp"
 
 /// @brief Types of mesh.
 enum class MeshType
@@ -18,26 +18,10 @@ enum class MeshType
 class TwoPlatesCreator
 {
 private:
-    MeshType m_mesh_type; ///< The type of mesh to apply.
-    double m_cell_size;   ///< The size of the mesh cells (for uniform mesh).
-    double m_unit;        ///< Scaling coefficient (e.g., for millimeters).
-
-    /**
-     * @brief Initializes Gmsh and prepares the model with two plates.
-     *
-     * Algorithm:
-     * 1. Initialize Gmsh.
-     * 2. Add a new model named "TwoPlates".
-     * 3. Create two plates using `gmsh::model::occ::addBox`.
-     * 4. Synchronize the OpenCASCADE model with Gmsh.
-     *
-     * Example usage:
-     * @code
-     * TwoPlatesCreator creator(MeshType::Uniform, 1.0, 1.0);
-     * creator.initializeGmsh();
-     * @endcode
-     */
-    void _initializeGmsh();
+    GmshSessionManager m_gmsh_session; ///< RAII class to manage Gmsh session;
+    MeshType m_mesh_type;              ///< The type of mesh to apply.
+    double m_cell_size;                ///< The size of the mesh cells (for uniform mesh).
+    double m_unit;                     ///< Scaling coefficient (e.g., for millimeters).
 
     /**
      * @brief Adds two plates to the model.
@@ -129,9 +113,6 @@ public:
      */
     TwoPlatesCreator(MeshType mesh_type, double cell_size = 1.0, double unit = 1.0);
 
-    /// @brief Destructor to finalize the Gmsh session.
-    ~TwoPlatesCreator();
-
     /// @brief Runs the Gmsh application to show the model.
-    void show();
+    void show(int argc, char *argv[]);
 };
