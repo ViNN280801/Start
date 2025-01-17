@@ -1,11 +1,6 @@
-#include "TwoPlatesCreator.hpp"
+#include <gmsh.h>
 
-void TwoPlatesCreator::_initializeGmsh()
-{
-    if (!gmsh::isInitialized())
-        gmsh::initialize();
-    gmsh::model::add("TwoPlates");
-}
+#include "SputteringModel/TwoPlatesCreator.hpp"
 
 void TwoPlatesCreator::_addPlates()
 {
@@ -92,15 +87,8 @@ TwoPlatesCreator::TwoPlatesCreator(MeshType mesh_type, double cell_size, double 
     {
         throw std::invalid_argument("Cell size must be greater than zero for uniform mesh.");
     }
-    _initializeGmsh();
     _addPlates();
     _generateMesh();
 }
 
-TwoPlatesCreator::~TwoPlatesCreator()
-{
-    if (gmsh::isInitialized())
-        gmsh::finalize();
-}
-
-void TwoPlatesCreator::show() { gmsh::fltk::run(); }
+void TwoPlatesCreator::show(int argc, char *argv[]) { m_gmsh_session.runGmsh(argc, argv); }

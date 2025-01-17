@@ -26,11 +26,14 @@ int main(int argc, char *argv[])
     std::cin >> grid_type;
     MeshType mesh_type{grid_type == 1 ? MeshType::Uniform : MeshType::Adaptive};
 
-    std::cout << "Введите желаемый размер стороны ячейки сетки: ";
-    std::cin >> cell_size;
+    if (mesh_type == MeshType::Uniform)
+    {
+        std::cout << "Введите желаемый размер стороны ячейки сетки: ";
+        std::cin >> cell_size;
+    }
 
     TwoPlatesCreator tpc(mesh_type, cell_size, mm);
-    tpc.show();
+    tpc.show(argc, argv);
 
     // Kokkos and MPI are finalized automatically when tpetraScope goes out of scope.
     return EXIT_SUCCESS;

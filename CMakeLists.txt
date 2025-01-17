@@ -720,6 +720,7 @@ target_link_libraries(
           ParticleInCellEngine
           ParticleInCellEngine_ParticleDynamicsProcessor
           SessionManagers
+          SputteringModel
           Utilities
 )
 
