@@ -108,7 +108,8 @@ ParticleDeviceArray ParticleGeneratorDevice::fromPointSource(const std::vector<p
 __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *particles, size_t count,
                                                          double3 *cellCenters, double3 *normals,
                                                          double energy_eV, int type,
-                                                         unsigned long long seed)
+                                                         unsigned long long seed,
+                                                         double expansionAngle)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
@@ -136,7 +137,7 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
     // theta = thetaCalculated
     VelocityVector velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
                                                                                    ParticlePropertiesManager::getMassFromType(static_cast<ParticleType>(type)),
-                                                                                   {0, phiCalculated, thetaCalculated} // Passing expansion angle = 0.
+                                                                                   {expansionAngle, phiCalculated, thetaCalculated}
 #ifdef __CUDA_ARCH__
                                                                                    ,
                                                                                    &state
@@ -151,7 +152,7 @@ __global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *parti
                                        // and energy.
 }
 
-ParticleDeviceArray ParticleGeneratorDevice::fromSurfaceSource(const std::vector<surface_source_t> &source)
+ParticleDeviceArray ParticleGeneratorDevice::fromSurfaceSource(const std::vector<surface_source_t> &source, double expansionAngle)
 {
     if (source.empty())
         throw std::logic_error("Surface source list is empty");
@@ -241,7 +242,7 @@ ParticleDeviceArray ParticleGeneratorDevice::fromSurfaceSource(const std::vector
 
     generateParticlesFromSurfaceSourceKernel<<<blocksPerGrid, threadsPerBlock>>>(
         deviceParticles.begin(), totalParticles, d_cellCenters, d_normals,
-        energy_eV, type, seed);
+        energy_eV, type, seed, expansionAngle);
 
     START_CHECK_CUDA_ERROR(cudaGetLastError(), "Error during surface source particle generation");
     START_CHECK_CUDA_ERROR(cudaDeviceSynchronize(), "Failed to synchronize after surface source generation");

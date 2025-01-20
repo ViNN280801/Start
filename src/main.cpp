@@ -1,4 +1,6 @@
 #include "ModelingMainDriver.hpp"
+
+#include "Generators/ParticleGenerator.hpp"
 #include "SputteringModel/TwoPlatesCreator.hpp"
 
 int main(int argc, char *argv[])
@@ -21,22 +23,22 @@ int main(int argc, char *argv[])
     // // Kokkos and MPI are finalized automatically when tpetraScope goes out of scope.
     // return EXIT_SUCCESS;
 
-    [[maybe_unused]] std::string material("Ti"), gas("Ar"), scattering_model("VSS");
-    [[maybe_unused]] double density{4500.0}, molar_mass{0.048}, cell_size = 0.0, mm = 1.0;
-    [[maybe_unused]] int grid_type, particle_weight{10};
+    [[maybe_unused]] std::string sputteringMaterialName("Ti"), gasName("Ar"), scatteringModel("VSS");
+    [[maybe_unused]] double targetMaterialDensity{4500.0}, targetMaterialMolarMass{0.048}, cellSize = 0.0, mm = 1.0;
+    [[maybe_unused]] int meshTypeInt, particleWeight{12};
 
     std::cout << "Введите тип сетки (1 - равномерная, 2 - неравномерная): ";
-    std::cin >> grid_type;
-    MeshType mesh_type{grid_type == 1 ? MeshType::Uniform : MeshType::Adaptive};
+    std::cin >> meshTypeInt;
+    MeshType meshType{meshTypeInt == 1 ? MeshType::Uniform : MeshType::Adaptive};
 
-    if (mesh_type == MeshType::Uniform)
+    if (meshType == MeshType::Uniform)
     {
         std::cout << "Введите желаемый размер стороны ячейки сетки: ";
-        std::cin >> cell_size;
+        std::cin >> cellSize;
     }
 
     // 1. Creation of 2 plates.
-    TwoPlatesCreator tpc(mesh_type, cell_size, mm);
+    TwoPlatesCreator tpc(meshType, cellSize, mm);
     tpc.addPlates();
 
     // 2. Assigning materials to these plates.
@@ -44,22 +46,69 @@ int main(int argc, char *argv[])
     std::cout << "Материал подложки (большой пластинки): " << tpc.getMaterial(1) << '\n';
     std::cout << "Материал мишени (маленькой пластинки): " << tpc.getMaterial(2) << '\n';
 
-    // 3. Generating mesh to the .msh file.
+    // 3. Specify target
+    tpc.setTargetSurface();
+
+    // 4. Generating mesh to the .msh file.
     tpc.generateMeshfile();
 
-    // 4. Applying AABB tree to the surface mesh (with triangle cells).
+    // 5. Applying AABB tree to the surface mesh (with triangle cells).
     auto surfaceMeshParams{Mesh::getMeshParams(tpc.getMeshFilename())};
     auto surfaceMeshAABB{constructAABBTreeFromMeshParams(surfaceMeshParams)};
     if (!surfaceMeshAABB)
     {
         ERRMSG("Failed to create AABB Tree for the surface mesh");
     }
+
+    tpc.setTargetSurface();
+
+    std::cout << "Введите плотность материала мишени [кг/м3]: ";
+    std::cin >> targetMaterialDensity;
+
+    std::cout << "Введите молярную массу атома материала, из которого состоит мишень [кг/моль]: ";
+    std::cin >> targetMaterialMolarMass;
+
+    double S{tpc.calculateTargetSurfaceArea()};
+    std::cout << "Площадь плоскости мишени: " << S << " [м2]\n";
+    std::cout << "Радиус атома Ti = " << constants::physical_constants::Ti_mass << " [м]\n";
+    double N{tpc.calculateCountOfParticlesOnTargetSurface(targetMaterialDensity, targetMaterialMolarMass)};
+    std::cout << "Количество атомов на поверхности мишени: " << N << '\n';
+
+    std::cout << "Введите вес 1-й моделируемой частицы: ";
+    std::cin >> particleWeight;
+
+    double N_model{N / std::pow(10, particleWeight)};
+    std::cout << "Таким образом " << N << " реальных частиц = " << N_model << " модельных частиц\n";
+
+    double t{};
+    std::cout << "Введите время симуляции [с]: ";
+    std::cin >> t;
+
+    double J_model{N_model / (S * t)};
+    std::cout << "Поток модельных частиц: " << J_model << " [N/(м2⋅c)]\n";
+
+    double energy_eV{};
+    std::cout << "Введите энергию, вылетающих частиц (не всех, а каждой) [эВ]: ";
+    std::cin >> energy_eV;
+
+    auto surfaceSource{tpc.prepareDataForSpawnParticles(N_model, energy_eV)};
+
+    double expansionAngle{};
+    std::cout << "Введите угол рассеяния [в градусах]: ";
+    std::cin >> expansionAngle;
+
+    // Convert from degrees to radians:
+    expansionAngle *= START_PI_NUMBER / 180.0;
+    auto particles{ParticleGenerator::fromSurfaceSource({surfaceSource}, expansionAngle)};
+
+    if (particles.empty())
+    {
+        ERRMSG("Ошибка генерации частиц на поверхности.");
+    }
     else
     {
-        SUCCESSMSG("Created AABB Tree for the surface mesh");
+        SUCCESSMSG(util::stringify("Было сгенерировано ", particles.size(), " частиц на поверхности мишени."));
     }
-
-    tpc.show(argc, argv);
 
     return EXIT_SUCCESS;
 }
