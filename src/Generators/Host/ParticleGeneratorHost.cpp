@@ -55,7 +55,7 @@ ParticleVector ParticleGeneratorHost::fromPointSource(std::vector<point_source_t
     return particles;
 }
 
-ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_source_t> const &source)
+ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle)
 {
     ParticleVector particles;
     std::random_device rd;
@@ -112,14 +112,13 @@ ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_sour
 
             // Parse the cell center coordinates.
             std::vector<double> cell_centre = parseCoordinates(cell_centre_str);
-
             for (size_t i{}; i < cell_particle_count[cell_index]; ++i)
             {
                 // Calculate theta and phi based on the normalized normal vector.
                 double theta{std::acos(nz)};
                 double phi{std::atan2(ny, nx)};
 
-                std::array<double, 3> thetaPhi = {0, phi, theta}; // Assume no expansion with surface source.
+                std::array<double, 3> thetaPhi = {expansionAngle, phi, theta};
                 particles.emplace_back(type,
                                        Point(cell_centre[0], cell_centre[1], cell_centre[2]),
                                        sourceData.energy,

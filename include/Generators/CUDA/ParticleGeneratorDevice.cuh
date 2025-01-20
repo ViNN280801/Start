@@ -49,6 +49,7 @@ public:
     /**
      * @brief Generates particles from surface sources.
      * @param source A vector of surface particle sources.
+     * @param expansionAngle Expansion angle in [rad] for the cone distribution (by default = 0). Assuming that there is no expansion in surface source.
      * @return A `ParticleDeviceArray` containing the generated particles.
      * @details Surface sources define particle distribution across cell centers. Each surface source
      *          specifies the cell geometry, particle type, and energy. Particles are distributed evenly
@@ -60,7 +61,7 @@ public:
      * 2. Assign attributes such as type, position, energy, and velocity for each particle.
      * 3. Compute particle velocity based on the cell normal vectors.
      */
-    static ParticleDeviceArray fromSurfaceSource(std::vector<surface_source_t> const &source);
+    static ParticleDeviceArray fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle = 0.0);
 };
 
 #endif // !USE_CUDA

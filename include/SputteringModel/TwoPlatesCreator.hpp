@@ -1,3 +1,6 @@
+#ifndef TWOPLATESCREATOR_HPP
+#define TWOPLATESCREATOR_HPP
+
 #include <array>
 #include <iostream>
 #include <map>
@@ -6,6 +9,8 @@
 #include <vector>
 
 #include "SessionManagement/GmshSessionManager.hpp"
+#include "Utilities/ConfigParser.hpp"
+#include "Utilities/Constants.hpp"
 
 /// @brief Types of mesh.
 enum class MeshType
@@ -27,6 +32,10 @@ private:
     std::array<int, 2ul> m_volume_tags; ///< Stores volume tags of the plates.
 
     static constexpr std::string kdefault_mesh_filename{"TwoPlates.msh"}; ///< Default mesh filename.
+    static constexpr std::array<std::array<double, 3ul>, 4ul> kdefault_target_point_coords = {{{{20, 5, 100}},
+                                                                                               {{20, 15, 100}},
+                                                                                               {{80, 5, 100}},
+                                                                                               {{80, 15, 100}}}}; ///< Default point coords for the target surface.
 
     /**
      * @brief Retrieves all boundary tags for all volumes in the model.
@@ -129,6 +138,51 @@ public:
      */
     void generateMeshfile();
 
+    /// @brief Automatically set the target surface by point IDs. Specified by 'kdefault_target_point_tags'.
+    void setTargetSurface() const;
+
+    /**
+     * @brief Using Rectangle Area Calculation formula to calculate area of the target surface.
+     * @returns Area of the target surface in [m2].
+     */
+    constexpr double calculateTargetSurfaceArea() const { return 10.0 * 60.0 * 1e-6; }
+
+    /**
+     * @brief Calculating count of the particles on the target surface.
+     * 
+     * @param targetMaterialDensity Target material density [kg/m3]. For example, Titan: 4500 [kg/m3].
+     * @param targetMaterialMolarMass Target material molar mass [kg/mol]. For example, Titan: 0.048 [kg/mol].
+     * @return double Count of particles on surface.
+     */
+    double calculateCountOfParticlesOnTargetSurface(double targetMaterialDensity, double targetMaterialMolarMass) const
+    {
+        return (targetMaterialDensity * constants::physical_constants::N_av * calculateTargetSurfaceArea() *
+                (2 * constants::physical_constants::Ti_radius)) /
+               targetMaterialMolarMass;
+    }
+
+    /**
+     * @brief Prepare data for the generating particles uniformly on 'Target' surface.
+     *
+     * @details This function identifies the physical group named "Target" in the mesh, calculates
+     *          the centroids of all triangles associated with the target surface, and associates
+     *          a user-defined number of particles (N_model) and their energy (energy_eV) with
+     *          these centroids. The result is a surface_source_t structure that maps centroids
+     *          to their normal vectors for particle emission.
+     *
+     *          Steps:
+     *              1. Locate the physical group named "Target" and retrieve its tag.
+     *              2. Extract all node tags and their coordinates associated with the "Target" physical group.
+     *              3. Identify all triangular elements that belong to the "Target" group and store their nodes.
+     *              4. Calculate the centroid for each triangle.
+     *              5. Associate the centroids with their normal vectors ([0, 0, -1]) and store in the result.
+     *
+     * @param N_model Count of model particles (1 model particle = 10^w real particles, where 'w' - weight of model particle).
+     * @param energy_eV Energy of each particle in [eV].
+     * @return surface_source_t data for the particle generator.
+     */
+    surface_source_t prepareDataForSpawnParticles(size_t N_model, double energy_eV) const;
+
     /// @brief Runs the Gmsh application to show the model.
     void show(int argc, char *argv[]);
 
@@ -143,3 +197,5 @@ public:
     /// @brief Get mesh filename with generated plates in '.msh' format.
     std::string getMeshFilename() const;
 };
+
+#endif // !TWOPLATESCREATOR_HPP
