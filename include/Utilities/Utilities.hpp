@@ -1,14 +1,9 @@
 #ifndef UTILITIES_HPP
 #define UTILITIES_HPP
 
-#if __cplusplus >= 202002L
-#include <concepts>
-#else
-#include <type_traits>
-#endif
-
 #include "Utilities/Constants.hpp"
 #include "Utilities/LogMacros.hpp"
+#include "Utilities/Types.hpp"
 using namespace constants;
 using namespace particle_types;
 
