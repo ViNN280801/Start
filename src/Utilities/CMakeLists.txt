@@ -2,6 +2,7 @@
 
 set(UTILITIES_SOURCES
     ConfigParser.cpp
+    GmshUtils.cpp
     Timer.cpp
     Utilities.cpp
 )
