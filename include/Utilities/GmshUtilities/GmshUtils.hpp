@@ -45,6 +45,9 @@ public:
      */
     static std::unordered_map<size_t, std::array<double, 3ul>> getCellCentersByPhysicalGroupName(std::string_view physicalGroupName);
 
+    
+    static std::unordered_map<size_t, Triangle> getCellsByPhysicalGroupName(std::string_view physicalGroupName);
+
 /**
  * @brief Finds the tag of a surface in the Gmsh model that matches a set of 3D coordinates.
  *
