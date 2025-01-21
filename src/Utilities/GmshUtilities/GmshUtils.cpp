@@ -105,8 +105,6 @@ std::unordered_map<size_t, std::array<double, 3ul>> GmshUtils::getCellCentersByP
         return {};
     }
 
-    constexpr short const kdefault_nodes_per_triangle{3};
-
     // Store the target node tags in a set for quick lookup.
     std::set<size_t> targetNodeTagSet(targetNodeTags.cbegin(), targetNodeTags.cend());
     for (size_t i{}; i < triangleTags.size(); ++i)
@@ -115,9 +113,9 @@ std::unordered_map<size_t, std::array<double, 3ul>> GmshUtils::getCellCentersByP
         std::vector<size_t> triangleNodes;
         bool allNodesInTarget{true};
 
-        for (short j{}; j < kdefault_nodes_per_triangle; ++j)
+        for (short j{}; j < 3; ++j)
         {
-            size_t nodeTag{triangleNodeTags.at(i * kdefault_nodes_per_triangle + j)};
+            size_t nodeTag{triangleNodeTags.at(i * 3 + j)};
             if (targetNodeTagSet.find(nodeTag) == targetNodeTagSet.cend())
             {
                 allNodesInTarget = false;
@@ -179,4 +177,113 @@ std::unordered_map<size_t, std::array<double, 3ul>> GmshUtils::getCellCentersByP
     }
 
     return triangleCentersMap;
+}
+
+std::unordered_map<size_t, Triangle> GmshUtils::getCellsByPhysicalGroupName(std::string_view physicalGroupName)
+{
+    // Step 1: Find the physical group with the specified name.
+    int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName)};
+
+    // Step 2: Get the nodes associated with the searching surface physical group.
+    std::vector<size_t> targetNodeTags;
+    std::vector<double> targetCoords;
+    gmsh::model::mesh::getNodesForPhysicalGroup(2, targetGroupTag, targetNodeTags, targetCoords);
+
+    if (targetNodeTags.empty())
+    {
+        WARNINGMSG(util::stringify("There is no node tags for physical group with name: ", physicalGroupName));
+        return {};
+    }
+
+    // Step 3: Identify triangles associated with the target surface.
+    std::unordered_map<size_t, std::vector<size_t>> triangleNodeTagsMap;
+    std::vector<size_t> triangleTags, triangleNodeTags;
+    gmsh::model::mesh::getElementsByType(2, triangleTags, triangleNodeTags);
+
+    if (triangleTags.empty() || triangleNodeTags.empty())
+    {
+        WARNINGMSG(util::stringify("There is no triangle cells for physical group with name: ", physicalGroupName));
+        return {};
+    }
+
+    // Store the target node tags in a set for quick lookup.
+    std::set<size_t> targetNodeTagSet(targetNodeTags.cbegin(), targetNodeTags.cend());
+    for (size_t i{}; i < triangleTags.size(); ++i)
+    {
+        size_t triangleTag{triangleTags.at(i)};
+        std::vector<size_t> triangleNodes;
+        bool allNodesInTarget{true};
+
+        for (short j{}; j < 3; ++j)
+        {
+            size_t nodeTag{triangleNodeTags.at(i * 3 + j)};
+            if (targetNodeTagSet.find(nodeTag) == targetNodeTagSet.cend())
+            {
+                allNodesInTarget = false;
+                break;
+            }
+            triangleNodes.emplace_back(nodeTag);
+        }
+
+        if (allNodesInTarget)
+            triangleNodeTagsMap[triangleTag] = triangleNodes;
+    }
+
+    if (triangleNodeTagsMap.empty())
+    {
+        WARNINGMSG("Failed to fill 'triangleNodeTagsMap' variable.");
+        return {};
+    }
+
+    // Step 4: Calculate centroids of triangles.
+    std::unordered_map<size_t, Triangle> cellsMap;
+    for (auto const &[triangleTag, triangleNodeTags] : triangleNodeTagsMap)
+    {
+        if (triangleNodeTags.size() != 3ul)
+        {
+            WARNINGMSG(util::stringify("Triangle with tag ", triangleTag, " does not have exactly 3 nodes."));
+            continue;
+        }
+
+        std::array<Point, 3> trianglePoints;
+        for (short i{}; i < 3; ++i)
+        {
+            int dim{}, tag{};
+            std::vector<double> coord, paramCoord;
+            gmsh::model::mesh::getNode(triangleNodeTags.at(i), coord, paramCoord, dim, tag);
+
+            if (coord.size() != 3ul)
+            {
+                WARNINGMSG(util::stringify("Node ", triangleNodeTags.at(i), " does not have 3D coordinates. Supported only 3D."));
+                continue;
+            }
+
+            trianglePoints[i] = Point(coord.at(0), coord.at(1), coord.at(2));
+        }
+
+        // Create a CGAL Triangle object from the points and add it to the map.
+        try
+        {
+            Triangle triangle(trianglePoints.at(0), trianglePoints.at(1), trianglePoints.at(2));
+            cellsMap[triangleTag] = triangle;
+        }
+        catch (std::exception const &ex)
+        {
+            ERRMSG(util::stringify("Failed to create triangle for tag ", triangleTag, ": ", ex.what()));
+            return {};
+        }
+        catch (...)
+        {
+            ERRMSG(util::stringify("Failed to create trignale for tag ", triangleTag, " by unknown reason."));
+            return {};
+        }
+    }
+
+    if (cellsMap.empty())
+    {
+        WARNINGMSG("Failed to fill 'cellsMap' variable.");
+        return {};
+    }
+
+    return cellsMap;
 }

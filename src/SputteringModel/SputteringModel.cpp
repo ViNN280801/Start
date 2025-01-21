@@ -66,7 +66,7 @@ void SputteringModel::start()
     std::cin >> particleWeight;
 
     // 2.4. Calculating model count of particles on this surface.
-    double N_model{N / std::pow(10, particleWeight)};
+    double N_model{std::ceil(N / std::pow(10, particleWeight))};
     std::cout << "Таким образом " << N << " реальных частиц = " << N_model << " модельных частиц\n";
 
     double t{};
