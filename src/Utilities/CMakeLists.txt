@@ -2,10 +2,11 @@
 
 set(UTILITIES_SOURCES
     ConfigParser.cpp
-    GmshUtils.cpp
     Timer.cpp
     Utilities.cpp
 )
+
+add_subdirectory(GmshUtilities)
 
 set(LIB_UTILITIES Utilities)
 add_library(${LIB_UTILITIES} ${UTILITIES_SOURCES})
