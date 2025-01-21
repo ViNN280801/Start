@@ -727,6 +727,7 @@ target_link_libraries(
           SessionManagers
           SputteringModel
           Utilities
+          GmshUtilities
 )
 
 if(GPU_CUDA_ON)
