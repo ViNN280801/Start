@@ -10,72 +10,31 @@
 
 #include "SessionManagement/GmshSessionManager.hpp"
 #include "Utilities/ConfigParser.hpp"
-#include "Utilities/Constants.hpp"
+#include "Utilities/GmshUtilities/GmshMesher.hpp"
 
-/// @brief Types of mesh.
-enum class MeshType
-{
-    Uniform, ///< Uniform mesh.
-    Adaptive ///< Adaptive mesh.
-};
-
-/**
- * @brief A class to create two plates and apply either uniform or adaptive meshing.
- */
+/// @brief A class to create two plates for perform simple test on sputtering.
 class TwoPlatesCreator
 {
 private:
     GmshSessionManager m_gmsh_session;  ///< RAII class to manage Gmsh session;
-    MeshType m_mesh_type;               ///< The type of mesh to apply.
+    GmshMesher m_gmsh_mesher;           ///< Instance of class to perform different types of meshing.
+    MeshType m_mesh_type;               ///< Type of the mesh (Uniform, Adaptive).
     double m_cell_size;                 ///< The size of the mesh cells (for uniform mesh).
     double m_unit;                      ///< Scaling coefficient (e.g., for millimeters).
     std::array<int, 2ul> m_volume_tags; ///< Stores volume tags of the plates.
 
-    static constexpr std::string kdefault_mesh_filename{"TwoPlates.msh"}; ///< Default mesh filename.
+    std::string const kdefault_mesh_filename{"TwoPlates.msh"}; ///< Default mesh filename.
+    std::string const kdefault_target_name{"Target"};          ///< Default target (мишень) physical group name.
+    std::string const kdefault_substrate_name{"Substrate"};    ///< Default substrate (подложка) physical group name.
+
     static constexpr std::array<std::array<double, 3ul>, 4ul> kdefault_target_point_coords = {{{{20, 5, 100}},
                                                                                                {{20, 15, 100}},
                                                                                                {{80, 5, 100}},
                                                                                                {{80, 15, 100}}}}; ///< Default point coords for the target surface.
-
-    /**
-     * @brief Retrieves all boundary tags for all volumes in the model.
-     * @return A vector of boundary tags.
-     *
-     * Algorithm:
-     * 1. Get all volume entities using `gmsh::model::getEntities`.
-     * 2. For each volume:
-     *    - Retrieve boundary entities using `gmsh::model::getBoundary`.
-     *    - Filter boundary entities to include only surfaces.
-     * 3. Return a vector of all boundary surface tags.
-     */
-    std::vector<int> _getAllBoundaryTags();
-
-    /**
-     * @brief Applies the specified type of mesh to the model.
-     *
-     * Algorithm:
-     * 1. If the mesh type is uniform:
-     *    - Set `Mesh.MeshSizeMin` and `Mesh.MeshSizeMax` to the cell size.
-     * 2. If the mesh type is adaptive:
-     *    - Retrieve boundary tags using `getAllBoundaryTags`.
-     *    - Convert boundary tags to `std::vector<double>`.
-     *    - Create a `Distance` field for boundary refinement.
-     *    - Create a `Threshold` field for adaptive mesh sizing.
-     *    - Set the `Threshold` field as the background mesh.
-     */
-    void _applyMesh();
-
-    /**
-     * @brief Applies adaptive mesh refinement to the model.
-     * @param boundary_tags A vector of boundary surface tags.
-     *
-     * Algorithm:
-     * 1. Convert `boundary_tags` to `std::vector<double>`.
-     * 2. Create a `Distance` field for the specified boundary surfaces.
-     * 3. Create a `Threshold` field to define size variation.
-     * 4. Set the `Threshold` field as the background mesh.
-     */
-    void _applyAdaptiveMesh(const std::vector<int> &boundary_tags);
+    static constexpr std::array<std::array<double, 3ul>, 4ul> kdefault_substrate_point_coords = {{{{0, 0, 1}},
+                                                                                                  {{0, 20, 1}},
+                                                                                                  {{100, 0, 1}},
+                                                                                                  {{100, 20, 1}}}}; ///< Default point coords for the substrate surface.
 
 public:
     /**
@@ -115,6 +74,9 @@ public:
 
     /**
      * @brief Generates the mesh based on the specified mesh type.
+     * 
+     * @param dimension Dimension of mesh: 2D - surface triangle mesh.
+     *                               3D - volumetric tetrahedral mesh.
      *
      * Algorithm:
      * 1. Depending on the mesh type:
@@ -136,10 +98,13 @@ public:
      * creator.generateMesh();
      * @endcode
      */
-    void generateMeshfile();
+    void generateMeshfile(int dimension = 2);
 
     /// @brief Automatically set the target surface by point IDs. Specified by 'kdefault_target_point_tags'.
     void setTargetSurface() const;
+
+    /// @brief Automatically set the substrate surface by point IDs. Specified by 'kdefault_substrate_point_tags'.
+    void setSubstrateSurface() const;
 
     /**
      * @brief Using Rectangle Area Calculation formula to calculate area of the target surface.
@@ -149,7 +114,7 @@ public:
 
     /**
      * @brief Calculating count of the particles on the target surface.
-     * 
+     *
      * @param targetMaterialDensity Target material density [kg/m3]. For example, Titan: 4500 [kg/m3].
      * @param targetMaterialMolarMass Target material molar mass [kg/mol]. For example, Titan: 0.048 [kg/mol].
      * @return double Count of particles on surface.
@@ -186,16 +151,8 @@ public:
     /// @brief Runs the Gmsh application to show the model.
     void show(int argc, char *argv[]);
 
-    /**
-     * @brief Get the material of the specified plate
-     *
-     * @param plate_number number of the plate. 1 or 2.
-     * @return std::string Material name (Ti, Ni, etc.).
-     */
-    std::string getMaterial(int plate_number) const;
-
     /// @brief Get mesh filename with generated plates in '.msh' format.
-    std::string getMeshFilename() const;
+    constexpr std::string const &getMeshFilename() const { return kdefault_mesh_filename; }
 };
 
 #endif // !TWOPLATESCREATOR_HPP
