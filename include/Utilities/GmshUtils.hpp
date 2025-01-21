@@ -3,11 +3,48 @@
 
 #include <gmsh.h>
 
+#include "Geometry/GeometryTypes.hpp"
 #include "Utilities/ConfigParser.hpp"
 
 class GmshUtils
 {
 public:
+    /**
+     * @brief Checker whether Gmsh initialized or not. If not initialized - print error message.
+     *
+     * @return int '-1' if not initialized, '0' otherwise.
+     */
+    static int gmshInitializeCheck();
+
+    /**
+     * @brief Retrieves all boundary tags for all the volumes in the model.
+     * @return A vector of boundary tags.
+     *
+     * Algorithm:
+     * 1. Get all volume entities using `gmsh::model::getEntities`.
+     * 2. For each volume:
+     *    - Retrieve boundary entities using `gmsh::model::getBoundary`.
+     *    - Filter boundary entities to include only surfaces.
+     * 3. Return a vector of all boundary surface tags.
+     */
+    static std::vector<int> getAllBoundaryTags();
+
+    /**
+     * @brief Finds integer tag of the physical group by specified name.
+     * @param physicalGroupName Physical group name to find.
+     * @return
+     */
+    static int getPhysicalGroupTagByName(std::string_view physicalGroupName);
+
+    /**
+     * @brief Get the cell (triangle) centers from the specified by name physical group.
+     * @details std::unordered_map<size_t, std::array<double, 3ul>> where: (key - cell ID (tag)|value - center of this triangle).
+     *
+     * @param physicalGroupName Physical group name to find.
+     * @return std::unordered_map<size_t, std::array<double, 3ul>>
+     */
+    static std::unordered_map<size_t, std::array<double, 3ul>> getCellCentersByPhysicalGroupName(std::string_view physicalGroupName);
+
 /**
  * @brief Finds the tag of a surface in the Gmsh model that matches a set of 3D coordinates.
  *
@@ -82,11 +119,8 @@ public:
     std::enable_if<is_matrix_v<MatrixType, ValueType>, int> static int findSurfaceTagByCoords(MatrixType const &surfaceCoords)
 #endif
     {
-        if (!gmsh::isInitialized())
-        {
-            ERRMSG("This method works only when Gmsh was initialized.");
+        if (GmshUtils::gmshInitializeCheck() == -1)
             return -1;
-        }
 
         if (surfaceCoords.empty())
         {
