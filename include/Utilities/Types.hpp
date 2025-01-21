@@ -5,6 +5,24 @@
 #include <type_traits>
 #endif
 
+#if __cplusplus >= 202002L
+// ===============================================================================================
+// =================================== Math vector type ==========================================
+// ===============================================================================================
+/**
+ * @brief Concept for a vector-like structure where elements are numeric (floating-point or integral).
+ *
+ * @tparam VectorType The type to check for vector-like behavior.
+ */
+template <typename VectorType>
+concept Vector =
+    std::ranges::range<VectorType> &&                                    // VectorType must be a range.
+    (std::is_floating_point_v<std::ranges::range_value_t<VectorType>> || // Elements must be floating-point...
+     std::is_integral_v<std::ranges::range_value_t<VectorType>>);        // ...or integral.
+
+// ===============================================================================================
+// =================================== Math matrix type ==========================================
+// ===============================================================================================
 /**
  * @brief Concept for a matrix-like structure where elements are ranges of a specified value type.
  *
@@ -12,13 +30,43 @@
  * @tparam ValueType The type of the elements stored in the matrix (must be floating-point or integral).
  */
 template <typename MatrixType, typename ValueType>
-#if __cplusplus >= 202002L
 concept Matrix =
     std::ranges::range<MatrixType> &&                                                                             // MatrixType must be a range.
     std::ranges::range<std::ranges::range_reference_t<MatrixType>> &&                                             // Elements of MatrixType must also be ranges.
     std::convertible_to<std::ranges::range_reference_t<std::ranges::range_reference_t<MatrixType>>, ValueType> && // Nested elements must be convertible to ValueType.
     (std::is_floating_point_v<ValueType> || std::is_integral_v<ValueType>);                                       // ValueType must be floating-point or integral.
 #else
+// ===============================================================================================
+// =================================== Math vector type ==========================================
+// ===============================================================================================
+/**
+ * @brief Type trait to check if a type supports begin() and end() and contains numeric elements.
+ *
+ * @tparam T The type to check.
+ */
+template <typename T, typename = void>
+struct is_vector : std::false_type
+{
+};
+
+template <typename T>
+struct is_vector<T, std::void_t<decltype(std::begin(std::declval<T>())), // Supports begin() and end().
+                                decltype(std::end(std::declval<T>())),
+                                typename std::iterator_traits<decltype(std::begin(std::declval<T>()))>::value_type>> // Has value_type.
+    : std::integral_constant<bool,
+                             (std::is_floating_point<typename std::iterator_traits<decltype(std::begin(std::declval<T>()))>::value_type>::value ||
+                              std::is_integral<typename std::iterator_traits<decltype(std::begin(std::declval<T>()))>::value_type>::value)>
+{
+};
+
+/// @brief Convenience variable template for is_vector.
+template <typename T>
+constexpr bool is_vector_v = is_vector<T>::value;
+
+// ===============================================================================================
+// =================================== Math matrix type ==========================================
+// ===============================================================================================
+
 /**
  * @brief Helper type trait to check if a type is a range (i.e., supports `begin()` and `end()`).
  * @tparam T The type to check.
