@@ -50,7 +50,7 @@ public:
      * @details std::unordered_map<size_t, std::array<double, 3ul>> where: (key - cell ID (tag)|value - CGAL triangle object).
      *
      * @param physicalGroupName Physical group name to find.
-     * @return std::unordered_map<size_t, std::array<double, 3ul>>
+     * @return std::unordered_map<size_t, CGAL::Triangle_3>
      */
     static std::unordered_map<size_t, Triangle> getCellsByPhysicalGroupName(std::string_view physicalGroupName);
 
