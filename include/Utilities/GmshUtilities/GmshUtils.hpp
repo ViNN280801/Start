@@ -45,7 +45,13 @@ public:
      */
     static std::unordered_map<size_t, std::array<double, 3ul>> getCellCentersByPhysicalGroupName(std::string_view physicalGroupName);
 
-    
+    /**
+     * @brief Get the cells (triangles) from the specified by name physical group.
+     * @details std::unordered_map<size_t, std::array<double, 3ul>> where: (key - cell ID (tag)|value - CGAL triangle object).
+     *
+     * @param physicalGroupName Physical group name to find.
+     * @return std::unordered_map<size_t, std::array<double, 3ul>>
+     */
     static std::unordered_map<size_t, Triangle> getCellsByPhysicalGroupName(std::string_view physicalGroupName);
 
 /**
