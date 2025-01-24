@@ -270,13 +270,9 @@ TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physical
                 WARNINGMSG(util::stringify("Triangle with ID ", triangleTag, " is degenerate, skipping it..."));
                 continue;
             }
-            cellsMap[triangleTag] = TriangleCell(triangle, TriangleCell::compute_area(triangle), 0); // In initial time moment (t=0) there is no any settled particles.
 
-            std::cout << "Triangle[" << triangleTag << "]: ("
-                      << triangle.vertex(0).x() << "; " << triangle.vertex(0).y() << "; " << triangle.vertex(0).z() << ")-("
-                      << triangle.vertex(1).x() << "; " << triangle.vertex(1).y() << "; " << triangle.vertex(1).z() << ")-("
-                      << triangle.vertex(2).x() << "; " << triangle.vertex(2).y() << "; " << triangle.vertex(2).z() << ")\n";
-            std::cout << "dS = " << Kernel::Compute_area_3()(triangle.vertex(0), triangle.vertex(1), triangle.vertex(2)) << '\n';
+            // Assuming that in initial time moment (t=0) there is no any settled particles (3ed param is 0).
+            cellsMap[triangleTag] = TriangleCell(triangle, TriangleCell::compute_area(triangle), 0);
         }
         catch (std::exception const &ex)
         {
