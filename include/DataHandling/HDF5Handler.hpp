@@ -1,10 +1,11 @@
 #ifndef HDF5HANDLER_HPP
 #define HDF5HANDLER_HPP
 
-#include <hdf5.h>
+#include <limits>
 #include <string_view>
 #include <unordered_map>
-#include <limits>
+
+#include <hdf5.h>
 
 #include "Geometry/Mesh.hpp"
 
@@ -18,8 +19,27 @@ class HDF5Handler final
 {
 private:
     hid_t m_file_id;                                  // File id.
-    size_t m_firstID{},                               // ID of the first triangle in mesh.
-        m_lastID{std::numeric_limits<size_t>::max()}; // ID of the last triangle in mesh.
+    size_t m_firstID{},                               // ID of the first triangle in the mesh.
+        m_lastID{std::numeric_limits<size_t>::max()}; // ID of the last triangle in the mesh.
+
+    /**
+     * @brief Finds the minimum triangle ID in a vector of triangle cell maps.
+     *
+     * This method determines the smallest triangle ID by comparing the keys of the
+     * first elements in each `TriangleCellMap` within the `TriangleCellMapVector`.
+     *
+     * @param triangleCells A vector of unordered maps, where each map represents
+     *                      a collection of triangle cells and their associated data.
+     *
+     * @throws std::invalid_argument If the input `triangleCells` vector is empty.
+     *
+     * @note The method assumes that all maps in the input vector contain unique IDs as keys.
+     *       If a map is empty, it is ignored during the comparison.
+     *
+     * @see HDF5Handler::readMeshFromHDF5()
+     * @see HDF5Handler::saveMeshToHDF5()
+     */
+    void _findMinTriangleId(TriangleCellMap const &triangleCells);
 
     /**
      * @brief Creates a new group in the HDF5 file.
@@ -31,7 +51,7 @@ private:
      *
      * @throws `std::runtime_error` If the group creation fails.
      */
-    void createGroup(std::string_view groupName);
+    void _createGroup(std::string_view groupName);
 
     /**
      * @brief Writes data to a dataset in a specified group within the HDF5 file.
@@ -48,8 +68,8 @@ private:
      *
      * @throws `std::runtime_error` If creating the dataspace or dataset fails.
      */
-    void writeDataset(std::string_view groupName, std::string_view datasetName,
-                      hid_t type, void const *data, hsize_t dims);
+    void _writeDataset(std::string_view groupName, std::string_view datasetName,
+                       hid_t type, void const *data, hsize_t dims);
 
     /**
      * @brief Reads data from a dataset within a specified group in the HDF5 file.
@@ -65,8 +85,8 @@ private:
      *
      * @throws `std::runtime_error` If the dataset opening fails.
      */
-    void readDataset(std::string_view groupName, std::string_view datasetName,
-                     hid_t type, void *data);
+    void _readDataset(std::string_view groupName, std::string_view datasetName,
+                      hid_t type, void *data);
 
 public:
     /**
@@ -80,7 +100,7 @@ public:
 
     /**
      * @brief Saves mesh data to the HDF5 file.
-     * @param mesh A vector of tuples representing the mesh's triangles, with each tuple containing
+     * @param triangleCells A vector of tuples representing the mesh's triangles, with each tuple containing
      *                  the triangle's ID, vertices (as PositionVector objects), and area.
      * @details This method iterates through the given vector of triangles, creating a group for each
      *          triangle in the HDF5 file. Within each group, it stores datasets for the triangle's
@@ -88,8 +108,7 @@ public:
      * @throws `std::runtime_error` if it fails to create a group or dataset within the HDF5 file,
      *         or if writing to the dataset fails.
      */
-    void saveMeshToHDF5(MeshTriangleParamVector const &mesh);
-    void saveMeshToHDF5(MeshTriangleParamVector &&mesh);
+    void saveMeshToHDF5(TriangleCellMap const &triangleCells);
 
     /**
      * @brief Reads mesh data from the HDF5 file starting from a specified object ID.
@@ -100,7 +119,7 @@ public:
      *          from the HDF5 file, starting from the triangle with ID `firstObjectID`.
      * @throws `std::runtime_error` if it fails to open a group or dataset within the HDF5 file.
      */
-    MeshTriangleParamVector readMeshFromHDF5();
+    TriangleCellMap readMeshFromHDF5();
 };
 
 #endif // !HDF5HANDLER_HPP

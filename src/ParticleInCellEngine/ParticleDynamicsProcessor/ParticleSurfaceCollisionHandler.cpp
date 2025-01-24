@@ -4,7 +4,7 @@ ParticleSurfaceCollisionHandler::ParticleSurfaceCollisionHandler(
     std::shared_mutex &settledParticlesMutex,
     std::mutex &particlesMovementMutex,
     AABB_Tree_Triangle const &tree,
-    MeshTriangleParamVector const &mesh,
+    TriangleCellMap const &mesh,
     ParticlesIDSet &settledParticlesIds,
     SettledParticlesCounterMap &settledParticlesCounterMap,
     ParticleMovementMap &particlesMovement,
@@ -28,16 +28,16 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
         return std::nullopt;
 
 #if __cplusplus >= 202002L
-    auto matchedIt{std::ranges::find_if(m_triangleMesh, [triangle](auto const &el)
-                                        { return triangle == std::get<1>(el); })};
+    auto matchedIt{std::ranges::find_if(m_triangleMesh, [triangle](auto const &entry)
+                                        { return triangle == entry.second.triangle; })};
 #else
-    auto matchedIt{std::find_if(m_triangleMesh.cbegin(), m_triangleMesh.cend(), [triangle](auto const &el)
-                                { return triangle == std::get<1>(el); })};
+    auto matchedIt{std::find_if(m_triangleMesh.cbegin(), m_triangleMesh.cend(), [triangle](auto const &entry)
+                                { return triangle == entry.second.triangle; })};
 #endif
 
     if (matchedIt != m_triangleMesh.end())
     {
-        auto id{Mesh::isRayIntersectTriangle(ray, *matchedIt)};
+        auto id{Mesh::isRayIntersectTriangle(ray, matchedIt)};
         if (id)
         {
             {

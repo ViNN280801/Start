@@ -37,22 +37,63 @@ public:
     static int getPhysicalGroupTagByName(std::string_view physicalGroupName);
 
     /**
-     * @brief Get the cell (triangle) centers from the specified by name physical group.
-     * @details std::unordered_map<size_t, std::array<double, 3ul>> where: (key - cell ID (tag)|value - center of this triangle).
+     * @brief Computes the geometric centers of triangular cells belonging to the specified physical group.
      *
-     * @param physicalGroupName Physical group name to find.
+     * This method retrieves the centroids of all triangular cells associated with a given physical group
+     * in a Gmsh model. The centroids are calculated as the average of the vertices' coordinates of each triangle.
+     *
+     * @param physicalGroupName Name of the physical group to query. The method identifies the corresponding
+     * physical group tag using the provided name.
+     *
      * @return std::unordered_map<size_t, std::array<double, 3ul>>
+     *         A map where:
+     *         - Key: Triangle cell ID (tag).
+     *         - Value: An array of three doubles representing the 3D coordinates (x, y, z) of the cell's centroid.
+     *
+     * @details The function performs the following steps:
+     * - Retrieves the physical group tag using the specified name.
+     * - Obtains the node tags and coordinates associated with the physical group.
+     * - Filters triangular cells that exclusively use nodes from the specified group.
+     * - Calculates the centroid for each triangle by averaging the coordinates of its three vertices.
+     *
+     * @warning If the specified physical group has no associated nodes or triangles, the function
+     * returns an empty map and logs a warning.
+     *
+     * @note This function is intended for use with 3D models and assumes all triangles have exactly three vertices.
      */
     static std::unordered_map<size_t, std::array<double, 3ul>> getCellCentersByPhysicalGroupName(std::string_view physicalGroupName);
 
     /**
-     * @brief Get the cells (triangles) from the specified by name physical group.
-     * @details std::unordered_map<size_t, std::array<double, 3ul>> where: (key - cell ID (tag)|value - CGAL triangle object).
+     * @brief Retrieves triangular cells belonging to the specified physical group.
      *
-     * @param physicalGroupName Physical group name to find.
+     * This method identifies all triangular cells in the given physical group and represents them as
+     * CGAL `Triangle_3` objects. Each triangle is defined using its three vertices' coordinates.
+     *
+     * @param physicalGroupName Name of the physical group to query. The method resolves the group tag
+     * from the provided name to filter relevant cells.
+     *
      * @return std::unordered_map<size_t, CGAL::Triangle_3>
+     *         A map where:
+     *         - Key: Triangle cell ID (tag).
+     *         - Value: CGAL `Triangle_3` object representing the triangle.
+     *
+     * @details The function includes the following steps:
+     * - Resolves the physical group tag for the given name.
+     * - Retrieves node tags and coordinates associated with the physical group.
+     * - Filters triangular cells that are entirely composed of the group's nodes.
+     * - Constructs CGAL `Triangle_3` objects using the vertices' coordinates for each valid triangle.
+     *
+     * @warning The function returns an empty map if:
+     * - No triangles are associated with the physical group.
+     * - A triangle lacks exactly three vertices or its nodes cannot be resolved to valid 3D coordinates.
+     *
+     * @exception Throws a runtime exception if a `CGAL::Triangle_3` object cannot be created for a valid set of vertices.
+     *
+     * @note This function depends on the CGAL library for geometric computations and is specific to 3D triangular meshes.
      */
     static std::unordered_map<size_t, Triangle> getCellsByPhysicalGroupName(std::string_view physicalGroupName);
+
+    // static getCellsByPhysicalGroupName(std::string_view physicalGroupName, bool x = true, bool y = true, bool z = false);
 
 /**
  * @brief Finds the tag of a surface in the Gmsh model that matches a set of 3D coordinates.

@@ -265,7 +265,18 @@ std::unordered_map<size_t, Triangle> GmshUtils::getCellsByPhysicalGroupName(std:
         try
         {
             Triangle triangle(trianglePoints.at(0), trianglePoints.at(1), trianglePoints.at(2));
+            if (triangle.is_degenerate())
+            {
+                WARNINGMSG(util::stringify("Triangle with ID ", triangleTag, " is degenerate, skipping it..."));
+                continue;
+            }
             cellsMap[triangleTag] = triangle;
+
+            std::cout << "Triangle[" << triangleTag << "]: ("
+                      << triangle.vertex(0).x() << "; " << triangle.vertex(0).y() << "; " << triangle.vertex(0).z() << ")-("
+                      << triangle.vertex(1).x() << "; " << triangle.vertex(1).y() << "; " << triangle.vertex(1).z() << ")-("
+                      << triangle.vertex(2).x() << "; " << triangle.vertex(2).y() << "; " << triangle.vertex(2).z() << ")\n";
+            std::cout << "dS = " << Kernel::Compute_area_3()(triangle.vertex(0), triangle.vertex(1), triangle.vertex(2)) << '\n';
         }
         catch (std::exception const &ex)
         {

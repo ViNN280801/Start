@@ -52,21 +52,20 @@ void ModelingMainDriver::_broadcastTriangleMesh()
     std::vector<size_t> triangleIds(numTriangles);
     std::vector<double> triangleCoords(numTriangles * 9); // 9 doubles per triangle.
     std::vector<double> dS_values(numTriangles);
-    std::vector<int> counters(numTriangles);
+    std::vector<size_t> counts(numTriangles);
 
     if (rank == 0)
     {
-        // Prepare data on rank 0.
-        for (size_t i{}; i < numTriangles; ++i)
+        size_t i{};
+        for (auto const &[id, triangleCell] : _triangleMesh)
         {
-            auto const &meshParam{_triangleMesh[i]};
-            triangleIds[i] = std::get<0>(meshParam);
-            Triangle const &triangle{std::get<1>(meshParam)};
-            double dS{std::get<2>(meshParam)};
-            int counter{std::get<3>(meshParam)};
+            triangleIds[i] = id;
+            Triangle const &triangle{triangleCell.triangle};
+            double dS{triangleCell.area};
+            size_t count{triangleCell.count};
 
-            // Extract triangle coordinates
-            for (int j{}; j < 3; ++j)
+            // Extract triangle coordinates.
+            for (short j{}; j < 3; ++j)
             {
                 const Point &p = triangle.vertex(j);
                 triangleCoords[i * 9 + j * 3 + 0] = p.x();
@@ -74,7 +73,8 @@ void ModelingMainDriver::_broadcastTriangleMesh()
                 triangleCoords[i * 9 + j * 3 + 2] = p.z();
             }
             dS_values[i] = dS;
-            counters[i] = counter;
+            counts[i] = count;
+            ++i;
         }
     }
 
@@ -83,14 +83,14 @@ void ModelingMainDriver::_broadcastTriangleMesh()
     MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
     MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(counters.data(), numTriangles, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(counts.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 #endif
 
     if (rank != 0)
     {
         // Reconstruct the triangle mesh on other ranks
         _triangleMesh.clear();
-        for (size_t i = 0; i < numTriangles; ++i)
+        for (size_t i = 0ul; i < numTriangles; ++i)
         {
             size_t triangleId = triangleIds[i];
             Point p1(triangleCoords[i * 9 + 0], triangleCoords[i * 9 + 1], triangleCoords[i * 9 + 2]);
@@ -98,8 +98,8 @@ void ModelingMainDriver::_broadcastTriangleMesh()
             Point p3(triangleCoords[i * 9 + 6], triangleCoords[i * 9 + 7], triangleCoords[i * 9 + 8]);
             Triangle triangle(p1, p2, p3);
             double dS{dS_values[i]};
-            int counter{counters[i]};
-            _triangleMesh.emplace_back(std::make_tuple(triangleId, triangle, dS, counter));
+            size_t count{counts[i]};
+            _triangleMesh[triangleId] = TriangleCell{triangle, dS, count};
         }
     }
 }
@@ -122,9 +122,9 @@ void ModelingMainDriver::_initializeSurfaceMeshAABB()
     if (_triangleMesh.empty())
         throw std::runtime_error("Can't construct AABB for triangle mesh - surface mesh is empty");
 
-    for (auto const &meshParam : _triangleMesh)
+    for (auto const &[id, triangleCell] : _triangleMesh)
     {
-        auto const &triangle{std::get<1>(meshParam)};
+        auto const &triangle{triangleCell.triangle};
         if (!triangle.is_degenerate())
             _triangles.emplace_back(triangle);
     }
@@ -174,9 +174,9 @@ void ModelingMainDriver::_updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
     auto mapEnd{_settledParticlesCounterMap.cend()};
-    for (auto &meshParam : _triangleMesh)
-        if (auto it{_settledParticlesCounterMap.find(std::get<0>(meshParam))}; it != mapEnd)
-            std::get<3>(meshParam) = it->second;
+    for (auto &[id, triangleCell] : _triangleMesh)
+        if (auto it{_settledParticlesCounterMap.find(id)}; it != mapEnd)
+            triangleCell.count = it->second;
 
     std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
     hdf5filename += ".hdf5";

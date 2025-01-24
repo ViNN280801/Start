@@ -11,10 +11,6 @@
 #include "MathVector.hpp"
 #include "RayTriangleIntersection.hpp"
 
-// Overloaded output streams for mesh params. //
-std::ostream &operator<<(std::ostream &os, MeshTriangleParam const &meshParam);
-std::ostream &operator<<(std::ostream &os, MeshTetrahedronParam const &meshParam);
-
 /**
  * @brief Constructs an AABB tree from a given mesh parameter vector.
  *
@@ -23,7 +19,7 @@ std::ostream &operator<<(std::ostream &os, MeshTetrahedronParam const &meshParam
  * tree can be used for efficient geometric queries such as collision detection,
  * ray intersection, and nearest point computation.
  *
- * @param meshParams A vector containing mesh parameters, where each entry
+ * @param meshParams A map containing mesh parameters, where each entry
  * represents a triangle in the mesh. Each MeshParam is expected to contain a
  * Triangle object along with its associated properties.
  *
@@ -31,7 +27,7 @@ std::ostream &operator<<(std::ostream &os, MeshTetrahedronParam const &meshParam
  * If the input meshParams is empty or only contains degenerate triangles,
  * the function returns std::nullopt.
  */
-std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(MeshTriangleParamVector const &meshParams);
+std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(TriangleCellMap const &meshParams);
 
 /**
  * @brief Calculates the volume of a tetrahedron.
@@ -46,12 +42,6 @@ double calculateVolumeOfTetrahedron(Tetrahedron const &tetrahedron);
 /// @brief Represents GMSH mesh.
 class Mesh
 {
-private:
-    static std::optional<size_t> isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle);
-    static std::optional<std::tuple<size_t, Point>>
-    getIntersectionPointImpl(Ray const &ray, MeshTriangleParam const &triangle);
-    static double calcTetrahedronVolume(MathVector<double> const &a, MathVector<double> const &b, MathVector<double> const &c, MathVector<double> const &d);
-
 public:
     /**
      * @brief Sets the mesh size factor (globally -> for all objects).
@@ -68,7 +58,7 @@ public:
      * @param msh_filename The filename of the Gmsh .msh file to parse.
      * @return A vector containing information about each triangle in the mesh.
      */
-    static MeshTriangleParamVector getMeshParams(std::string_view msh_filename);
+    static TriangleCellMap getMeshParams(std::string_view msh_filename);
 
     /**
      * @brief Gets mesh parameters for tetrahedron elements from a Gmsh .msh file.
@@ -77,44 +67,110 @@ public:
      * @param msh_filename The name of the .msh file to be read.
      * @return A vector of tuples, each containing the tetrahedron ID, its vertices, and volume.
      */
-    static MeshTetrahedronParamVector getTetrahedronMeshParams(std::string_view msh_filename);
+    static TetrahedronCellMap getTetrahedronMeshParams(std::string_view msh_filename);
 
     /**
-     * @brief Checks if a given ray intersects with a triangle.
+     * @brief Checks if a ray intersects with a specific triangle in the mesh.
      *
-     * This function determines whether a finite ray intersects with a given triangle.
-     * If an intersection occurs, the ID of the intersected triangle is returned.
-     * Otherwise, an empty `std::optional<size_t>` is returned, indicating no intersection.
+     * This method determines whether the given ray intersects the triangle referenced
+     * by the provided iterator to the `TriangleCellMap`. If an intersection occurs,
+     * the triangle's ID is returned; otherwise, `std::nullopt` is returned.
      *
-     * @param ray A constant reference to the ray (line segment) to be checked.
-     * @param triangle A constant reference to the triangle to check for intersection.
-     * @return An `std::optional<size_t>` containing the ID of the intersected triangle
-     *         if the ray intersects, or `std::nullopt` if there is no intersection.
+     * @param ray The ray to check for intersection.
+     * @param triangleCellConstIter Iterator pointing to the triangle cell in the `TriangleCellMap`.
+     * @return std::optional<size_t> The ID of the intersected triangle, or `std::nullopt` if no intersection occurs.
+     *
+     * @note The method returns `std::nullopt` if the triangle or the ray is degenerate.
+     *       Degeneracy warnings are logged using `WARNINGMSG`.
+     *
+     * @warning Ensure that the iterator points to a valid entry in the `TriangleCellMap`.
      */
-    static std::optional<size_t> isRayIntersectTriangle(Ray const &ray, MeshTriangleParam const &triangle) { return isRayIntersectTriangleImpl(ray, triangle); }
-    static std::optional<size_t> isRayIntersectTriangle(Ray &&ray, MeshTriangleParam const &triangle) { return isRayIntersectTriangleImpl(std::move(ray), triangle); }
-    static std::optional<size_t> isRayIntersectTriangle(Ray const &ray, MeshTriangleParam &&triangle) { return isRayIntersectTriangleImpl(ray, std::move(triangle)); }
-    static std::optional<size_t> isRayIntersectTriangle(Ray &&ray, MeshTriangleParam &&triangle) { return isRayIntersectTriangleImpl(std::move(ray), std::move(triangle)); }
+    template <typename TriangleCellMapIter>
+    static std::optional<size_t>
+    isRayIntersectTriangle(Ray const &ray, TriangleCellMapIter triangleCellConstIter)
+    {
+        // Checking type of the iterator.
+        if constexpr (!std::is_same_v<typename std::iterator_traits<TriangleCellMapIter>::value_type, std::pair<size_t const, TriangleCell>>)
+        {
+            ERRMSG("Passing typename differs from iterator of type 'TriangleCellMap'");
+            return std::nullopt;
+        }
+
+        // Getting all the necessary params to work with.
+        auto const id{triangleCellConstIter->first};
+        auto const &triangleCell{triangleCellConstIter->second};
+        auto const &triangle{triangleCell.triangle};
+
+        // Return invalid index if the triangle or ray is degenerate.
+        if (triangle.is_degenerate())
+        {
+            WARNINGMSG(util::stringify("Triangle with ID ", id, " is degenerate, returning 'std::nullopt'..."));
+            return std::nullopt;
+        }
+        if (ray.is_degenerate())
+        {
+            WARNINGMSG(util::stringify("Ray is degenerate during checking with triangle[", id, "], returning 'std::nullopt'..."));
+            return std::nullopt;
+        }
+
+        // Check if the ray intersects the triangle.
+        return (RayTriangleIntersection::isIntersectTriangle(ray, triangle))
+                   ? std::optional<size_t>{id}
+                   : std::nullopt;
+    }
 
     /**
-     * @brief Gets intersection point of ray and triangle if ray intersects the triangle.
-     * @param ray The ray to check for intersection with the triangle.
-     * @param triangle MeshParam representing the triangle with which the line segment
-     *                 is tested for intersection. It includes the necessary parameters to define
-     *                 a triangle in 3D space.
+     * @brief Computes the intersection point of a ray with a specific triangle in the mesh.
      *
-     * @return Returns the ID of the triangle where the particle has settled if an intersection occurs
-     *         and intersection point.
-     *         If the particle doesn't intersect with the specified triangle, it returns `std::nullopt`
+     * This method determines whether the given ray intersects the triangle referenced
+     * by the provided iterator to the `TriangleCellMap`. If an intersection occurs,
+     * the method returns a tuple containing the triangle's ID and the intersection point.
+     * If no intersection occurs, `std::nullopt` is returned.
+     *
+     * @param ray The ray to check for intersection.
+     * @param triangleCellConstIter Iterator pointing to the triangle cell in the `TriangleCellMap`.
+     * @return std::optional<std::tuple<size_t, Point>> A tuple containing the triangle's ID and
+     *         the intersection point, or `std::nullopt` if no intersection occurs.
+     *
+     * @note The method returns `std::nullopt` if the triangle or the ray is degenerate.
+     *       Degeneracy warnings are logged using `WARNINGMSG`.
+     *
+     * @warning Ensure that the iterator points to a valid entry in the `TriangleCellMap`.
      */
+    template <typename TriangleCellMapIter>
     static std::optional<std::tuple<size_t, Point>>
-    getIntersectionPoint(Ray const &ray, MeshTriangleParam const &triangle) { return getIntersectionPointImpl(ray, triangle); }
-    static std::optional<std::tuple<size_t, Point>>
-    getIntersectionPoint(Ray &&ray, MeshTriangleParam const &triangle) { return getIntersectionPointImpl(std::move(ray), triangle); }
-    static std::optional<std::tuple<size_t, Point>>
-    getIntersectionPoint(Ray const &ray, MeshTriangleParam &&triangle) { return getIntersectionPointImpl(ray, std::move(triangle)); }
-    static std::optional<std::tuple<size_t, Point>>
-    getIntersectionPoint(Ray &&ray, MeshTriangleParam &&triangle) { return getIntersectionPointImpl(std::move(ray), std::move(triangle)); }
+    getIntersectionPoint(Ray const &ray, TriangleCellMapIter triangleCellConstIter)
+    {
+        // Checking type of the iterator.
+        if constexpr (!std::is_same_v<typename std::iterator_traits<TriangleCellMapIter>::value_type, std::pair<size_t const, TriangleCell>>)
+        {
+            ERRMSG("Passing typename differs from iterator of type 'TriangleCellMap'");
+            return std::nullopt;
+        }
+
+        // Getting all the necessary params to work with.
+        auto const id{triangleCellConstIter->first};
+        auto const &triangleCell{triangleCellConstIter->second};
+        auto const &triangle{triangleCell.triangle};
+
+        // Return invalid index if the triangle or ray is degenerate.
+        if (triangle.is_degenerate())
+        {
+            WARNINGMSG(util::stringify("Triangle with ID ", id, " is degenerate, returning 'std::nullopt'..."));
+            return std::nullopt;
+        }
+        if (ray.is_degenerate())
+        {
+            WARNINGMSG(util::stringify("Ray is degenerate during checking with triangle[", id, "], returning 'std::nullopt'..."));
+            return std::nullopt;
+        }
+
+        // "ip" here stands for Intersection Point.
+        auto ip(RayTriangleIntersection::getIntersectionPoint(ray, triangle));
+        if (!ip)
+            return std::nullopt;
+        return std::make_tuple(id, *ip);
+    }
 
     /**
      * @brief Checker for point inside the tetrahedron.
