@@ -64,36 +64,36 @@ public:
     static std::unordered_map<size_t, std::array<double, 3ul>> getCellCentersByPhysicalGroupName(std::string_view physicalGroupName);
 
     /**
-     * @brief Retrieves triangular cells belonging to the specified physical group.
+     * @brief Retrieves the triangle cells for a specified physical group by name from a Gmsh model.
      *
-     * This method identifies all triangular cells in the given physical group and represents them as
-     * CGAL `Triangle_3` objects. Each triangle is defined using its three vertices' coordinates.
+     * This method extracts all triangular cells associated with a given physical group in a Gmsh model
+     * and stores them in a `TriangleCellMap`. Each triangle is uniquely identified by its tag (ID)
+     * and includes:
+     * - The geometric representation of the triangle.
+     * - The precomputed area of the triangle.
+     * - An initial particle count (set to 0 at \( t = 0 \)).
      *
-     * @param physicalGroupName Name of the physical group to query. The method resolves the group tag
-     * from the provided name to filter relevant cells.
+     * The method performs the following steps:
+     * 1. Finds the tag (ID) of the physical group by its name.
+     * 2. Retrieves the nodes and their coordinates associated with the physical group.
+     * 3. Identifies triangles associated with the nodes in the physical group.
+     * 4. Constructs triangles from their vertices, calculates their area, and stores them in a `TriangleCellMap`.
      *
-     * @return std::unordered_map<size_t, CGAL::Triangle_3>
-     *         A map where:
-     *         - Key: Triangle cell ID (tag).
-     *         - Value: CGAL `Triangle_3` object representing the triangle.
+     * @param physicalGroupName Name of the physical group to retrieve triangle cells for.
+     * @return TriangleCellMap A map containing the triangle cells, where:
+     *         - The key is the triangle ID.
+     *         - The value is a `TriangleCell` structure with the triangle geometry, area, and particle count.
+     *         Returns an empty map if no triangles are found or in case of an error.
      *
-     * @details The function includes the following steps:
-     * - Resolves the physical group tag for the given name.
-     * - Retrieves node tags and coordinates associated with the physical group.
-     * - Filters triangular cells that are entirely composed of the group's nodes.
-     * - Constructs CGAL `Triangle_3` objects using the vertices' coordinates for each valid triangle.
+     * @throws std::exception Logs errors if any issues occur during the triangle construction process.
      *
-     * @warning The function returns an empty map if:
-     * - No triangles are associated with the physical group.
-     * - A triangle lacks exactly three vertices or its nodes cannot be resolved to valid 3D coordinates.
+     * @note Degenerate triangles (triangles with zero area) are skipped and logged as warnings.
+     *       If no nodes or triangles are associated with the specified physical group, an empty map is returned.
      *
-     * @exception Throws a runtime exception if a `CGAL::Triangle_3` object cannot be created for a valid set of vertices.
-     *
-     * @note This function depends on the CGAL library for geometric computations and is specific to 3D triangular meshes.
+     * @warning Ensure that the Gmsh model is correctly initialized and the physical group name exists in the model.
+     *          Nodes and triangles without valid 3D coordinates are also skipped.
      */
-    static std::unordered_map<size_t, Triangle> getCellsByPhysicalGroupName(std::string_view physicalGroupName);
-
-    // static getCellsByPhysicalGroupName(std::string_view physicalGroupName, bool x = true, bool y = true, bool z = false);
+    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName);
 
 /**
  * @brief Finds the tag of a surface in the Gmsh model that matches a set of 3D coordinates.
