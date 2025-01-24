@@ -6,9 +6,9 @@
 #include <ranges>
 #endif
 
-#include "DataHandling/HDF5Handler.hpp"
+#include "DataHandling/TriangleMeshHdf5Manager.hpp"
 
-void HDF5Handler::_findMinTriangleId(TriangleCellMap const &triangleCells)
+void TriangleMeshHdf5Manager::_findMinTriangleId(TriangleCellMap const &triangleCells)
 {
     if (triangleCells.empty())
         throw std::invalid_argument("Input parameter 'triangleCells' is empty.");
@@ -35,7 +35,7 @@ void HDF5Handler::_findMinTriangleId(TriangleCellMap const &triangleCells)
         throw std::runtime_error("Failed to find the minimum ID in 'triangleCells'.");
 }
 
-HDF5Handler::HDF5Handler(std::string_view filename)
+TriangleMeshHdf5Manager::TriangleMeshHdf5Manager(std::string_view filename)
 {
     if (std::filesystem::exists(filename))
         std::filesystem::remove(filename);
@@ -45,9 +45,9 @@ HDF5Handler::HDF5Handler(std::string_view filename)
         throw std::runtime_error("Failed to create HDF5 file: " + std::string(filename));
 }
 
-HDF5Handler::~HDF5Handler() { H5Fclose(m_file_id); }
+TriangleMeshHdf5Manager::~TriangleMeshHdf5Manager() { H5Fclose(m_file_id); }
 
-void HDF5Handler::_createGroup(std::string_view groupName)
+void TriangleMeshHdf5Manager::_createGroup(std::string_view groupName)
 {
     hid_t grp_id{H5Gcreate2(m_file_id, groupName.data(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)};
     if (grp_id < 0)
@@ -55,7 +55,7 @@ void HDF5Handler::_createGroup(std::string_view groupName)
     H5Gclose(grp_id);
 }
 
-void HDF5Handler::_writeDataset(std::string_view groupName, std::string_view datasetName,
+void TriangleMeshHdf5Manager::_writeDataset(std::string_view groupName, std::string_view datasetName,
                                 hid_t type, void const *data, hsize_t dims)
 {
     hid_t grp_id{H5Gopen2(m_file_id, groupName.data(), H5P_DEFAULT)},
@@ -72,7 +72,7 @@ void HDF5Handler::_writeDataset(std::string_view groupName, std::string_view dat
     H5Gclose(grp_id);
 }
 
-void HDF5Handler::_readDataset(std::string_view groupName, std::string_view datasetName,
+void TriangleMeshHdf5Manager::_readDataset(std::string_view groupName, std::string_view datasetName,
                                hid_t type, void *data)
 {
     hid_t grp_id{H5Gopen2(m_file_id, groupName.data(), H5P_DEFAULT)},
@@ -87,7 +87,7 @@ void HDF5Handler::_readDataset(std::string_view groupName, std::string_view data
     H5Gclose(grp_id);
 }
 
-void HDF5Handler::saveMeshToHDF5(TriangleCellMap const &triangleCells)
+void TriangleMeshHdf5Manager::saveMeshToHDF5(TriangleCellMap const &triangleCells)
 {
     if (triangleCells.empty())
         return;
@@ -131,7 +131,7 @@ void HDF5Handler::saveMeshToHDF5(TriangleCellMap const &triangleCells)
     }
 }
 
-TriangleCellMap HDF5Handler::readMeshFromHDF5()
+TriangleCellMap TriangleMeshHdf5Manager::readMeshFromHDF5()
 {
     TriangleCellMap cellsMap;
     hsize_t num_objs{};

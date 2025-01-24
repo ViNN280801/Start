@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include "DataHandling/HDF5Handler.hpp"
+#include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMInitializer.hpp"
@@ -180,7 +180,7 @@ void ModelingMainDriver::_updateSurfaceMesh()
 
     std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
     hdf5filename += ".hdf5";
-    HDF5Handler hdf5handler(hdf5filename);
+    TriangleMeshHdf5Manager hdf5handler(hdf5filename);
     hdf5handler.saveMeshToHDF5(_triangleMesh);
 }
 
