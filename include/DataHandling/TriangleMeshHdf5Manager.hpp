@@ -1,5 +1,5 @@
-#ifndef HDF5HANDLER_HPP
-#define HDF5HANDLER_HPP
+#ifndef TRIANGLEMESHHDF5MANAGER_HPP
+#define TRIANGLEMESHHDF5MANAGER_HPP
 
 #include <limits>
 #include <string_view>
@@ -15,7 +15,7 @@
  *          an HDF5 file. It is specifically designed to handle mesh data, including
  *          the coordinates, areas, and particle counters of each triangle in the mesh.
  */
-class HDF5Handler final
+class TriangleMeshHdf5Manager final
 {
 private:
     hid_t m_file_id;                                  // File id.
@@ -36,8 +36,8 @@ private:
      * @note The method assumes that all maps in the input vector contain unique IDs as keys.
      *       If a map is empty, it is ignored during the comparison.
      *
-     * @see HDF5Handler::readMeshFromHDF5()
-     * @see HDF5Handler::saveMeshToHDF5()
+     * @see TriangleMeshHdf5Manager::readMeshFromHDF5()
+     * @see TriangleMeshHdf5Manager::saveMeshToHDF5()
      */
     void _findMinTriangleId(TriangleCellMap const &triangleCells);
 
@@ -90,13 +90,13 @@ private:
 
 public:
     /**
-     * @brief Constructs an HDF5Handler object and opens or creates an HDF5 file.
+     * @brief Constructs an TriangleMeshHdf5Manager object and opens or creates an HDF5 file.
      * @param filename The name of the HDF5 file to be opened or created.
      * @details The constructor opens an HDF5 file if it exists, or creates a new one if it does not.
      *          The file is opened with write access, and the file handle is stored for future operations.
      */
-    explicit HDF5Handler(std::string_view filename);
-    ~HDF5Handler();
+    explicit TriangleMeshHdf5Manager(std::string_view filename);
+    ~TriangleMeshHdf5Manager();
 
     /**
      * @brief Saves mesh data to the HDF5 file.
@@ -122,4 +122,4 @@ public:
     TriangleCellMap readMeshFromHDF5();
 };
 
-#endif // !HDF5HANDLER_HPP
+#endif // !TRIANGLEMESHHDF5MANAGER_HPP
