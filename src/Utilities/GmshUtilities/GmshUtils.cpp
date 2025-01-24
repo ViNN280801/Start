@@ -179,7 +179,7 @@ std::unordered_map<size_t, std::array<double, 3ul>> GmshUtils::getCellCentersByP
     return triangleCentersMap;
 }
 
-std::unordered_map<size_t, Triangle> GmshUtils::getCellsByPhysicalGroupName(std::string_view physicalGroupName)
+TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physicalGroupName)
 {
     // Step 1: Find the physical group with the specified name.
     int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName)};
@@ -236,7 +236,7 @@ std::unordered_map<size_t, Triangle> GmshUtils::getCellsByPhysicalGroupName(std:
     }
 
     // Step 4: Calculate centroids of triangles.
-    std::unordered_map<size_t, Triangle> cellsMap;
+    TriangleCellMap cellsMap;
     for (auto const &[triangleTag, triangleNodeTags] : triangleNodeTagsMap)
     {
         if (triangleNodeTags.size() != 3ul)
@@ -270,7 +270,7 @@ std::unordered_map<size_t, Triangle> GmshUtils::getCellsByPhysicalGroupName(std:
                 WARNINGMSG(util::stringify("Triangle with ID ", triangleTag, " is degenerate, skipping it..."));
                 continue;
             }
-            cellsMap[triangleTag] = triangle;
+            cellsMap[triangleTag] = TriangleCell(triangle, TriangleCell::compute_area(triangle), 0); // In initial time moment (t=0) there is no any settled particles.
 
             std::cout << "Triangle[" << triangleTag << "]: ("
                       << triangle.vertex(0).x() << "; " << triangle.vertex(0).y() << "; " << triangle.vertex(0).z() << ")-("
@@ -291,10 +291,7 @@ std::unordered_map<size_t, Triangle> GmshUtils::getCellsByPhysicalGroupName(std:
     }
 
     if (cellsMap.empty())
-    {
         WARNINGMSG("Failed to fill 'cellsMap' variable.");
-        return {};
-    }
 
     return cellsMap;
 }
