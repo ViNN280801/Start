@@ -53,7 +53,7 @@ private:
     std::shared_ptr<StopFlagObserver> m_stopObserver; ///< Observer for managing stop requests.
 
     /* All the neccessary data members from the mesh. */
-    MeshTriangleParamVector _triangleMesh;   ///< Triangle mesh params acquired from the mesh file. Surface mesh.
+    TriangleCellMap _triangleMesh;           ///< Triangle mesh params acquired from the mesh file. Surface mesh.
     TriangleVector _triangles;               ///< Triangles extracted from the triangle mesh params `_triangleMesh` (surface mesh). Need to initialize AABB tree.
     AABB_Tree_Triangle _surfaceMeshAABBtree; ///< AABB tree for the surface mesh to effectively detect collisions with surface.
     GmshSessionManager _gmshSessionManager;  ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.

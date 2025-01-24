@@ -1,5 +1,5 @@
 {
-    "Mesh File": "/home/nia_employee_prog/Documents/Work/Start/meshes/cube.msh",
+    "Mesh File": "/home/nia_employee_prog/Documents/Work/Projects/Start/Code/meshes/cube.msh",
     "Threads": 10,
     "Time Step": 0.001,
     "Simulation Time": 0.01,

@@ -115,7 +115,7 @@ public:
                               std::shared_mutex &settledParticlesMutex,
                               std::mutex &particlesMovementMutex,
                               AABB_Tree_Triangle const &surfaceMeshAABBtree,
-                              MeshTriangleParamVector const &triangleMesh,
+                              TriangleCellMap const &triangleMesh,
                               ParticlesIDSet &settledParticlesIds,
                               SettledParticlesCounterMap &settledParticlesCounterMap,
                               ParticleMovementMap &particlesMovement,

@@ -22,7 +22,7 @@ private:
     std::shared_mutex &m_settledParticlesMutex;               ///< Mutex for protecting settled particle data.
     std::mutex &m_particlesMovementMutex;                     ///< Mutex for protecting particle movement data.
     AABB_Tree_Triangle const &m_surfaceMeshAABBtree;          ///< AABB tree for efficient collision detection.
-    MeshTriangleParamVector const &m_triangleMesh;            ///< Vector of mesh triangle parameters.
+    TriangleCellMap const &m_triangleMesh;                    ///< Map of mesh triangle parameters.
     ParticlesIDSet &m_settledParticleIds;                     ///< Set of settled particle IDs.
     SettledParticlesCounterMap &m_settledParticlesCounterMap; ///< Map of triangle IDs to settled particle counts.
     ParticleMovementMap &m_particlesMovement;                 ///< Map of particle movements.
@@ -44,7 +44,7 @@ public:
         std::shared_mutex &settledParticlesMutex,
         std::mutex &particlesMovementMutex,
         AABB_Tree_Triangle const &tree,
-        MeshTriangleParamVector const &mesh,
+        TriangleCellMap const &mesh,
         ParticlesIDSet &settledParticlesIds,
         SettledParticlesCounterMap &settledParticlesCounterMap,
         ParticleMovementMap &particlesMovement,

@@ -4,44 +4,7 @@
 #include "Geometry/Mesh.hpp"
 #include "Utilities/Utilities.hpp"
 
-std::ostream &operator<<(std::ostream &os, MeshTriangleParam const &meshParam)
-{
-    auto triangle{std::get<1>(meshParam)};
-
-    auto v0{triangle.vertex(0)},
-        v1{triangle.vertex(1)},
-        v2{triangle.vertex(2)};
-
-    os << "Triangle[" << std::get<0>(meshParam) << "]:\n"
-       << "Vertex A: " << v0.x() << " " << v0.y() << " " << v0.z() << "\n"
-       << "Vertex B: " << v1.x() << " " << v1.y() << " " << v1.z() << "\n"
-       << "Vertex C: " << v2.x() << " " << v2.y() << " " << v2.z() << "\n"
-       << "Surface area: " << std::get<2>(meshParam) << "\n"
-       << "Settled particle count: " << std::get<3>(meshParam) << "\n\n";
-
-    return os;
-}
-
-std::ostream &operator<<(std::ostream &os, MeshTetrahedronParam const &meshParam)
-{
-    auto tetrahedron{std::get<1>(meshParam)};
-
-    auto v0{tetrahedron.vertex(0)},
-        v1{tetrahedron.vertex(1)},
-        v2{tetrahedron.vertex(2)},
-        v3{tetrahedron.vertex(3)};
-
-    os << "Tetrahedron[" << std::get<0>(meshParam) << "]:\n"
-       << "Vertex A: " << v0.x() << " " << v0.y() << " " << v0.z() << "\n"
-       << "Vertex B: " << v1.x() << " " << v1.y() << " " << v1.z() << "\n"
-       << "Vertex C: " << v2.x() << " " << v2.y() << " " << v2.z() << "\n"
-       << "Vertex D: " << v3.x() << " " << v3.y() << " " << v3.z() << "\n"
-       << "Volume: " << std::get<2>(meshParam) << "\n\n";
-
-    return os;
-}
-
-std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(MeshTriangleParamVector const &meshParams)
+std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(TriangleCellMap const &meshParams)
 {
     if (meshParams.empty())
     {
@@ -50,11 +13,14 @@ std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(MeshTrianglePa
     }
 
     TriangleVector triangles;
-    for (auto const &meshParam : meshParams)
+    for (auto const &[id, triangleCell] : meshParams)
     {
-        auto const &triangle{std::get<1>(meshParam)};
-        if (!triangle.is_degenerate())
-            triangles.emplace_back(triangle);
+        if (triangleCell.triangle.is_degenerate())
+        {
+            WARNINGMSG(util::stringify("Triangle with ID ", id, " is degenerate, skipping it..."));
+            continue;
+        }
+        triangles.emplace_back(triangleCell.triangle);
     }
 
     if (triangles.empty())
@@ -66,50 +32,11 @@ std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(MeshTrianglePa
     return AABB_Tree_Triangle(std::cbegin(triangles), std::cend(triangles));
 }
 
-double calculateVolumeOfTetrahedron(Tetrahedron const &tetrahedron)
-{
-    Point const &A{tetrahedron[0]},
-        &B{tetrahedron[1]},
-        &C{tetrahedron[2]},
-        &D{tetrahedron[3]};
-
-    // Construct vectors AB, AC, and AD
-    Kernel::Vector_3 AB{B - A}, AC{C - A}, AD{D - A};
-
-    // Compute the scalar triple product (AB . (AC x AD))
-    double scalarTripleProduct{CGAL::scalar_product(AB, CGAL::cross_product(AC, AD))};
-
-    // The volume of the tetrahedron is the absolute value of the scalar triple product divided by 6
-    return std::abs(scalarTripleProduct) / 6.0;
-}
-
-std::optional<size_t> Mesh::isRayIntersectTriangleImpl(Ray const &ray, MeshTriangleParam const &triangle)
-{
-    // Returning invalid index if ray or triangle is degenerate
-    if (std::get<1>(triangle).is_degenerate() || ray.is_degenerate())
-        return std::nullopt;
-
-    return (RayTriangleIntersection::isIntersectTriangle(ray, std::get<1>(triangle)))
-               ? std::optional<size_t>{std::get<0>(triangle)}
-               : std::nullopt;
-}
-
-std::optional<std::tuple<size_t, Point>>
-Mesh::getIntersectionPointImpl(Ray const &ray, MeshTriangleParam const &triangle)
-{
-    auto ip(RayTriangleIntersection::getIntersectionPoint(ray, std::get<1>(triangle)));
-    if (!ip)
-        return std::nullopt;
-    return std::make_tuple(std::get<0>(triangle), *ip);
-}
-
-double Mesh::calcTetrahedronVolume(MathVector<double> const &a, MathVector<double> const &b, MathVector<double> const &c, MathVector<double> const &d) { return std::abs((c - a).crossProduct(d - a).dotProduct(b - a)) / 6.0; }
-
 void Mesh::setMeshSize(double meshSizeFactor) { gmsh::option::setNumber("Mesh.MeshSizeFactor", meshSizeFactor); }
 
-MeshTriangleParamVector Mesh::getMeshParams(std::string_view msh_filename)
+TriangleCellMap Mesh::getMeshParams(std::string_view msh_filename)
 {
-    MeshTriangleParamVector result;
+    TriangleCellMap result;
     try
     {
         gmsh::open(msh_filename.data());
@@ -142,15 +69,12 @@ MeshTriangleParamVector Mesh::getMeshParams(std::string_view msh_filename)
                 xyz2{{xyz[(nodes[1] - 1) * 3], xyz[(nodes[1] - 1) * 3 + 1], xyz[(nodes[1] - 1) * 3 + 2]}},
                 xyz3{{xyz[(nodes[2] - 1) * 3], xyz[(nodes[2] - 1) * 3 + 1], xyz[(nodes[2] - 1) * 3 + 2]}};
 
-            double dS{MathVector<double>::calculateTriangleArea(MathVector<double>(xyz1[0], xyz1[1], xyz1[2]),
-                                                                MathVector<double>(xyz2[0], xyz2[1], xyz2[2]),
-                                                                MathVector<double>(xyz3[0], xyz3[1], xyz3[2]))};
-
-            result.emplace_back(std::make_tuple(triangleId,
-                                                Triangle(Point(xyz1[0], xyz1[1], xyz1[2]),
-                                                         Point(xyz2[0], xyz2[1], xyz2[2]),
-                                                         Point(xyz3[0], xyz3[1], xyz3[2])),
-                                                dS, 0));
+            Point p1(xyz1[0], xyz1[1], xyz1[2]),
+                p2(xyz2[0], xyz2[1], xyz2[2]),
+                p3(xyz3[0], xyz3[1], xyz3[2]);
+            Triangle triangle(p1, p2, p3);
+            TriangleCell cell{triangle, TriangleCell::compute_area(triangle), 0}; // At the initial time moment 'counter' is 0.
+            result[triangleId] = TriangleCell(cell);
         }
     }
     catch (std::exception const &e)
@@ -161,12 +85,16 @@ MeshTriangleParamVector Mesh::getMeshParams(std::string_view msh_filename)
     {
         ERRMSG("Something went wrong");
     }
+
+    if (result.empty())
+        WARNINGMSG("By some reason 'result' data ('TriangleCellMap') is empty, check the input...");
+
     return result;
 }
 
-MeshTetrahedronParamVector Mesh::getTetrahedronMeshParams(std::string_view msh_filename)
+TetrahedronCellMap Mesh::getTetrahedronMeshParams(std::string_view msh_filename)
 {
-    MeshTetrahedronParamVector result;
+    TetrahedronCellMap result;
     try
     {
         gmsh::open(msh_filename.data());
@@ -204,8 +132,7 @@ MeshTetrahedronParamVector Mesh::getTetrahedronMeshParams(std::string_view msh_f
                                     Point(vertices[1][0], vertices[1][1], vertices[1][2]),
                                     Point(vertices[2][0], vertices[2][1], vertices[2][2]),
                                     Point(vertices[3][0], vertices[3][1], vertices[3][2]));
-
-            result.emplace_back(tetrahedronID, tetrahedron, calculateVolumeOfTetrahedron(tetrahedron));
+            result[tetrahedronID] = TetrahedronCell(tetrahedron);
         }
     }
     catch (std::exception const &e)
@@ -216,6 +143,10 @@ MeshTetrahedronParamVector Mesh::getTetrahedronMeshParams(std::string_view msh_f
     {
         ERRMSG("Something went wrong");
     }
+
+    if (result.empty())
+        WARNINGMSG("By some reason 'result' data ('TetrahedronCellMap') is empty, check the input...");
+
     return result;
 }
 
@@ -235,8 +166,8 @@ double Mesh::getVolumeFromTetrahedronMesh(std::string_view msh_filename)
 {
     double totalVolume{};
     auto tetrahedronMesh{getTetrahedronMeshParams(msh_filename)};
-    for (auto const &tetrahedron : tetrahedronMesh)
-        totalVolume += calculateVolumeOfTetrahedron(std::get<1>(tetrahedron));
+    for (auto const &[id, tetrahedronCell] : tetrahedronMesh)
+        totalVolume += tetrahedronCell.tetrahedron.volume();
     return totalVolume;
 }
 
