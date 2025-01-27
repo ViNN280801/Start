@@ -58,6 +58,8 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
                 if (intersection_point)
                     m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
             }
+
+            return id;
         }
     }
 
