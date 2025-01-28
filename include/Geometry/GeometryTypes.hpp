@@ -8,6 +8,8 @@
 #include <CGAL/Segment_3.h>
 #include <CGAL/intersections.h>
 
+#include "Utilities/Utilities.hpp"
+
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel; ///< Kernel for exact predicates and inexact constructions.
 using Point = Kernel::Point_3;                                      ///< 3D point type.
 using Ray = Kernel::Segment_3;                                      ///< Finite ray (line segment).
@@ -104,5 +106,77 @@ using TriangleVectorConstIter = TriangleVector::const_iterator;                 
 using TrianglePrimitive = CGAL::AABB_triangle_primitive_3<Kernel, TriangleVectorConstIter>; ///< Primitive for representing triangles in an AABB tree for efficient spatial queries.
 using TriangleTraits = CGAL::AABB_traits_3<Kernel, TrianglePrimitive>;                      ///< Traits class defining the properties and operations of triangle primitives for use in an AABB tree.
 using AABB_Tree_Triangle = CGAL::AABB_tree<TriangleTraits>;                                 ///< Axis-Aligned Bounding Box (AABB) tree for accelerating spatial queries (e.g., intersections, nearest neighbors) on triangles.
+
+/**
+ * @class SurfaceMesh
+ * @brief Manages a surface mesh consisting of triangles and its associated AABB tree.
+ *
+ * This class ensures the proper lifetime management of the triangle vector and the
+ * AABB tree, preventing memory issues caused by premature deallocation of triangle data.
+ */
+class SurfaceMesh
+{
+private:
+    TriangleVector m_triangles;    ///< Vector of triangles used to construct the AABB tree.
+    TriangleCellMap m_triangleCellMap; ///< Map for the triangles, that contain: (Triangle ID | Triangle Cell Structure @see TriangleCell).
+    AABB_Tree_Triangle m_aabbTree; ///< AABB tree constructed from the triangles.
+
+public:
+    /**
+     * @brief Constructs a SurfaceMesh from a TriangleCellMap.
+     * @param triangleCells Map of triangle cells used to construct the mesh and AABB tree.
+     * @throw std::runtime_error If the triangle cell map is empty or contains only degenerate triangles.
+     */
+    explicit SurfaceMesh(TriangleCellMap const &triangleCells) : m_triangleCellMap(triangleCells)
+    {
+        if (triangleCells.empty())
+            throw std::runtime_error("Cannot construct SurfaceMesh: triangle cell map is empty");
+
+        // Populate the triangle vector
+        for (auto const &[id, triangleCell] : triangleCells)
+        {
+            if (triangleCell.triangle.is_degenerate())
+            {
+                WARNINGMSG(util::stringify("Triangle with ID ", id, " is degenerate, skipping it..."));
+                continue;
+            }
+            m_triangles.emplace_back(triangleCell.triangle);
+        }
+
+        if (m_triangles.empty())
+            throw std::runtime_error("Cannot construct SurfaceMesh: all triangles are degenerate");
+
+        // Construct the AABB tree
+        m_aabbTree.insert(m_triangles.begin(), m_triangles.end());
+        m_aabbTree.build();
+
+        if (m_aabbTree.empty())
+            throw std::runtime_error("AABB Tree is empty after building. No valid triangles were inserted.");
+    }
+
+    /**
+     * @brief Provides read-only access to the AABB tree.
+     * @return const AABB_Tree_Triangle& Reference to the AABB tree.
+     */
+    AABB_Tree_Triangle const &getAABBTree() const { return m_aabbTree; }
+
+    /**
+     * @brief Provides read-only access to the triangle vector.
+     * @return const TriangleVector& Reference to the triangle vector.
+     */
+    TriangleVector const &getTriangles() const { return m_triangles; }
+
+    /**
+     * @brief Provides read-only access to the triangle cell map.
+     * @return const TriangleCellMap& Reference to the triangle cell map.
+     */
+    TriangleCellMap const &getTriangleCellMap() const { return m_triangleCellMap; }
+
+    /**
+     * @brief Provides read/write access to the triangle cell map.
+     * @return TriangleCellMap& Reference to the triangle cell map.
+     */
+    TriangleCellMap &getTriangleCellMap() { return m_triangleCellMap; }
+};
 
 #endif // !GEOMETRY_TYPES_HPP

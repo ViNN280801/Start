@@ -1,13 +1,26 @@
 #include "SputteringModel/SputteringModel.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "Geometry/Mesh.hpp"
+#include "SputteringModel/SputteringModelingDriver.hpp"
 #include "SputteringModel/TwoPlatesCreator.hpp"
+
+enum InputMode
+{
+    Manual,
+    Auto
+};
 
 void SputteringModel::start()
 {
     [[maybe_unused]] std::string sputteringMaterialName("Ti"), gasName("Ar"), scatteringModel("VSS");
     [[maybe_unused]] double targetMaterialDensity{4500.0}, targetMaterialMolarMass{0.048}, cellSize = 0.0, mm = 1.0;
     [[maybe_unused]] int meshTypeInt, particleWeight{12};
+
+    int choiceInt{};
+    std::cout << "Ручной ввод (1)/Автоматический (2): ";
+    std::cin >> choiceInt;
+
+    InputMode inputMode{choiceInt == 1 ? InputMode::Manual : InputMode::Auto};
 
     // ===================================
     // 1. Generating 3D-model of 2 plates.
@@ -36,22 +49,19 @@ void SputteringModel::start()
     // 1.4. Generating mesh to the .msh file.
     tpc.generateMeshfile();
 
-    // 1.5. Constructing AABB tree to the surface mesh (with triangle cells).
-    auto surfaceMeshParams{Mesh::getMeshParams(tpc.getMeshFilename())};
-    auto surfaceMeshAABB{constructAABBTreeFromMeshParams(surfaceMeshParams)};
-    if (!surfaceMeshAABB)
-    {
-        ERRMSG("Failed to create AABB Tree for the surface mesh");
-    }
+    // 1.5. Constructing AABB tree to the surface mesh (with triangle cells). It construct inside SputteringModelingDriver instance.
 
     // ==========================================
     // 2. Spawn particles on the "Target" surface
     // ==========================================
-    std::cout << "Введите плотность материала мишени [кг/м3]: ";
-    std::cin >> targetMaterialDensity;
+    if (inputMode == InputMode::Manual)
+    {
+        std::cout << "Введите плотность материала мишени [кг/м3]: ";
+        std::cin >> targetMaterialDensity;
 
-    std::cout << "Введите молярную массу атома материала, из которого состоит мишень [кг/моль]: ";
-    std::cin >> targetMaterialMolarMass;
+        std::cout << "Введите молярную массу атома материала, из которого состоит мишень [кг/моль]: ";
+        std::cin >> targetMaterialMolarMass;
+    }
 
     // 2.2. Calculating surface area.
     double S{tpc.calculateTargetSurfaceArea()};
@@ -73,21 +83,31 @@ void SputteringModel::start()
     std::cout << "Введите время симуляции [с]: ";
     std::cin >> t;
 
+    double dt{};
+    std::cout << "Введите шаг по времени [с] (желательно, маленький, например, 0.0001): ";
+    std::cin >> dt;
+
     // 2.5. Calculating flux of the particles from this surface.
     double J_model{N_model / (S * t)};
     std::cout << "Поток модельных частиц: " << J_model << " [N/(м2⋅c)]\n";
 
-    double energy_eV{};
-    std::cout << "Введите энергию, вылетающих частиц (не всех, а каждой) [эВ]: ";
-    std::cin >> energy_eV;
+    double energy_eV{1};
+    if (inputMode == InputMode::Manual)
+    {
+        std::cout << "Введите энергию, вылетающих частиц (не всех, а каждой) [эВ]: ";
+        std::cin >> energy_eV;
+    }
 
     // 2.6. Collecting cell centers and forcing direction [0,0,-1] from target plate to substrate
     //      and building surface source data for properly generating particles.
     auto surfaceSource{tpc.prepareDataForSpawnParticles(N_model, energy_eV)};
 
-    double expansionAngle{};
-    std::cout << "Введите угол рассеяния [в градусах]: ";
-    std::cin >> expansionAngle;
+    double expansionAngle{0};
+    if (inputMode == InputMode::Manual)
+    {
+        std::cout << "Введите угол рассеяния [в градусах]: ";
+        std::cin >> expansionAngle;
+    }
     expansionAngle *= START_PI_NUMBER / 180.0;
 
     // 2.7. Generating particles on the target surface.
@@ -100,4 +120,20 @@ void SputteringModel::start()
     {
         SUCCESSMSG(util::stringify("Было сгенерировано ", particles.size(), " частиц на поверхности мишени."));
     }
+
+    // ==========================================
+    // === Starting modeling in the main loop ===
+    // ==========================================
+    double pressure{1}, temperature{273};
+    if (inputMode == InputMode::Manual)
+    {
+        std::cout << "Введите давление [Па]: ";
+        std::cin >> pressure;
+        std::cout << "Введите температуру [К]: ";
+        std::cin >> temperature;
+    }
+
+    SputteringModelingDriver smmd("TwoPlates.msh");
+    smmd.startModeling(t, dt, 10, particles,
+                       scatteringModel, gasName, pressure, temperature);
 }

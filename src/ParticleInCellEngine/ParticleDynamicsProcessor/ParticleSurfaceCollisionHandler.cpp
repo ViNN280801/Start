@@ -37,12 +37,12 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
 
     if (matchedIt != m_triangleMesh.end())
     {
-        auto id{Mesh::isRayIntersectTriangle(ray, matchedIt)};
-        if (id)
+        auto triangleIdOpt{Mesh::isRayIntersectTriangle(ray, matchedIt)};
+        if (triangleIdOpt.has_value())
         {
             {
                 std::unique_lock<std::shared_mutex> lock(m_settledParticlesMutex);
-                ++m_settledParticlesCounterMap[id.value()];
+                ++m_settledParticlesCounterMap[triangleIdOpt.value()];
                 m_settledParticleIds.insert(particle.getId());
 
                 if (m_settledParticleIds.size() >= particlesNumber)
@@ -59,7 +59,8 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
                     m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
             }
 
-            return id;
+            std::cout << "Particle " << particle.getId() <<  " intersected with " << triangleIdOpt.value() << " triangle\n";
+            return triangleIdOpt.value();
         }
     }
 
