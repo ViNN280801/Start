@@ -1,9 +1,25 @@
+import os
 from vtk import (
-    vtkUnstructuredGrid, vtkPolyData, vtkPolyDataWriter, vtkActor, vtkBooleanOperationPolyDataFilter, 
-    vtkGeometryFilter, vtkPoints, vtkCellArray, vtkTriangle, vtkTransform, vtkCleanPolyData, vtkPlane,
-    vtkAppendPolyData, vtkPolyDataMapper, vtkFeatureEdges, vtkPolyDataConnectivityFilter, vtkClipPolyData,
+    vtkUnstructuredGrid,
+    vtkPolyData,
+    vtkPolyDataWriter,
+    vtkActor,
+    vtkBooleanOperationPolyDataFilter,
+    vtkGeometryFilter,
+    vtkPoints,
+    vtkCellArray,
+    vtkTriangle,
+    vtkTransform,
+    vtkCleanPolyData,
+    vtkPlane,
+    vtkAppendPolyData,
+    vtkPolyDataMapper,
+    vtkFeatureEdges,
+    vtkPolyDataConnectivityFilter,
+    vtkClipPolyData,
     vtkRenderer,
-    VTK_TRIANGLE
+    vtkUnstructuredGridReader,
+    VTK_TRIANGLE,
 )
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from styles import DEFAULT_ACTOR_COLOR
@@ -12,12 +28,12 @@ from logger import InternalLogger
 
 def convert_msh_to_vtk(msh_filename: str):
     from gmsh import open, write
-    
-    if not msh_filename.endswith('.msh'):
+
+    if not msh_filename.endswith(".msh"):
         return None
 
-    try:        
-        vtk_filename = msh_filename.replace('.msh', '.vtk')
+    try:
+        vtk_filename = msh_filename.replace(".msh", ".vtk")
         open(msh_filename)
         write(vtk_filename)
         return vtk_filename
@@ -25,7 +41,7 @@ def convert_msh_to_vtk(msh_filename: str):
         print(f"Error converting VTK to Msh: {e}")
         return None
 
-    
+
 def get_polydata_from_actor(actor: vtkActor):
     mapper = actor.GetMapper()
     if hasattr(mapper, "GetInput"):
@@ -36,12 +52,12 @@ def get_polydata_from_actor(actor: vtkActor):
 
 def write_vtk_polydata_to_file(polyData):
     from tempfile import NamedTemporaryFile
-    
+
     writer = vtkPolyDataWriter()
     writer.SetInputData(polyData)
 
     # Create a temporary file
-    temp_file = NamedTemporaryFile(delete=False, suffix='.vtk')
+    temp_file = NamedTemporaryFile(delete=False, suffix=".vtk")
     temp_file_name = temp_file.name
     temp_file.close()
 
@@ -91,10 +107,59 @@ def convert_vtkUnstructuredGrid_to_vtkPolyData(data):
 
 
 def convert_unstructured_grid_to_polydata(data):
-    converted_part_1 = get_polydata_from_actor(data)
-    converted_part_2 = convert_vtkUnstructuredGrid_to_vtkPolyData(
-        converted_part_1)
-    return converted_part_2
+    if isinstance(data, vtkActor):
+        converted_part_1 = get_polydata_from_actor(data)
+        converted_part_2 = convert_vtkUnstructuredGrid_to_vtkPolyData(converted_part_1)
+        return converted_part_2
+    else:
+        return convert_vtkUnstructuredGrid_to_vtkPolyData(data)
+
+
+def convert_ugrid_to_actor(ugrid):
+    polydata = convert_unstructured_grid_to_polydata(ugrid)
+    return convert_polydata_to_actor(polydata)
+
+
+def convert_ugrid_or_polydata_to_actor(ugrid_or_polydata):
+    if ugrid_or_polydata.IsA("vtkUnstructuredGrid"):
+        return convert_ugrid_to_actor(ugrid_or_polydata)
+    elif ugrid_or_polydata.IsA("vtkPolyData"):
+        return convert_polydata_to_actor(ugrid_or_polydata)
+    else:
+        raise Exception(
+            "Passed parameter is not a vtk polydata and is not a unstructured grid."
+        )
+
+
+def convert_mshfile_to_vtkactor(filename: str) -> vtkActor:
+    if not filename:
+        raise Exception(f"Mesh filename '{filename}' is empty")
+    if not os.path.exists(filename):
+        raise Exception(f"Filename '{filename}' doesn't exist")
+    if not filename.endswith(".msh"):
+        raise Exception(f"Filename '{filename}' is not '.msh' file format")
+
+    vtk_filename = convert_msh_to_vtk(filename)
+    if not vtk_filename:
+        raise Exception("Failed to convert .msh to .vtk file.")
+
+    reader = vtkUnstructuredGridReader()
+    reader.SetFileName(vtk_filename)
+    reader.Update()
+    ugrid = reader.GetOutput()
+
+    return convert_ugrid_or_polydata_to_actor(ugrid)
+
+
+def convert_polydata_to_actor(polydata):
+    if polydata.IsA("vtkPolyData"):
+        mapper = vtkPolyDataMapper()
+        mapper.SetInputData(polydata)
+        actor = vtkActor()
+        actor.SetMapper(mapper)
+        return actor
+    else:
+        raise Exception("Passed parameter is not a vtk polydata.")
 
 
 def convert_vtkPolyData_to_vtkUnstructuredGrid(polydata):
@@ -131,7 +196,7 @@ def convert_vtkPolyData_to_vtkUnstructuredGrid(polydata):
 def extract_geometry_data(actor: vtkActor):
     """Extract points and cells from a vtkActor."""
     from vtkmodules.util.numpy_support import vtk_to_numpy
-    
+
     mapper = actor.GetMapper()
     polydata = mapper.GetInput()
 
@@ -139,7 +204,7 @@ def extract_geometry_data(actor: vtkActor):
     if ug is None:
         raise ValueError("Failed to convert PolyData to UnstructuredGrid")
 
-    points = vtk_to_numpy(ug.GetPoints().GetData()).astype('float64')
+    points = vtk_to_numpy(ug.GetPoints().GetData()).astype("float64")
     if points is None or len(points) == 0:
         raise ValueError("No points found in the UnstructuredGrid")
 
@@ -155,6 +220,7 @@ def extract_geometry_data(actor: vtkActor):
 
     return points, cells, boundaries, surfaces
 
+
 def extract_boundaries(polydata):
     """Extract boundaries from vtkPolyData using vtkFeatureEdges."""
     feature_edges = vtkFeatureEdges()
@@ -167,6 +233,7 @@ def extract_boundaries(polydata):
 
     return feature_edges.GetOutput()
 
+
 def extract_surfaces(polydata):
     """Extract surfaces from vtkPolyData using vtkPolyDataConnectivityFilter."""
     connectivity_filter = vtkPolyDataConnectivityFilter()
@@ -177,29 +244,30 @@ def extract_surfaces(polydata):
 
     return connectivity_filter.GetOutput()
 
+
 def extract_cells(cells, cell_offsets, cell_types):
-        """
-        Helper function to extract cells in the format meshio expects.
-        """
-        from numpy import array
-        from vtk import VTK_TRIANGLE, VTK_TETRA
+    """
+    Helper function to extract cells in the format meshio expects.
+    """
+    from numpy import array
+    from vtk import VTK_TRIANGLE, VTK_TETRA
 
-        cell_dict = {}
-        for offset, ctype in zip(cell_offsets, cell_types):
-            if ctype in cell_dict:
-                cell_dict[ctype].append(cells[offset + 1:offset + 4])
-            else:
-                cell_dict[ctype] = [cells[offset + 1:offset + 4]]
+    cell_dict = {}
+    for offset, ctype in zip(cell_offsets, cell_types):
+        if ctype in cell_dict:
+            cell_dict[ctype].append(cells[offset + 1 : offset + 4])
+        else:
+            cell_dict[ctype] = [cells[offset + 1 : offset + 4]]
 
-        meshio_cells = []
-        for ctype, cell_list in cell_dict.items():
-            cell_list = array(cell_list)
-            if ctype == VTK_TRIANGLE:
-                meshio_cells.append(("triangle", cell_list[:, :3]))
-            elif ctype == VTK_TETRA:
-                meshio_cells.append(("tetra", cell_list[:, :4]))
+    meshio_cells = []
+    for ctype, cell_list in cell_dict.items():
+        cell_list = array(cell_list)
+        if ctype == VTK_TRIANGLE:
+            meshio_cells.append(("triangle", cell_list[:, :3]))
+        elif ctype == VTK_TETRA:
+            meshio_cells.append(("tetra", cell_list[:, :4]))
 
-        return meshio_cells
+    return meshio_cells
 
 
 def extract_transform_from_actor(actor: vtkActor):
@@ -209,6 +277,7 @@ def extract_transform_from_actor(actor: vtkActor):
     transform.SetMatrix(matrix)
 
     return transform
+
 
 def extract_transformed_points(polydata: vtkPolyData):
     points = polydata.GetPoints()
@@ -274,7 +343,10 @@ def merge_actors(actors):
 
     return merged_actor
 
-def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, operation: vtkBooleanOperationPolyDataFilter):
+
+def object_operation_executor_helper(
+    obj_from: vtkActor, obj_to: vtkActor, operation: vtkBooleanOperationPolyDataFilter
+):
     try:
         obj_from_subtract_polydata = convert_unstructured_grid_to_polydata(obj_from)
         obj_to_subtract_polydata = convert_unstructured_grid_to_polydata(obj_to)
@@ -285,9 +357,14 @@ def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, opera
         cleaner2 = vtkCleanPolyData()
         cleaner2.SetInputData(obj_to_subtract_polydata)
         cleaner2.Update()
-        
-        if cleaner1.GetOutput().GetNumberOfCells() == 0 or cleaner2.GetOutput().GetNumberOfCells() == 0:
-            raise ValueError(f"Operation <{operation}> Failed: Invalid input data for the operation")
+
+        if (
+            cleaner1.GetOutput().GetNumberOfCells() == 0
+            or cleaner2.GetOutput().GetNumberOfCells() == 0
+        ):
+            raise ValueError(
+                f"Operation <{operation}> Failed: Invalid input data for the operation"
+            )
 
         # Set the input objects for the operation
         operation.SetInputData(0, cleaner1.GetOutput())
@@ -301,20 +378,22 @@ def object_operation_executor_helper(obj_from: vtkActor, obj_to: vtkActor, opera
 
         # Check if subtraction was successful
         if resultPolyData is None or resultPolyData.GetNumberOfPoints() == 0:
-            raise ValueError(f"Operation <{operation}> Failed: No result from the operation operation.")
+            raise ValueError(
+                f"Operation <{operation}> Failed: No result from the operation operation."
+            )
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputData(resultPolyData)
 
         actor = vtkActor()
         actor.SetMapper(mapper)
-            
+
         return actor
-        
+
     except Exception as e:
         print(InternalLogger.get_warning_none_result_with_exception_msg(e))
         return None
-    
+
 
 def remove_gradient(actor: vtkActor):
     """
@@ -359,41 +438,46 @@ def add_shadows(actor: vtkActor):
     if actor and isinstance(actor, vtkActor):
         actor.GetProperty().SetInterpolationToPhong()
 
-def create_cutting_plane(axis: str, level: float, angle: float = 0.0, size: float = 1e9):
+
+def create_cutting_plane(
+    axis: str, level: float, angle: float = 0.0, size: float = 1e9
+):
     """
     Creates a cutting plane along a specified axis at a given level in VTK with optional rotation.
-    
+
     Parameters:
     axis (str): The axis along which to create the cutting plane ('x', 'y', or 'z').
     level (float): The position along the specified axis where the cutting plane will be created.
     angle (float): The angle of rotation in degrees (default is 0, no rotation).
     size (float): The half-size of the cutting plane. The cutting plane will have dimensions (2*size, 2*size) along the other two axes.
-    
+
     Returns:
     vtkPlane: The created cutting plane.
-    
+
     Raises:
     ValueError: If the specified axis is not 'x', 'y', or 'z'.
     """
     plane = vtkPlane()
     transform = vtkTransform()
-    
+
     axis = axis.lower()
 
-    if axis == 'x':
+    if axis == "x":
         plane.SetOrigin(level, 0, 0)
         plane.SetNormal(1, 0, 0)
         transform.RotateWXYZ(angle, 1, 0, 0)
-    elif axis == 'y':
+    elif axis == "y":
         plane.SetOrigin(0, level, 0)
         plane.SetNormal(0, 1, 0)
         transform.RotateWXYZ(angle, 0, 1, 0)
-    elif axis == 'z':
+    elif axis == "z":
         plane.SetOrigin(0, 0, level)
         plane.SetNormal(0, 0, 1)
         transform.RotateWXYZ(angle, 0, 0, 1)
     else:
-        raise ValueError(f"{InternalLogger.pretty_function_details()}: Invalid axis: {axis}")
+        raise ValueError(
+            f"{InternalLogger.pretty_function_details()}: Invalid axis: {axis}"
+        )
 
     # Apply the rotation to the normal
     normal = plane.GetNormal()
@@ -440,96 +524,120 @@ def cut_actor(actor: vtkActor, plane: vtkPlane):
 
 
 def colorize_actor(actor: vtkActor, color=DEFAULT_ACTOR_COLOR):
-        """
-        Sets the color of the actor. If color is not provided, DEFAULT_ACTOR_COLOR is used.
+    """
+    Sets the color of the actor. If color is not provided, DEFAULT_ACTOR_COLOR is used.
 
-        Parameters
-        ----------
-        actor : vtkActor
-            The actor to colorize.
-        color : tuple or list, optional
-            The RGB color values to set. If None, DEFAULT_ACTOR_COLOR is used.
-        """
-        try:
-            if color is None:
-                color = DEFAULT_ACTOR_COLOR
-            actor.GetProperty().SetColor(color)
-        except Exception as e:
-            print(InternalLogger.get_warning_none_result_with_exception_msg(e))
-            return None
+    Parameters
+    ----------
+    actor : vtkActor
+        The actor to colorize.
+    color : tuple or list, optional
+        The RGB color values to set. If None, DEFAULT_ACTOR_COLOR is used.
+    """
+    try:
+        if color is None:
+            color = DEFAULT_ACTOR_COLOR
+        actor.GetProperty().SetColor(color)
+    except Exception as e:
+        print(InternalLogger.get_warning_none_result_with_exception_msg(e))
+        return None
 
 
 def colorize_actor_with_rgb(actor: vtkActor, r: float, g: float, b: float):
-        """
-        Sets the color of the actor using RGB values.
+    """
+    Sets the color of the actor using RGB values.
 
-        Parameters
-        ----------
-        actor : vtkActor
-            The actor to colorize.
-        r : float
-            Red component (0-1).
-        g : float
-            Green component (0-1).
-        b : float
-            Blue component (0-1).
-        """
-        try:
-            actor.GetProperty().SetColor(r, g, b)
-        except Exception as e:
-            print(InternalLogger.get_warning_none_result_with_exception_msg(e))
-            return None
+    Parameters
+    ----------
+    actor : vtkActor
+        The actor to colorize.
+    r : float
+        Red component (0-1).
+    g : float
+        Green component (0-1).
+    b : float
+        Blue component (0-1).
+    """
+    try:
+        actor.GetProperty().SetColor(r, g, b)
+    except Exception as e:
+        print(InternalLogger.get_warning_none_result_with_exception_msg(e))
+        return None
 
 
-def add_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor, needResetCamera: bool = True):
+def add_actor(
+    vtkWidget: QVTKRenderWindowInteractor,
+    renderer: vtkRenderer,
+    actor: vtkActor,
+    needResetCamera: bool = True,
+):
     renderer.AddActor(actor)
     actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
-    
+
     if needResetCamera:
         render_editor_window(vtkWidget, renderer)
     else:
         render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def add_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list, needResetCamera: bool = True):
+def add_actors(
+    vtkWidget: QVTKRenderWindowInteractor,
+    renderer: vtkRenderer,
+    actors: list,
+    needResetCamera: bool = True,
+):
     for actor in actors:
         renderer.AddActor(actor)
         actor.GetProperty().SetColor(DEFAULT_ACTOR_COLOR)
-    
+
     if needResetCamera:
         render_editor_window(vtkWidget, renderer)
     else:
         render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def remove_actor(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actor: vtkActor, needResetCamera: bool = True):
+def remove_actor(
+    vtkWidget: QVTKRenderWindowInteractor,
+    renderer: vtkRenderer,
+    actor: vtkActor,
+    needResetCamera: bool = True,
+):
     if actor and isinstance(actor, vtkActor) and actor in renderer.GetActors():
         renderer.RemoveActor(actor)
-        
+
         if needResetCamera:
             render_editor_window(vtkWidget, renderer)
         else:
             render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def remove_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, actors: list, needResetCamera: bool = True):
+def remove_actors(
+    vtkWidget: QVTKRenderWindowInteractor,
+    renderer: vtkRenderer,
+    actors: list,
+    needResetCamera: bool = True,
+):
     for actor in actors:
         if actor in renderer.GetActors():
             renderer.RemoveActor(actor)
-   
+
     if needResetCamera:
         render_editor_window(vtkWidget, renderer)
     else:
         render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def remove_all_actors(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, needResetCamera: bool = True):
+def remove_all_actors(
+    vtkWidget: QVTKRenderWindowInteractor,
+    renderer: vtkRenderer,
+    needResetCamera: bool = True,
+):
     actors = renderer.GetActors()
     actors.InitTraversal()
     for i in range(actors.GetNumberOfItems()):
         actor = actors.GetNextActor()
         renderer.RemoveActor(actor)
-    
+
     if needResetCamera:
         render_editor_window(vtkWidget, renderer)
     else:
@@ -541,5 +649,7 @@ def render_editor_window(vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRen
     render_editor_window_without_resetting_camera(vtkWidget)
 
 
-def render_editor_window_without_resetting_camera(vtkWidget: QVTKRenderWindowInteractor):
+def render_editor_window_without_resetting_camera(
+    vtkWidget: QVTKRenderWindowInteractor,
+):
     vtkWidget.GetRenderWindow().Render()
