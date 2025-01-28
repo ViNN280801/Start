@@ -102,7 +102,7 @@ void SputteringModel::start()
     //      and building surface source data for properly generating particles.
     auto surfaceSource{tpc.prepareDataForSpawnParticles(N_model, energy_eV)};
 
-    double expansionAngle{0};
+    double expansionAngle{30};
     if (inputMode == InputMode::Manual)
     {
         std::cout << "Введите угол рассеяния [в градусах]: ";
