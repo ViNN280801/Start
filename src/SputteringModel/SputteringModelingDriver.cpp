@@ -1,3 +1,5 @@
+#include <hdf5.h>
+#include <mpi.h>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -29,6 +31,146 @@ void SputteringModelingDriver::_updateSurfaceMesh()
     hdf5filename += ".hdf5";
     TriangleMeshHdf5Manager hdf5handler(hdf5filename);
     hdf5handler.saveMeshToHDF5(m_surfaceMesh.getTriangleCellMap());
+}
+
+void _readParticlePositionsHdf5(const std::string &filepath = "results/particles_movements.hdf5", int particleID = -1)
+{
+    try
+    {
+        // Open the HDF5 file
+        hid_t file_id = H5Fopen(filepath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        if (file_id < 0)
+        {
+            ERRMSG("Failed to open HDF5 file: " + filepath);
+            return;
+        }
+
+        // Get the list of all datasets in the file
+        hsize_t num_objs;
+        H5Gget_num_objs(file_id, &num_objs);
+
+        bool particleFound = false;
+
+        for (hsize_t i = 0; i < num_objs; ++i)
+        {
+            char dataset_name[1024];
+            H5Gget_objname_by_idx(file_id, i, dataset_name, sizeof(dataset_name));
+
+            // If particleID is -1, print all particles
+            if (particleID == -1 || dataset_name == ("Particle_" + std::to_string(particleID)))
+            {
+                particleFound = true;
+
+                // Open the dataset
+                hid_t dataset_id = H5Dopen(file_id, dataset_name, H5P_DEFAULT);
+                if (dataset_id < 0)
+                {
+                    ERRMSG("Failed to open dataset: " + std::string(dataset_name));
+                    continue;
+                }
+
+                // Get the dataspace and dimensions
+                hid_t dataspace_id = H5Dget_space(dataset_id);
+                hsize_t dims[2];
+                H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
+
+                // Read the data
+                std::vector<double> positions(dims[0] * dims[1]);
+                H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, positions.data());
+
+                // Print the particle's positions
+                std::cout << dataset_name << ":\n";
+                for (hsize_t j = 0; j < dims[0]; ++j)
+                {
+                    std::cout << "  " << j + 1 << ". [" << positions[j * 3] << ", "
+                              << positions[j * 3 + 1] << ", " << positions[j * 3 + 2] << "]\n";
+                }
+
+                // Close the dataset and dataspace
+                H5Dclose(dataset_id);
+                H5Sclose(dataspace_id);
+
+                // If a specific particle ID was requested, exit the loop after finding it
+                if (particleID != -1)
+                    break;
+            }
+        }
+
+        if (!particleFound)
+        {
+            if (particleID == -1)
+            {
+                ERRMSG("No particles found in the file.");
+            }
+            else
+            {
+                ERRMSG("Particle with ID " + std::to_string(particleID) + " not found.");
+            }
+        }
+
+        // Close the file
+        H5Fclose(file_id);
+    }
+    catch (...)
+    {
+        ERRMSG("An error occurred while reading particle positions from HDF5.");
+    }
+}
+
+void _saveParticleMovementsHdf5(ParticleMovementMap const &particlesMovement)
+{
+    try
+    {
+        if (particlesMovement.empty())
+        {
+            WARNINGMSG("Warning: Particle movements map is empty, no data to save");
+            return;
+        }
+
+        // Create or open the HDF5 file
+        std::string filepath("results/particles_movements.hdf5");
+        hid_t file_id = H5Fcreate(filepath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+        for (auto const &[id, movements] : particlesMovement)
+        {
+            if (movements.empty())
+                continue;
+
+            // Prepare the data for this particle
+            std::vector<double> positions;
+            for (auto const &point : movements)
+            {
+                positions.emplace_back(point.x());
+                positions.emplace_back(point.y());
+                positions.emplace_back(point.z());
+            }
+
+            // Create dataspace
+            hsize_t dims[2] = {movements.size(), 3}; // Nx3 array
+            hid_t dataspace_id = H5Screate_simple(2, dims, NULL);
+
+            // Create dataset
+            std::string dataset_name = "Particle_" + std::to_string(id);
+            hid_t dataset_id = H5Dcreate2(file_id, dataset_name.c_str(), H5T_NATIVE_DOUBLE, dataspace_id,
+                                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+            // Write data to the dataset
+            H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, positions.data());
+
+            // Close dataset and dataspace
+            H5Dclose(dataset_id);
+            H5Sclose(dataspace_id);
+        }
+
+        // Close the file
+        H5Fclose(file_id);
+
+        LOGMSG("Successfully written particle movements to the HDF5 file.");
+    }
+    catch (...)
+    {
+        ERRMSG("An error occurred while saving particle movements to HDF5.");
+    }
 }
 
 void SputteringModelingDriver::_saveParticleMovements() const
@@ -84,10 +226,12 @@ void SputteringModelingDriver::_gfinalize()
 {
     _updateSurfaceMesh();
     _saveParticleMovements();
+    _saveParticleMovementsHdf5(m_particlesMovement);
+    _readParticlePositionsHdf5();
 }
 
-SputteringModelingDriver::SputteringModelingDriver(std::string_view mesh_filename) 
-: m_mesh_filename(mesh_filename), m_surfaceMesh(Mesh::getMeshParams(mesh_filename)) { _ginitialize(); }
+SputteringModelingDriver::SputteringModelingDriver(std::string_view mesh_filename)
+    : m_mesh_filename(mesh_filename), m_surfaceMesh(Mesh::getMeshParams(mesh_filename)) { _ginitialize(); }
 
 SputteringModelingDriver::~SputteringModelingDriver() { _gfinalize(); }
 
@@ -100,6 +244,9 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
     {
         WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
     }
+
+    ParticleSurfaceCollisionHandler surfaceCollisionHandler(m_settledParticlesMutex, m_particlesMovementMutex, m_surfaceMesh.getAABBTree(),
+                                                            m_surfaceMesh.getTriangleCellMap(), m_settledParticlesIds, m_settledParticlesCounterMap, m_particlesMovement, *this);
 
     for (double timeMoment{}; timeMoment <= simtime && !m_stop_processing.test(); timeMoment += timeStep)
     {
@@ -146,55 +293,7 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
                     continue;
 
                 // 7. Surface collision.
-                auto intersection{m_surfaceMesh.getAABBTree().any_intersection(ray)};
-                if (!intersection)
-                    continue;
-
-                auto triangle{*intersection->second};
-                if (triangle.is_degenerate())
-                    continue;
-
-#if __cplusplus >= 202002L
-                auto matchedIt{std::ranges::find_if(m_surfaceMesh.getTriangleCellMap(), [triangle](auto const &entry)
-                                                    { return triangle == entry.second.triangle; })};
-#else
-                auto matchedIt{std::find_if(m_surfaceMesh.getTriangleCellMap().cbegin(), m_surfaceMesh.getTriangleCellMap().cend(), [triangle](auto const &entry)
-                                            { return triangle == entry.second.triangle; })};
-#endif
-
-                if (matchedIt != m_surfaceMesh.getTriangleCellMap().end())
-                {
-                    auto triangleIdOpt{Mesh::isRayIntersectTriangle(ray, matchedIt)};
-                    if (triangleIdOpt.has_value())
-                    {
-                        {
-                            std::unique_lock<std::shared_mutex> lock(m_settledParticlesMutex);
-                            ++m_settledParticlesCounterMap[triangleIdOpt.value()];
-                            m_settledParticlesIds.insert(particle.getId());
-
-                            if (m_settledParticlesIds.size() >= particles.size())
-                                notifyStopRequested();
-                        }
-
-                        {
-                            std::lock_guard<std::mutex> lock(m_particlesMovementMutex);
-                            auto intersection_point{RayTriangleIntersection::getIntersectionPoint(ray, triangle)};
-                            if (intersection_point)
-                                m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
-                        }
-
-                        std::cout << "Particle " << particle.getId() << " intersected with " << triangleIdOpt.value() << " triangle\n";
-                        if (triangleIdOpt.has_value())
-                        {
-                            std::unique_lock<std::shared_mutex> lock(m_settledParticlesMutex);
-                            ++m_settledParticlesCounterMap[triangleIdOpt.value()];
-                            m_settledParticlesIds.insert(particle.getId());
-
-                            if (m_settledParticlesIds.size() >= particles.size())
-                                notifyStopRequested();
-                        }
-                    }
-                }
+                surfaceCollisionHandler.handle(particle, ray, particles.size());
             }
         }
         catch (std::exception const &ex)
