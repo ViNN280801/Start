@@ -58,8 +58,7 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
                 if (intersection_point)
                     m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
             }
-
-            std::cout << "Particle " << particle.getId() <<  " intersected with " << triangleIdOpt.value() << " triangle\n";
+            
             return triangleIdOpt.value();
         }
     }
