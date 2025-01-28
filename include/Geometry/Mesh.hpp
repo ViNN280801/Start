@@ -29,16 +29,6 @@
  */
 std::optional<AABB_Tree_Triangle> constructAABBTreeFromMeshParams(TriangleCellMap const &meshParams);
 
-/**
- * @brief Calculates the volume of a tetrahedron.
- * @details This function computes the volume of a tetrahedron by utilizing the CGAL library. The volume is calculated
- *          based on the determinant of a matrix constructed from the coordinates of the tetrahedron's vertices. The formula
- *          for the volume of a tetrahedron given its vertices A, B, C, and D is |dot(AB, cross(AC, AD))| / 6.
- * @param tetrahedron The tetrahedron whose volume is to be calculated.
- * @return The volume of the tetrahedron.
- */
-double calculateVolumeOfTetrahedron(Tetrahedron const &tetrahedron);
-
 /// @brief Represents GMSH mesh.
 class Mesh
 {
@@ -114,9 +104,9 @@ public:
         }
 
         // Check if the ray intersects the triangle.
-        return (RayTriangleIntersection::isIntersectTriangle(ray, triangle))
-                   ? std::optional<size_t>{id}
-                   : std::nullopt;
+        if (!RayTriangleIntersection::isIntersectTriangle(ray, triangle))
+            return std::nullopt;
+        return id;
     }
 
     /**

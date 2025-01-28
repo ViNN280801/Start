@@ -59,14 +59,14 @@ private:
     GmshSessionManager _gmshSessionManager;  ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
 
     /* All the neccessary data members for the simulation. */
-    ParticleVector m_particles;                           ///< Projective particles.
-    double _gasConcentration;                             ///< Gas concentration. Needed to use colide projectives with gas mechanism.
-    std::set<size_t> _settledParticlesIds;                ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
-    std::map<size_t, size_t> _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
+    ParticleVector m_particles;                             ///< Projective particles.
+    double _gasConcentration;                               ///< Gas concentration. Needed to use colide projectives with gas mechanism.
+    ParticlesIDSet _settledParticlesIds;                    ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
+    SettledParticlesCounterMap _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
 
-    ConfigParser m_config;                                                ///< `ConfigParser` object to get all the simulation physical paramters.
-    std::map<size_t, std::vector<Point>> m_particlesMovement;             ///< Map to store all the particle movements: (Particle ID | All positions).
-    std::map<double, std::map<size_t, ParticleVector>> m_particleTracker; ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
+    ConfigParser m_config;                   ///< `ConfigParser` object to get all the simulation physical paramters.
+    ParticleMovementMap m_particlesMovement; ///< Map to store all the particle movements: (Particle ID | All positions).
+    ParticleTrackerMap m_particleTracker;    ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
 
     /// @brief Initializes observer for the stopping modeling process when all particles are settled.
     void _initializeObservers();
