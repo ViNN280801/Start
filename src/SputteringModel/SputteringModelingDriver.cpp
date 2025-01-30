@@ -231,18 +231,7 @@ void SputteringModelingDriver::_gfinalize()
 }
 
 SputteringModelingDriver::SputteringModelingDriver(std::string_view mesh_filename)
-    : m_mesh_filename(mesh_filename), m_surfaceMesh(GmshUtils::getCellsByPhysicalGroupName("Target"))
-{
-    _ginitialize();
-    std::cout << "Triangle cells for the surface with name Target\n";
-    for (auto const &[triangleId, triangleCell] : m_surfaceMesh.getTriangleCellMap())
-    {
-        std::cout << "Triangle[" << triangleId << "]\n";
-        std::cout << util::stringify("(", triangleCell.triangle.vertex(0).x(), "; ", triangleCell.triangle.vertex(0).y(), "; ", triangleCell.triangle.vertex(0).z(), ")-",
-                                     "(", triangleCell.triangle.vertex(1).x(), "; ", triangleCell.triangle.vertex(1).y(), "; ", triangleCell.triangle.vertex(1).z(), ")-",
-                                     "(", triangleCell.triangle.vertex(2).x(), "; ", triangleCell.triangle.vertex(2).y(), "; ", triangleCell.triangle.vertex(2).z(), ")\n");
-    }
-}
+    : m_mesh_filename(mesh_filename), m_surfaceMesh(GmshUtils::getCellsByPhysicalGroupName("Target")) { _ginitialize(); }
 
 SputteringModelingDriver::~SputteringModelingDriver() { _gfinalize(); }
 
