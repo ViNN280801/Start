@@ -32,9 +32,11 @@ public:
     /**
      * @brief Finds integer tag of the physical group by specified name.
      * @param physicalGroupName Physical group name to find.
-     * @return
+     * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
+     *                     mesh file because we are currently in one Gmsh session.
+     * @return Tag of the physical group with specified name.
      */
-    static int getPhysicalGroupTagByName(std::string_view physicalGroupName);
+    static int getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename = "special_code_031");
 
     /**
      * @brief Computes the geometric centers of triangular cells belonging to the specified physical group.
@@ -42,10 +44,11 @@ public:
      * This method retrieves the centroids of all triangular cells associated with a given physical group
      * in a Gmsh model. The centroids are calculated as the average of the vertices' coordinates of each triangle.
      *
-     * @param physicalGroupName Name of the physical group to query. The method identifies the corresponding
-     * physical group tag using the provided name.
+     * @param physicalGroupName Name of the physical group to query. The method identifies the corresponding physical group tag using the provided name.
+     * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
+     *                     mesh file because we are currently in one Gmsh session.
      *
-     * @return std::unordered_map<size_t, std::array<double, 3ul>>
+     * @return TriangleCellCentersMap, aka std::unordered_map<size_t, std::array<double, 3ul>>
      *         A map where:
      *         - Key: Triangle cell ID (tag).
      *         - Value: An array of three doubles representing the 3D coordinates (x, y, z) of the cell's centroid.
@@ -61,7 +64,7 @@ public:
      *
      * @note This function is intended for use with 3D models and assumes all triangles have exactly three vertices.
      */
-    static std::unordered_map<size_t, std::array<double, 3ul>> getCellCentersByPhysicalGroupName(std::string_view physicalGroupName);
+    static TriangleCellCentersMap getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = "special_code_031");
 
     /**
      * @brief Retrieves the triangle cells for a specified physical group by name from a Gmsh model.
@@ -80,6 +83,8 @@ public:
      * 4. Constructs triangles from their vertices, calculates their area, and stores them in a `TriangleCellMap`.
      *
      * @param physicalGroupName Name of the physical group to retrieve triangle cells for.
+     * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
+     *                     mesh file because we are currently in one Gmsh session.
      * @return TriangleCellMap A map containing the triangle cells, where:
      *         - The key is the triangle ID.
      *         - The value is a `TriangleCell` structure with the triangle geometry, area, and particle count.
@@ -93,7 +98,7 @@ public:
      * @warning Ensure that the Gmsh model is correctly initialized and the physical group name exists in the model.
      *          Nodes and triangles without valid 3D coordinates are also skipped.
      */
-    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName);
+    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = "special_code_031");
 
 /**
  * @brief Finds the tag of a surface in the Gmsh model that matches a set of 3D coordinates.
@@ -107,6 +112,8 @@ public:
  *
  * @param surfaceCoords A matrix-like structure containing the target 3D coordinates. Each row represents a 3D point,
  *                      and the innermost elements represent the x, y, and z coordinates of that point.
+ * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
+ *                     mesh file because we are currently in one Gmsh session.
  *
  * @return The tag of the surface in the Gmsh model that matches the target coordinates.
  *         If no matching surface is found, returns `-1` and logs an error.
@@ -163,14 +170,21 @@ public:
  */
 #if __cplusplus >= 202002L
     template <typename ValueType>
-    static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords)
+    static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords, std::string_view meshFilename = "special_code_031")
 #else
     template <typename MatrixType, typename ValueType>
     std::enable_if<is_matrix_v<MatrixType, ValueType>, int> static int findSurfaceTagByCoords(MatrixType const &surfaceCoords)
 #endif
     {
+        if (meshFilename != "special_code_031")
+            util::check_gmsh_mesh_file(meshFilename);
         if (GmshUtils::gmshInitializeCheck() == -1)
             return -1;
+        else
+        {
+            if (meshFilename != "special_code_031")
+                gmsh::open(meshFilename.data());
+        }
 
         if (surfaceCoords.empty())
         {

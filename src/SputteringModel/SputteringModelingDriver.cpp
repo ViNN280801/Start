@@ -6,6 +6,7 @@ using json = nlohmann::json;
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 #include "SputteringModel/SputteringModelingDriver.hpp"
+#include "Utilities/GmshUtilities/GmshUtils.hpp"
 
 std::mutex SputteringModelingDriver::m_particlesMovementMutex;
 std::shared_mutex SputteringModelingDriver::m_settledParticlesMutex;
@@ -227,11 +228,21 @@ void SputteringModelingDriver::_gfinalize()
     _updateSurfaceMesh();
     _saveParticleMovements();
     _saveParticleMovementsHdf5(m_particlesMovement);
-    _readParticlePositionsHdf5();
 }
 
 SputteringModelingDriver::SputteringModelingDriver(std::string_view mesh_filename)
-    : m_mesh_filename(mesh_filename), m_surfaceMesh(Mesh::getMeshParams(mesh_filename)) { _ginitialize(); }
+    : m_mesh_filename(mesh_filename), m_surfaceMesh(GmshUtils::getCellsByPhysicalGroupName("Target"))
+{
+    _ginitialize();
+    std::cout << "Triangle cells for the surface with name Target\n";
+    for (auto const &[triangleId, triangleCell] : m_surfaceMesh.getTriangleCellMap())
+    {
+        std::cout << "Triangle[" << triangleId << "]\n";
+        std::cout << util::stringify("(", triangleCell.triangle.vertex(0).x(), "; ", triangleCell.triangle.vertex(0).y(), "; ", triangleCell.triangle.vertex(0).z(), ")-",
+                                     "(", triangleCell.triangle.vertex(1).x(), "; ", triangleCell.triangle.vertex(1).y(), "; ", triangleCell.triangle.vertex(1).z(), ")-",
+                                     "(", triangleCell.triangle.vertex(2).x(), "; ", triangleCell.triangle.vertex(2).y(), "; ", triangleCell.triangle.vertex(2).z(), ")\n");
+    }
+}
 
 SputteringModelingDriver::~SputteringModelingDriver() { _gfinalize(); }
 
@@ -268,6 +279,7 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
                 }
 
                 // 2. Electromagnetic push (Here is no need to do EM-push).
+                // @remark In the sputtering model there is no any field, so, there is no need to do EM-push.
                 // m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetrahedronId);
 
                 // 3. Record previous position.
