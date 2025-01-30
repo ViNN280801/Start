@@ -72,8 +72,6 @@ surface_source_t TwoPlatesCreator::prepareDataForSpawnParticles(size_t N_model, 
 {
     auto const &triangleCentersMap{GmshUtils::getCellCentersByPhysicalGroupName(kdefault_target_name)};
 
-    GmshUtils::getCellsByPhysicalGroupName(kdefault_target_name);
-
     // Step 5: Populate the `surface_source_t` structure.
     surface_source_t source;
     source.type = "Ti";        // Particle type.

@@ -44,10 +44,17 @@ std::vector<int> GmshUtils::getAllBoundaryTags()
     return allBoundaryTags;
 }
 
-int GmshUtils::getPhysicalGroupTagByName(std::string_view physicalGroupName)
+int GmshUtils::getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename)
 {
+    if (meshFilename != "special_code_031")
+        util::check_gmsh_mesh_file(meshFilename);
     if (GmshUtils::gmshInitializeCheck() == -1)
         return -1;
+    else
+    {
+        if (meshFilename != "special_code_031")
+            gmsh::open(meshFilename.data());
+    }
 
     std::vector<std::pair<int, int>> physicalGroups;
     gmsh::model::getPhysicalGroups(physicalGroups, 2);
@@ -78,10 +85,20 @@ int GmshUtils::getPhysicalGroupTagByName(std::string_view physicalGroupName)
     return targetGroupTag;
 }
 
-std::unordered_map<size_t, std::array<double, 3ul>> GmshUtils::getCellCentersByPhysicalGroupName(std::string_view physicalGroupName)
+TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename)
 {
+    if (meshFilename != "special_code_031")
+        util::check_gmsh_mesh_file(meshFilename);
+    if (GmshUtils::gmshInitializeCheck() == -1)
+        return {};
+    else
+    {
+        if (meshFilename != "special_code_031")
+            gmsh::open(meshFilename.data());
+    }
+
     // Step 1: Find the physical group with the specified name.
-    int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName)};
+    int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName, meshFilename)};
 
     // Step 2: Get the nodes associated with the searching surface physical group.
     std::vector<size_t> targetNodeTags;
@@ -179,10 +196,20 @@ std::unordered_map<size_t, std::array<double, 3ul>> GmshUtils::getCellCentersByP
     return triangleCentersMap;
 }
 
-TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physicalGroupName)
+TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename)
 {
+    if (meshFilename != "special_code_031")
+        util::check_gmsh_mesh_file(meshFilename);
+    if (GmshUtils::gmshInitializeCheck() == -1)
+        return {};
+    else
+    {
+        if (meshFilename != "special_code_031")
+            gmsh::open(meshFilename.data());
+    }
+
     // Step 1: Find the physical group with the specified name.
-    int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName)};
+    int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName, meshFilename)};
 
     // Step 2: Get the nodes associated with the searching surface physical group.
     std::vector<size_t> targetNodeTags;

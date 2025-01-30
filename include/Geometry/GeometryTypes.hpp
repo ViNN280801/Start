@@ -77,6 +77,31 @@ struct TriangleCell
 using TriangleCellMap = std::unordered_map<size_t, TriangleCell>;
 
 /**
+ * @brief A map for storing and accessing the geometric centers of triangle cells by their unique IDs.
+ *
+ * The `TriangleCellCentersMap` provides an efficient hash-based container associating triangle identifiers
+ * with their corresponding geometric centers. Each entry consists of:
+ * - Key: A unique identifier for the triangle (`size_t`), consistent with other mesh-related maps.
+ * - Value: A 3-element array containing the XYZ coordinates of the triangle's center.
+ *
+ * The center is typically calculated as the centroid (geometric center) of the triangle's three vertices,
+ * computed using the formula: \f$( \frac{x_1+x_2+x_3}{3}, \frac{y_1+y_2+y_3}{3}, \frac{z_1+z_2+z_3}{3} )\f$.
+ *                              [(x1+x2+x3)/3; (y1+y2+y3)/3; (z1+z2+z3)/3] 
+ *
+ * @note The coordinates are stored as `double` values in a `std::array<double, 3>` for memory efficiency
+ *       and cache-friendly access patterns. The order of coordinates is [X, Y, Z].
+ *
+ * Example usage:
+ * @code
+ * TriangleCellCentersMap centers;
+ * size_t triangle_id = 42;
+ * auto& center = centers[triangle_id]; // Access centroid of triangle 42
+ * double x = center[0], y = center[1], z = center[2];
+ * @endcode
+ */
+using TriangleCellCentersMap = std::unordered_map<size_t, std::array<double, 3ul>>;
+
+/**
  * @brief Represents the parameters of a tetrahedron cell in a 3D mesh.
  *
  * The `TetrahedronCell` structure is used to store the geometric representation of a
@@ -117,9 +142,9 @@ using AABB_Tree_Triangle = CGAL::AABB_tree<TriangleTraits>;                     
 class SurfaceMesh
 {
 private:
-    TriangleVector m_triangles;    ///< Vector of triangles used to construct the AABB tree.
+    TriangleVector m_triangles;        ///< Vector of triangles used to construct the AABB tree.
     TriangleCellMap m_triangleCellMap; ///< Map for the triangles, that contain: (Triangle ID | Triangle Cell Structure @see TriangleCell).
-    AABB_Tree_Triangle m_aabbTree; ///< AABB tree constructed from the triangles.
+    AABB_Tree_Triangle m_aabbTree;     ///< AABB tree constructed from the triangles.
 
 public:
     /**
