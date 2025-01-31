@@ -302,9 +302,9 @@ public:
             }
         }
 
-        if (targetSurfaceTag == -1)
-            throw std::runtime_error("Error finding taget surface.");
-
+        // There is no need to check 'targetSufaceTag' on equality with '-1' because Gmsh automatically
+        // used ref on this variable and assign physical group name to this tag when mesh will build.
+        // So, just return, even if now this tag is equal to '-1'.
         return targetSurfaceTag;
     }
 };
