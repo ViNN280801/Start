@@ -53,6 +53,7 @@ private:
     std::shared_ptr<StopFlagObserver> m_stopObserver; ///< Observer for managing stop requests.
 
     /* All the neccessary data members from the mesh. */
+    ConfigParser m_config;                   ///< `ConfigParser` object to get all the simulation physical parameters.
     SurfaceMesh m_surfaceMesh;               ///< Surface mesh containing triangle cell map, triangles vector and AABB tree for the collision finding optimizations.
     GmshSessionManager m_gmshSessionManager; ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
 
@@ -61,7 +62,6 @@ private:
     double m_gasConcentration;            ///< Gas concentration. Needed to use colide projectives with gas mechanism.
     ParticlesIDSet m_settledParticlesIds; ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
 
-    ConfigParser m_config;                   ///< `ConfigParser` object to get all the simulation physical paramters.
     ParticleMovementMap m_particlesMovement; ///< Map to store all the particle movements: (Particle ID | All positions).
     ParticleTrackerMap m_particleTracker;    ///< Global particle in cell tracker (Time moment: (Tetrahedron ID | Particles inside)).
 

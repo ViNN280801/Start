@@ -193,6 +193,7 @@ void ModelingMainDriver::startModeling()
             SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
         }
-        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
+        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ",
+                                   m_surfaceMesh.getTotalCountOfSettledParticles(), "/", m_particles.size(), " particles."));
     }
 }
