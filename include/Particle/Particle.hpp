@@ -125,7 +125,7 @@ public:
                                              a_L = F_L/m.
                                              a_L = [q(E + v × B)]/m.
      */
-    void electroMagneticPush(MagneticInduction const &magneticInduction, ElectricField const &electricField, double time_step);
+    void electroMagneticPush(MagneticInduction const &magneticInduction, ElectricField const &electricField, double time_step) noexcept;
 
     /**
      * @brief Compares this Particle object to another for equality.
