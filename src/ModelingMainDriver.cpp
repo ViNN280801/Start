@@ -204,6 +204,8 @@ void ModelingMainDriver::_saveParticleMovements() const
                     positions.push_back({{"x", point.x()}, {"y", point.y()}, {"z", point.z()}});
                 j[std::to_string(id)] = positions;
             }
+            else
+                throw std::runtime_error("There is no movements between particles, something may go wrong.");
         }
 
         std::string filepath("results/particles_movements.json");
@@ -266,7 +268,6 @@ void ModelingMainDriver::startModeling()
     /* Ending of the FEM initialization. */
 
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
-
     for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
     {
         NodeChargeDensityProcessor::gather(timeMoment,
