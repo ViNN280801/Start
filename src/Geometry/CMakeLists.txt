@@ -2,6 +2,7 @@
 
 set(GEOMETRY_SOURCES
     CubicGrid.cpp
+    GeometryTypes.cpp
     Mesh.cpp
     RayTriangleIntersection.cpp
 )
