@@ -67,6 +67,9 @@ SurfaceMesh::SurfaceMesh(TriangleCellMap const &triangleCells)
 
 SurfaceMesh::SurfaceMesh(std::string_view meshFilename, std::string_view physicalGroupName)
 {
+    if (!GmshUtils::hasPhysicalGroup(physicalGroupName, meshFilename))
+        throw std::runtime_error(util::stringify("Mesh file '", meshFilename, "' does not contain physical group with name: ", physicalGroupName, '.'));
+
     m_triangleCellMap = GmshUtils::getCellsByPhysicalGroupName(physicalGroupName, meshFilename);
     _initialize();
 }
