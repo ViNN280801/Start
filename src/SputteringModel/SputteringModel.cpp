@@ -101,7 +101,6 @@ void SputteringModel::start()
     // 2.6. Collecting cell centers and forcing direction [0,0,-1] from target plate to substrate
     //      and building surface source data for properly generating particles.
     auto surfaceSource{tpc.prepareDataForSpawnParticles(N_model, energy_eV)};
-
     double expansionAngle{30};
     if (inputMode == InputMode::Manual)
     {
@@ -121,9 +120,9 @@ void SputteringModel::start()
         SUCCESSMSG(util::stringify("Было сгенерировано ", particles.size(), " частиц на поверхности мишени."));
     }
 
-    // ==========================================
-    // === Starting modeling in the main loop ===
-    // ==========================================
+    // =============================================
+    // === 3. Starting modeling in the main loop ===
+    // =============================================
     double pressure{1}, temperature{273};
     if (inputMode == InputMode::Manual)
     {
@@ -133,7 +132,22 @@ void SputteringModel::start()
         std::cin >> temperature;
     }
 
-    SputteringModelingDriver smmd("TwoPlates.msh");
+    SputteringModelingDriver smmd("TwoPlates.msh", "Substrate");
     smmd.startModeling(t, dt, 10, particles,
                        scatteringModel, gasName, pressure, temperature);
+    auto const &triangleCells{smmd.getCellsWithSettledParticles()};
+
+    std::vector<std::tuple<double, double, size_t>> plotData; // X, Y, Count
+    for (auto const &[triangleId, cellData] : triangleCells)
+    {
+        double x{TriangleCell::compute_centroid(cellData.triangle).x()},
+            y{TriangleCell::compute_centroid(cellData.triangle).y()};
+        plotData.emplace_back(x, y, cellData.count);
+    }
+
+    std::ofstream out("plot_data.csv");
+    out << "X,Y,Count\n";
+    for (auto const &[x, y, count] : plotData)
+        out << x << ',' << y << ',' << count << '\n';
+    out.close();
 }
