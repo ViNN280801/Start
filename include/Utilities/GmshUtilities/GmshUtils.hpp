@@ -71,7 +71,7 @@ public:
      *
      * @note The returned tags correspond to surfaces that enclose the volume elements.
      */
-    static std::vector<int> getAllBoundaryTags(std::string_view meshFilename);
+    static std::vector<int> getAllBoundaryTags(std::string_view meshFilename = kdefault_code_work_in_one_session);
 
     /**
      * @brief Retrieves the integer tag of a physical group by its name.

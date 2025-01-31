@@ -10,8 +10,7 @@ GmshMesher::GmshMesher(MeshType mesh_type, double unit, double cell_size)
 {
     if (mesh_type == MeshType::Uniform && (unit <= 0 || cell_size <= 0))
         throw std::invalid_argument("Unit and desired cell size must be positive values and not equal to 0.");
-    if (GmshUtils::gmshInitializeCheck() == -1)
-        throw std::runtime_error("Gmsh need to be initialize to construct instance of class 'GmshMesher'.");
+    GmshUtils::gmshInitializeCheck();
 }
 
 void GmshMesher::applyMesh(MeshType meshType,
@@ -22,9 +21,7 @@ void GmshMesher::applyMesh(MeshType meshType,
                            double distMin,
                            double distMax) const
 {
-    if (GmshUtils::gmshInitializeCheck() == -1)
-        throw std::runtime_error("Gmsh need to be initialize before apply meshing.");
-
+    GmshUtils::gmshInitializeCheck();
     switch (meshType)
     {
     case MeshType::Uniform:
@@ -41,9 +38,7 @@ void GmshMesher::applyMesh(MeshType meshType,
 
 void GmshMesher::applyUniformMesh() const
 {
-    if (GmshUtils::gmshInitializeCheck() == -1)
-        throw std::runtime_error("Gmsh need to be initialize before apply uniform mesh.");
-
+    GmshUtils::gmshInitializeCheck();
     gmsh::option::setNumber("Mesh.MeshSizeMin", m_cell_size);
     gmsh::option::setNumber("Mesh.MeshSizeMax", m_cell_size);
 }
@@ -62,9 +57,7 @@ void GmshMesher::applyAdaptiveMesh(std::vector<int> const &boundaryTags,
     if (sizeMin > sizeMax || distMin > distMax)
         throw std::invalid_argument("Invalid range for size or distance parameters.");
 
-    if (GmshUtils::gmshInitializeCheck() == -1)
-        throw std::runtime_error("Gmsh need to be initialize before apply adaptive meshing.");
-
+    GmshUtils::gmshInitializeCheck();
     gmsh::model::mesh::field::add("Distance", inFieldTag);
     gmsh::model::mesh::field::setNumbers(inFieldTag, "SurfacesList",
                                          std::vector<double>(boundaryTags.cbegin(), boundaryTags.cend()));
@@ -91,8 +84,7 @@ void GmshMesher::generateMeshfile(std::string_view filename, int dimension) cons
         WARNINGMSG(util::stringify("Missed '.msh' extension in passed filename: ", filename, ", adding it manually to get: ", mesh_filename));
     }
 
-    if (GmshUtils::gmshInitializeCheck() == -1)
-        throw std::runtime_error(util::stringify("Gmsh need to be initialize before generate mesh file: ", mesh_filename));
+    GmshUtils::gmshInitializeCheck();
 
     if (dimension < 2 || dimension > 3)
         throw std::invalid_argument(util::stringify("Supported dimensions for this method: 2D or 3D, but passed: ", dimension));
