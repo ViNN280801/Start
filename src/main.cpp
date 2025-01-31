@@ -24,6 +24,5 @@ int main(int argc, char *argv[])
 
     SputteringModel sm;
     sm.start();
-
     return EXIT_SUCCESS;
 }

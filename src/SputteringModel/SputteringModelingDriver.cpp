@@ -23,11 +23,6 @@ void SputteringModelingDriver::_ginitialize() { _initializeObservers(); }
 void SputteringModelingDriver::_updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
-    auto mapEnd{m_settledParticlesCounterMap.cend()};
-    for (auto &[id, triangleCell] : m_surfaceMesh.getTriangleCellMap())
-        if (auto it{m_settledParticlesCounterMap.find(id)}; it != mapEnd)
-            triangleCell.count = it->second;
-
     std::string hdf5filename(std::string(m_mesh_filename.substr(0ul, m_mesh_filename.find("."))));
     hdf5filename += ".hdf5";
     TriangleMeshHdf5Manager hdf5handler(hdf5filename);
@@ -174,64 +169,14 @@ void _saveParticleMovementsHdf5(ParticleMovementMap const &particlesMovement)
     }
 }
 
-void SputteringModelingDriver::_saveParticleMovements() const
-{
-    try
-    {
-        if (m_particlesMovement.empty())
-        {
-            WARNINGMSG("Warning: Particle movements map is empty, no data to save");
-            return;
-        }
-
-        json j;
-        for (auto const &[id, movements] : m_particlesMovement)
-        {
-            if (movements.size() > 1)
-            {
-                json positions;
-                for (auto const &point : movements)
-                    positions.push_back({{"x", point.x()}, {"y", point.y()}, {"z", point.z()}});
-                j[std::to_string(id)] = positions;
-            }
-        }
-
-        std::string filepath("results/particles_movements.json");
-        std::ofstream file(filepath);
-        if (file.is_open())
-        {
-            file << j.dump(4); // 4 spaces indentation for pretty printing
-            file.close();
-        }
-        else
-            throw std::ios_base::failure("Failed to open file for writing");
-        LOGMSG(util::stringify("Successfully written particle movements to the file ", filepath));
-
-        util::check_json_validity(filepath);
-    }
-    catch (std::ios_base::failure const &e)
-    {
-        ERRMSG(util::stringify("I/O error occurred: ", e.what()));
-    }
-    catch (json::exception const &e)
-    {
-        ERRMSG(util::stringify("JSON error occurred: ", e.what()));
-    }
-    catch (std::runtime_error const &e)
-    {
-        ERRMSG(util::stringify("Error checking the just written file: ", e.what()));
-    }
-}
-
 void SputteringModelingDriver::_gfinalize()
 {
     _updateSurfaceMesh();
-    _saveParticleMovements();
     _saveParticleMovementsHdf5(m_particlesMovement);
 }
 
-SputteringModelingDriver::SputteringModelingDriver(std::string_view mesh_filename)
-    : m_mesh_filename(mesh_filename), m_surfaceMesh(GmshUtils::getCellsByPhysicalGroupName("Target")) { _ginitialize(); }
+SputteringModelingDriver::SputteringModelingDriver(std::string_view mesh_filename, std::string_view physicalGroupName)
+    : m_mesh_filename(mesh_filename), m_surfaceMesh(mesh_filename, physicalGroupName) { _ginitialize(); }
 
 SputteringModelingDriver::~SputteringModelingDriver() { _gfinalize(); }
 
@@ -245,14 +190,10 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
         WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
     }
 
-    ParticleSurfaceCollisionHandler surfaceCollisionHandler(m_settledParticlesMutex, m_particlesMovementMutex, m_surfaceMesh.getAABBTree(),
-                                                            m_surfaceMesh.getTriangleCellMap(), m_settledParticlesIds, m_settledParticlesCounterMap, m_particlesMovement, *this);
-
     for (double timeMoment{}; timeMoment <= simtime && !m_stop_processing.test(); timeMoment += timeStep)
     {
         try
         {
-            // Set the number of OpenMP threads.
             omp_set_num_threads(numThreads);
 
 #pragma omp parallel for schedule(dynamic)
@@ -261,11 +202,8 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
                 auto &particle = particles[i];
 
                 // 1. Check if particle is settled.
-                {
-                    std::shared_lock<std::shared_mutex> lock(m_settledParticlesMutex);
-                    if (m_settledParticlesIds.find(particle.getId()) != m_settledParticlesIds.end())
-                        continue;
-                }
+                if (ParticleSettler::isSettled(particle.getId(), m_settledParticlesIds, m_settledParticlesMutex))
+                    continue;
 
                 // 2. Electromagnetic push (Here is no need to do EM-push).
                 // @remark In the sputtering model there is no any field, so, there is no need to do EM-push.
@@ -273,11 +211,7 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
 
                 // 3. Record previous position.
                 Point prev{particle.getCentre()};
-                {
-                    std::lock_guard<std::mutex> lock(m_particlesMovementMutex);
-                    if (m_particlesMovement.size() <= particles.size())
-                        m_particlesMovement[particle.getId()].emplace_back(prev);
-                }
+                ParticleMovementTracker::recordMovement(m_particlesMovement, m_particlesMovementMutex, particle.getId(), prev);
 
                 // 4. Update position.
                 particle.updatePosition(timeStep);
@@ -286,15 +220,22 @@ void SputteringModelingDriver::startModeling(double simtime, double timeStep, un
                     continue;
 
                 // 5. Gas collision.
-                auto collisionModel{CollisionModelFactory::create(scatteringModel)};
-                collisionModel->collide(particle, util::getParticleTypeFromStrRepresentation(gasName), gasConcentration, timeStep);
+                ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
                 // 6. Skip surface collision checks if t == 0.
                 if (timeMoment == 0.0)
                     continue;
 
                 // 7. Surface collision.
-                surfaceCollisionHandler.handle(particle, ray, particles.size());
+                ParticleSurfaceCollisionHandler::handle(particle,
+                                                        ray,
+                                                        particles.size(),
+                                                        m_surfaceMesh,
+                                                        m_settledParticlesMutex,
+                                                        m_particlesMovementMutex,
+                                                        m_particlesMovement,
+                                                        m_settledParticlesIds,
+                                                        *this);
             }
         }
         catch (std::exception const &ex)
