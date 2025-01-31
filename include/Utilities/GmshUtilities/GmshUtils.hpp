@@ -8,197 +8,266 @@
 
 class GmshUtils
 {
+private:
+    static std::string const kdefault_code_work_in_one_session; ///< Default code that points Gmsh is working in one session without openning any file.
+
 public:
     /**
-     * @brief Checker whether Gmsh initialized or not. If not initialized - print error message.
+     * @brief Ensures that Gmsh is initialized before performing any operations.
      *
-     * @return int '-1' if not initialized, '0' otherwise.
+     * This function checks whether the Gmsh environment is initialized. If it is not,
+     * an error message is logged, and an exception is thrown.
+     *
+     * @throws std::runtime_error if Gmsh is not initialized.
+     *
+     * @note This function must be called before using any Gmsh API functions.
      */
-    static int gmshInitializeCheck();
+    static void gmshInitializeCheck();
 
     /**
-     * @brief Retrieves all boundary tags for all the volumes in the model.
-     * @return A vector of boundary tags.
+     * @brief Validates and initializes the Gmsh model, ensuring the mesh file is correctly opened.
      *
-     * Algorithm:
-     * 1. Get all volume entities using `gmsh::model::getEntities`.
-     * 2. For each volume:
-     *    - Retrieve boundary entities using `gmsh::model::getBoundary`.
-     *    - Filter boundary entities to include only surfaces.
-     * 3. Return a vector of all boundary surface tags.
+     * This function ensures that the Gmsh environment is properly initialized and the specified mesh file
+     * is opened if required. It performs the following steps:
+     * 1. Calls `GmshUtils::gmshInitializeCheck()` to verify that Gmsh is initialized.
+     * 2. If `meshFilename` is not equal to `special_code`, it:
+     *    - Uses `util::check_gmsh_mesh_file()` to validate the existence and integrity of the file.
+     *    - Opens the file using `gmsh::open()`, allowing subsequent operations on the mesh.
+     *
+     * @param meshFilename The filename of the Gmsh mesh to be validated and opened.
+     * @param special_code A special identifier indicating that the function is operating within an active Gmsh session
+     *                     (without explicitly opening a file). If `meshFilename` matches `special_code`, no file is opened.
+     *
+     * @throws std::runtime_error If Gmsh is not initialized or if the file validation fails (e.g., file does not exist,
+     *                            incorrect extension, empty file, or inaccessible).
+     *
+     * @note This function is primarily used internally to ensure mesh files are handled correctly before querying
+     *       or modifying the Gmsh model.
+     *
+     * @see GmshUtils::gmshInitializeCheck()
+     * @see util::check_gmsh_mesh_file()
      */
-    static std::vector<int> getAllBoundaryTags();
+    static void checkAndOpenMesh(std::string_view meshFilename);
 
     /**
-     * @brief Finds integer tag of the physical group by specified name.
-     * @param physicalGroupName Physical group name to find.
-     * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
-     *                     mesh file because we are currently in one Gmsh session.
-     * @return Tag of the physical group with specified name.
+     * @brief Retrieves all boundary surface tags from the Gmsh model.
+     * @param meshFilename The filename of the mesh (`.msh` format). Default is `kdefault_code_work_in_one_session`,
+     *        which means the function assumes the mesh is already loaded into Gmsh.
+     *
+     * This function extracts all surface tags that form the boundaries of 3D volume elements
+     * present in the model.
+     *
+     * @return std::vector<int> A vector containing the tags of boundary surfaces.
+     *
+     * @details
+     * **Algorithm:**
+     * 1. Retrieve all 3D volume entities using `gmsh::model::getEntities(3)`.
+     * 2. Extract boundary surfaces for each volume using `gmsh::model::getBoundary`.
+     * 3. Store unique surface tags in a vector.
+     *
+     * @throws std::runtime_error if there are no volume entities or no boundary surfaces found.
+     *
+     * @warning This function only works with 3D models. It does not retrieve boundaries for 2D elements.
+     *
+     * @note The returned tags correspond to surfaces that enclose the volume elements.
      */
-    static int getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename = "special_code_031");
+    static std::vector<int> getAllBoundaryTags(std::string_view meshFilename);
 
     /**
-     * @brief Computes the geometric centers of triangular cells belonging to the specified physical group.
+     * @brief Retrieves the integer tag of a physical group by its name.
      *
-     * This method retrieves the centroids of all triangular cells associated with a given physical group
-     * in a Gmsh model. The centroids are calculated as the average of the vertices' coordinates of each triangle.
+     * This function searches for a physical group with the specified name in the model
+     * and returns its tag.
      *
-     * @param physicalGroupName Name of the physical group to query. The method identifies the corresponding physical group tag using the provided name.
-     * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
-     *                     mesh file because we are currently in one Gmsh session.
+     * @param physicalGroupName The name of the physical group.
+     * @param meshFilename The filename of the mesh (`.msh` format). Default is `kdefault_code_work_in_one_session`,
+     *        which means the function assumes the mesh is already loaded into Gmsh.
      *
-     * @return TriangleCellCentersMap, aka std::unordered_map<size_t, std::array<double, 3ul>>
-     *         A map where:
-     *         - Key: Triangle cell ID (tag).
-     *         - Value: An array of three doubles representing the 3D coordinates (x, y, z) of the cell's centroid.
+     * @return int The tag corresponding to the physical group.
      *
-     * @details The function performs the following steps:
-     * - Retrieves the physical group tag using the specified name.
-     * - Obtains the node tags and coordinates associated with the physical group.
-     * - Filters triangular cells that exclusively use nodes from the specified group.
-     * - Calculates the centroid for each triangle by averaging the coordinates of its three vertices.
+     * @throws std::runtime_error If the physical group is not found.
      *
-     * @warning If the specified physical group has no associated nodes or triangles, the function
-     * returns an empty map and logs a warning.
+     * @details
+     * **Algorithm:**
+     * 1. Ensure that Gmsh is initialized.
+     * 2. If a mesh file is specified, open it.
+     * 3. Retrieve all physical groups using `gmsh::model::getPhysicalGroups(2)`.
+     * 4. Search for the group matching `physicalGroupName` and return its tag.
      *
-     * @note This function is intended for use with 3D models and assumes all triangles have exactly three vertices.
+     * @note This function only searches within **surface** physical groups (dimension = 2).
      */
-    static TriangleCellCentersMap getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = "special_code_031");
+    static int getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
 
     /**
-     * @brief Retrieves the triangle cells for a specified physical group by name from a Gmsh model.
+     * @brief Computes centroids of triangular cells belonging to a given physical group.
      *
-     * This method extracts all triangular cells associated with a given physical group in a Gmsh model
-     * and stores them in a `TriangleCellMap`. Each triangle is uniquely identified by its tag (ID)
-     * and includes:
-     * - The geometric representation of the triangle.
-     * - The precomputed area of the triangle.
-     * - An initial particle count (set to 0 at \( t = 0 \)).
+     * This function calculates the centroid of each triangular cell in a given physical group.
+     * The centroid is computed as the average of the three vertex coordinates.
      *
-     * The method performs the following steps:
-     * 1. Finds the tag (ID) of the physical group by its name.
-     * 2. Retrieves the nodes and their coordinates associated with the physical group.
-     * 3. Identifies triangles associated with the nodes in the physical group.
-     * 4. Constructs triangles from their vertices, calculates their area, and stores them in a `TriangleCellMap`.
+     * @param physicalGroupName The name of the physical group to process.
+     * @param meshFilename The filename of the `.msh` file. Default is `kdefault_code_work_in_one_session`.
      *
-     * @param physicalGroupName Name of the physical group to retrieve triangle cells for.
-     * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
-     *                     mesh file because we are currently in one Gmsh session.
-     * @return TriangleCellMap A map containing the triangle cells, where:
-     *         - The key is the triangle ID.
-     *         - The value is a `TriangleCell` structure with the triangle geometry, area, and particle count.
-     *         Returns an empty map if no triangles are found or in case of an error.
+     * @return TriangleCellCentersMap A map containing:
+     *  - **Key:** Triangle cell ID.
+     *  - **Value:** A 3D coordinate array representing the centroid.
      *
-     * @throws std::exception Logs errors if any issues occur during the triangle construction process.
+     * @throws std::runtime_error If the physical group does not contain any triangles.
      *
-     * @note Degenerate triangles (triangles with zero area) are skipped and logged as warnings.
-     *       If no nodes or triangles are associated with the specified physical group, an empty map is returned.
+     * @details
+     * **Algorithm:**
+     * 1. Find the tag of the physical group.
+     * 2. Retrieve the node coordinates for the group.
+     * 3. Identify triangular cells using `gmsh::model::mesh::getElementsByType(2)`.
+     * 4. Compute the centroid for each triangle.
+     * 5. Store the centroids in a map and return them.
      *
-     * @warning Ensure that the Gmsh model is correctly initialized and the physical group name exists in the model.
-     *          Nodes and triangles without valid 3D coordinates are also skipped.
+     * @note The function assumes that all elements in the physical group are triangular.
      */
-    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = "special_code_031");
+    static TriangleCellCentersMap getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
+
+    /**
+     * @brief Extracts all triangle cells associated with a physical group.
+     *
+     * This function retrieves triangular elements from the specified physical group and
+     * constructs a `TriangleCellMap`, which contains each triangle's geometry, area, and
+     * an initial count of deposited particles.
+     *
+     * @param physicalGroupName The name of the physical group.
+     * @param meshFilename The filename of the `.msh` mesh file. Default is `kdefault_code_work_in_one_session`.
+     *
+     * @return TriangleCellMap A map of triangle cells.
+     *
+     * @throws std::runtime_error If the physical group does not contain any triangles.
+     *
+     * @details
+     * **Algorithm:**
+     * 1. Find the physical group tag.
+     * 2. Retrieve node coordinates.
+     * 3. Identify triangular elements.
+     * 4. Construct `TriangleCell` objects with their area and initial particle count.
+     *
+     * @note Only triangular cells are extracted. Degenerate triangles (zero area) are skipped.
+     */
+    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
+
+    /**
+     * @brief Retrieves all physical groups in the Gmsh model.
+     *
+     * This function returns a list of all physical groups defined in the current Gmsh model, including their:
+     * - **Dimension** (`dim`): The geometric dimension of the group (e.g., 0 for points, 1 for lines, 2 for surfaces, 3 for volumes).
+     * - **Tag** (`tag`): A unique integer identifier assigned to the physical group by Gmsh.
+     * - **Name** (`name`): The user-defined name of the physical group.
+     *
+     * **Algorithm:**
+     * 1. Calls `checkAndOpenMesh()` to ensure Gmsh is initialized and the correct mesh file is loaded.
+     * 2. Retrieves all physical groups using `gmsh::model::getPhysicalGroups()`, returning a list of `(dim, tag)` pairs.
+     * 3. For each retrieved physical group:
+     *    - Extracts the associated name using `gmsh::model::getPhysicalName()`.
+     *    - Constructs a tuple `(dim, tag, name)` and adds it to the output vector.
+     * 4. If no physical groups are found, throws an exception.
+     *
+     * @param meshFilename The filename of the Gmsh mesh file. If left as the default `kdefault_code_work_in_one_session`,
+     *                     the function assumes the Gmsh session is already active and does not explicitly open a file.
+     *
+     * @return A vector of tuples where:
+     *         - The first element (`int`) is the geometric dimension of the physical group.
+     *         - The second element (`int`) is the unique integer tag assigned to the group.
+     *         - The third element (`std::string`) is the name of the physical group.
+     *
+     * @throws std::runtime_error If no physical groups are found or if an error occurs during retrieval.
+     *
+     * @see GmshUtils::hasPhysicalGroup()
+     * @see checkAndOpenMesh()
+     *
+     * **Example Usage:**
+     * @code
+     * auto physicalGroups = GmshUtils::getAllPhysicalGroups();
+     * for (const auto& [dim, tag, name] : physicalGroups)
+     * {
+     *     std::cout << "Physical Group - Dim: " << dim << ", Tag: " << tag << ", Name: " << name << std::endl;
+     * }
+     * @endcode
+     */
+    static std::vector<std::tuple<int, int, std::string>> getAllPhysicalGroups(std::string_view meshFilename = kdefault_code_work_in_one_session);
+
+    /**
+     * @brief Checks if a physical group with the specified name exists in the Gmsh model.
+     *
+     * This function determines whether a physical group (a named entity in Gmsh) exists within the model.
+     * It executes the following steps:
+     * 1. Calls `checkAndOpenMesh()` to validate the mesh file or confirm an active session.
+     * 2. Retrieves all physical groups in the model using `GmshUtils::getAllPhysicalGroups()`.
+     * 3. Iterates over the retrieved groups and checks if any match the specified `physicalGroupName`.
+     *
+     * @param physicalGroupName The name of the physical group to check for existence.
+     * @param meshFilename The filename of the Gmsh mesh file. If left as the default `kdefault_code_work_in_one_session`,
+     *                     the function assumes the Gmsh session is already active and does not explicitly open a file.
+     *
+     * @return `true` if a physical group with the given name exists; otherwise, `false`.
+     *
+     * @throws std::runtime_error If Gmsh is not initialized or the physical groups cannot be retrieved.
+     *
+     * @note This function is compatible with both **C++17** and **C++20**:
+     *       - In **C++20**, it utilizes `std::ranges::find_if` for better performance and readability.
+     *       - In **C++17**, it falls back to `std::find_if`.
+     *
+     * @see GmshUtils::getAllPhysicalGroups()
+     * @see checkAndOpenMesh()
+     *
+     * **Example Usage:**
+     * @code
+     * if (GmshUtils::hasPhysicalGroup("BoundarySurface"))
+     * {
+     *     std::cout << "Physical group 'BoundarySurface' exists in the model.\n";
+     * }
+     * else
+     * {
+     *     std::cerr << "Physical group not found.\n";
+     * }
+     * @endcode
+     */
+    static bool hasPhysicalGroup(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
 
 /**
- * @brief Finds the tag of a surface in the Gmsh model that matches a set of 3D coordinates.
+ * @brief Finds the tag of a surface by matching its 3D coordinates.
  *
- * This function searches through all surfaces in the Gmsh model to find one whose nodes match the
- * given target coordinates. The coordinates are provided as a matrix-like structure (a range of ranges)
- * where the innermost elements represent 3D points.
+ * This function searches for a surface that contains all the given 3D points.
  *
- * @tparam MatrixType The type of the container representing the matrix of 3D points. Must satisfy the `is_matrix_v` trait.
- * @tparam ValueType The type of the individual 3D coordinate values (e.g., `double`, `float`, or `int`).
+ * @tparam MatrixType A matrix-like structure containing 3D points.
+ * @tparam ValueType The numerical type of the coordinates.
  *
- * @param surfaceCoords A matrix-like structure containing the target 3D coordinates. Each row represents a 3D point,
- *                      and the innermost elements represent the x, y, and z coordinates of that point.
- * @param meshFilename Filename of the mesh with .msh extension. Default = "special_code_031", that means no need to open
- *                     mesh file because we are currently in one Gmsh session.
+ * @param surfaceCoords A list of 3D points defining the target surface.
+ * @param meshFilename The filename of the `.msh` file.
  *
- * @return The tag of the surface in the Gmsh model that matches the target coordinates.
- *         If no matching surface is found, returns `-1` and logs an error.
+ * @return int The tag of the matching surface, or `-1` if not found.
  *
- * @throws std::runtime_error If Gmsh API calls fail unexpectedly.
+ * @throws std::runtime_error If no matching surface is found.
  *
  * @details
  * **Algorithm:**
- * 1. Validate the input `surfaceCoords`:
- *    - Ensure it is not empty.
- *    - Ensure each row contains exactly three elements (representing 3D space).
- * 2. Retrieve all surfaces from the Gmsh model using `gmsh::model::getEntities`.
- * 3. For each surface:
- *    - Retrieve its nodes using `gmsh::model::mesh::getNodes`.
- *    - Store the nodes in a set of 3D points for efficient searching.
- *    - Check if all the target coordinates exist within the surface's nodes.
- * 4. If a surface matches all the target coordinates, return its tag.
- * 5. If no surface matches, return `-1` and log an error message.
+ * 1. Validate the input matrix.
+ * 2. Retrieve all surfaces using `gmsh::model::getEntities(2)`.
+ * 3. Extract node coordinates for each surface.
+ * 4. Compare with the provided coordinates.
+ * 5. Return the matching surface tag.
  *
- * @note This function is compatible with both C++17 and C++20.
- *       - In C++20, the `Matrix` concept is used for type validation.
- *       - In C++17, `std::enable_if` with the `is_matrix_v` trait is used.
- *
- * @note The Gmsh model must be initialized and populated before calling this function.
- *
- * **Example Usage:**
- * @code
- * // Example coordinates
- * std::vector<std::vector<double>> coords = {
- *     {20.0, 5.0, 100.0},
- *     {20.0, 15.0, 100.0},
- *     {80.0, 5.0, 100.0},
- *     {80.0, 15.0, 100.0}
- * };
- *
- * // Find the target surface tag
- * int tag = _findSurfaceTagByCoords(coords);
- * if (tag != -1) {
- *     std::cout << "Found surface tag: " << tag << std::endl;
- * } else {
- *     std::cerr << "No matching surface found!" << std::endl;
- * }
- * @endcode
- *
- * **Performance Considerations:**
- * - The function uses a `std::set` to store and compare surface nodes, which ensures efficient lookups
- *   but may incur additional overhead for large surfaces.
- * - The algorithm performs a linear search over all surfaces in the Gmsh model. For models with many surfaces,
- *   this may impact performance.
- *
- * **Compatibility:**
- * - **C++20:** Uses the `Matrix` concept for compile-time type enforcement.
- * - **C++17:** Uses `std::enable_if` with the `is_matrix_v` trait for SFINAE-based type enforcement.
+ * @note This function requires the model to be loaded in Gmsh before execution.
  */
 #if __cplusplus >= 202002L
     template <typename ValueType>
-    static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords, std::string_view meshFilename = "special_code_031")
+    static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords, std::string_view meshFilename = kdefault_code_work_in_one_session)
 #else
     template <typename MatrixType, typename ValueType>
     std::enable_if<is_matrix_v<MatrixType, ValueType>, int> static int findSurfaceTagByCoords(MatrixType const &surfaceCoords)
 #endif
     {
-        if (meshFilename != "special_code_031")
-            util::check_gmsh_mesh_file(meshFilename);
-        if (GmshUtils::gmshInitializeCheck() == -1)
-            return -1;
-        else
-        {
-            if (meshFilename != "special_code_031")
-                gmsh::open(meshFilename.data());
-        }
+        checkAndOpenMesh(meshFilename);
 
         if (surfaceCoords.empty())
-        {
-            ERRMSG("Surface coords are empty.");
-            return -1;
-        }
+            throw std::runtime_error("Surface coords are empty.");
         for (auto const &point : surfaceCoords)
-        {
             if (point.size() != 3ul)
-            {
-                ERRMSG(util::stringify("Assuming 3D space, but have point with ", point.size(), " coords"));
-                return -1;
-            }
-        }
+                throw std::runtime_error(util::stringify("Assuming 3D space, but have point with ", point.size(), " coords"));
 
         std::vector<std::pair<int, int>> surfaces;
         gmsh::model::getEntities(surfaces, 2);
@@ -234,9 +303,7 @@ public:
         }
 
         if (targetSurfaceTag == -1)
-        {
-            ERRMSG("Error finding taget surface.");
-        }
+            throw std::runtime_error("Error finding taget surface.");
 
         return targetSurfaceTag;
     }
