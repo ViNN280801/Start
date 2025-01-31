@@ -5,30 +5,30 @@
 #endif
 
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
-#include "Utilities/ConfigParser.hpp"
-
-ParticleDynamicsProcessor::ParticleDynamicsProcessor(std::string_view config_filename,
-                                                     std::shared_mutex &settledParticlesMutex,
-                                                     std::mutex &particlesMovementMutex,
-                                                     AABB_Tree_Triangle const &surfaceMeshAABBtree,
-                                                     TriangleCellMap const &triangleMesh,
-                                                     ParticlesIDSet &settledParticlesIds,
-                                                     SettledParticlesCounterMap &settledParticlesCounterMap,
-                                                     ParticleMovementMap &particlesMovement,
-                                                     StopSubject &subject)
-    : m_particleSettler(settledParticlesMutex, settledParticlesIds, settledParticlesCounterMap, subject),
-      m_physicsUpdater(config_filename),
-      m_movementTracker(particlesMovement, particlesMovementMutex),
-      m_collisionHandler(settledParticlesMutex, particlesMovementMutex, surfaceMeshAABBtree,
-                         triangleMesh, settledParticlesIds, settledParticlesCounterMap, particlesMovement, subject) {}
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticlePhysicsUpdater.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
+#include "Utilities/ThreadedProcessor.hpp"
 
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                                                         size_t end_index,
                                                         double timeMoment,
+                                                        double timeStep,
                                                         ParticleVector &particles,
                                                         std::shared_ptr<CubicGrid> cubicGrid,
                                                         std::shared_ptr<GSMAssembler> gsmAssembler,
-                                                        ParticleTrackerMap &particleTracker)
+                                                        SurfaceMesh &surfaceMesh,
+                                                        ParticleTrackerMap &particleTracker,
+                                                        ParticlesIDSet &settledParticlesIds,
+                                                        std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                                        std::mutex &mutex_particlesMovementMap,
+                                                        ParticleMovementMap &particleMovementMap,
+                                                        StopSubject &stopSubject,
+                                                        std::string_view scatteringModel,
+                                                        std::string_view gasName,
+                                                        double gasConcentration)
 {
     try
     {
@@ -39,34 +39,44 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 #endif
                       particles.begin() + start_index,
                       particles.begin() + end_index,
-                      [this, &cubicGrid, gsmAssembler, timeMoment, &particleTracker, &particles](auto &particle)
+                      [&cubicGrid, gsmAssembler, timeMoment, timeStep, &particleTracker, &particles,
+                       &settledParticlesIds, &sh_mutex_settledParticlesCounterMap, &particleMovementMap,
+                       &mutex_particlesMovementMap, scatteringModel, gasName, gasConcentration,
+                       &surfaceMesh, &stopSubject](Particle &particle)
                       {
                           // 1. If particle is already settled, skip further processing.
-                          if (m_particleSettler.isSettled(particle.getId()))
+                          if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
                               return;
 
                           // 2. Apply electromagnetic forces to the particle.
                           if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
-                              m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetraId);
+                              ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
                           // 3. Record the particle's previous position for movement tracking.
-                          Point const prev{particle.getCentre()};
-                          m_movementTracker.recordMovement(particle.getId(), prev);
+                          Point const &prev{particle.getCentre()};
+                          ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
                           // 4. Update the particle's position.
-                          m_physicsUpdater.updatePosition(particle);
+                          particle.updatePosition(timeStep);
                           Ray ray(prev, particle.getCentre());
                           if (ray.is_degenerate())
                               return;
 
                           // 5. Simulate collisions between the particle and gas molecules.
-                          m_physicsUpdater.collideWithGas(particle);
+                          ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
                           // 6. Skip surface collision checks at the initial simulation time (t == 0).
                           // 7. Detect and handle collisions with the surface mesh.
                           if (timeMoment != 0.0)
-                              if (auto triangleId{m_collisionHandler.handle(particle, ray, particles.size())})
-                                  m_particleSettler.settle(particle.getId(), *triangleId, particles.size());
+                          {
+                              auto triangleIdOpt{ParticleSurfaceCollisionHandler::handle(particle, ray, particles.size(),
+                                                                                         surfaceMesh, sh_mutex_settledParticlesCounterMap,
+                                                                                         mutex_particlesMovementMap,
+                                                                                         particleMovementMap, settledParticlesIds, stopSubject)};
+                              if (triangleIdOpt.has_value())
+                                  ParticleSettler::settle(particle.getId(), triangleIdOpt.value(), particles.size(),
+                                                          surfaceMesh, sh_mutex_settledParticlesCounterMap, settledParticlesIds, stopSubject);
+                          }
                       });
     }
     catch (std::exception const &ex)
@@ -81,10 +91,20 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 
 void ParticleDynamicsProcessor::_process_stdver__(unsigned int numThreads,
                                                   double timeMoment,
+                                                  double timeStep,
                                                   ParticleVector &particles,
                                                   std::shared_ptr<CubicGrid> cubicGrid,
                                                   std::shared_ptr<GSMAssembler> gsmAssembler,
-                                                  ParticleTrackerMap &particleTracker)
+                                                  SurfaceMesh &surfaceMesh,
+                                                  ParticleTrackerMap &particleTracker,
+                                                  ParticlesIDSet &settledParticlesIds,
+                                                  std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                                  std::mutex &mutex_particlesMovementMap,
+                                                  ParticleMovementMap &particleMovementMap,
+                                                  StopSubject &stopSubject,
+                                                  std::string_view scatteringModel,
+                                                  std::string_view gasName,
+                                                  double gasConcentration)
 {
     // We use `std::launch::deferred` here because surface collision tracking is not critical to be run immediately
     // after particle tracking. It can be deferred until it is needed, allowing for potential optimizations
@@ -95,24 +115,53 @@ void ParticleDynamicsProcessor::_process_stdver__(unsigned int numThreads,
         particles.size(),
         numThreads,
         std::launch::deferred,
-        [this](size_t start_index, size_t end_index, double timeMoment,
-               ParticleVector &particles,
-               std::shared_ptr<CubicGrid> cubicGrid,
-               std::shared_ptr<GSMAssembler> gsmAssembler,
-               ParticleTrackerMap &particleTracker)
+        [](size_t start_index,
+           size_t end_index,
+           double timeMoment,
+           double timeStep,
+           ParticleVector &particles,
+           std::shared_ptr<CubicGrid> cubicGrid,
+           std::shared_ptr<GSMAssembler> gsmAssembler,
+           SurfaceMesh &surfaceMesh,
+           ParticleTrackerMap &particleTracker,
+           ParticlesIDSet &settledParticlesIds,
+           std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+           std::mutex &mutex_particlesMovementMap,
+           ParticleMovementMap &particleMovementMap,
+           StopSubject &stopSubject,
+           std::string_view scatteringModel,
+           std::string_view gasName,
+           double gasConcentration)
         {
-            this->_process_stdver__helper(start_index, end_index, timeMoment, particles, cubicGrid, gsmAssembler, particleTracker);
+            _process_stdver__helper(start_index, end_index, timeMoment, timeStep,
+                                    particles, cubicGrid, gsmAssembler, surfaceMesh,
+                                    particleTracker, settledParticlesIds,
+                                    sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap,
+                                    particleMovementMap, stopSubject, scatteringModel, gasName, gasConcentration);
         },
-        timeMoment, std::ref(particles), cubicGrid, gsmAssembler, std::ref(particleTracker));
+        timeMoment, timeStep, std::ref(particles), cubicGrid, gsmAssembler, std::ref(surfaceMesh),
+        std::ref(particleTracker), std::ref(settledParticlesIds), std::ref(sh_mutex_settledParticlesCounterMap),
+        std::ref(mutex_particlesMovementMap), std::ref(particleMovementMap), std::ref(stopSubject),
+        scatteringModel, gasName, gasConcentration);
 }
 
 #ifdef USE_OMP
-void ParticleDynamicsProcessor::_process_ompver__(unsigned int numThreads,
-                                                  double timeMoment,
+void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
+                                                  double timeStep,
+                                                  unsigned int numThreads,
                                                   ParticleVector &particles,
                                                   std::shared_ptr<CubicGrid> cubicGrid,
                                                   std::shared_ptr<GSMAssembler> gsmAssembler,
-                                                  ParticleTrackerMap &particleTracker)
+                                                  SurfaceMesh &surfaceMesh,
+                                                  ParticleTrackerMap &particleTracker,
+                                                  ParticlesIDSet &settledParticlesIds,
+                                                  std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                                  std::mutex &mutex_particlesMovementMap,
+                                                  ParticleMovementMap &particleMovementMap,
+                                                  StopSubject &stopSubject,
+                                                  std::string_view scatteringModel,
+                                                  std::string_view gasName,
+                                                  double gasConcentration)
 {
     try
     {
@@ -125,33 +174,38 @@ void ParticleDynamicsProcessor::_process_ompver__(unsigned int numThreads,
             auto &particle = particles[i];
 
             // 1. Check if particle is settled.
-            if (m_particleSettler.isSettled(particle.getId()))
+            if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
                 continue;
 
             // 2. Electromagnetic push.
-            if (auto tetrahedronId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
-                m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetrahedronId);
+            if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
+                ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
             // 3. Record previous position.
-            Point prev{particle.getCentre()};
-            m_movementTracker.recordMovement(particle.getId(), prev);
+            Point const &prev{particle.getCentre()};
+            ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
             // 4. Update position.
-            m_physicsUpdater.updatePosition(particle);
+            particle.updatePosition(timeStep);
             Ray ray(prev, particle.getCentre());
             if (ray.is_degenerate())
                 continue;
 
             // 5. Gas collision.
-            m_physicsUpdater.collideWithGas(particle);
+            ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
             // 6. Skip surface collision checks if t == 0.
             if (timeMoment == 0.0)
                 continue;
 
             // 7. Surface collision.
-            if (auto triangleId{m_collisionHandler.handle(particle, ray, particles.size())})
-                m_particleSettler.settle(particle.getId(), *triangleId, particles.size());
+            auto triangleIdOpt{ParticleSurfaceCollisionHandler::handle(particle, ray, particles.size(),
+                                                                       surfaceMesh, sh_mutex_settledParticlesCounterMap,
+                                                                       mutex_particlesMovementMap,
+                                                                       particleMovementMap, settledParticlesIds, stopSubject)};
+            if (triangleIdOpt.has_value())
+                ParticleSettler::settle(particle.getId(), triangleIdOpt.value(), particles.size(),
+                                        surfaceMesh, sh_mutex_settledParticlesCounterMap, settledParticlesIds, stopSubject);
         }
     }
     catch (std::exception const &ex)
@@ -168,19 +222,35 @@ void ParticleDynamicsProcessor::_process_ompver__(unsigned int numThreads,
 void ParticleDynamicsProcessor::process(std::string_view config_filename,
                                         ParticleVector &particles,
                                         double timeMoment,
+                                        double timeStep,
+                                        unsigned int numThreads,
                                         std::shared_ptr<CubicGrid> cubicGrid,
                                         std::shared_ptr<GSMAssembler> gsmAssembler,
-                                        ParticleTrackerMap &particleTracker)
+                                        SurfaceMesh &surfaceMesh,
+                                        ParticleTrackerMap &particleTracker,
+                                        ParticlesIDSet &settledParticlesIds,
+                                        std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                        std::mutex &mutex_particlesMovementMap,
+                                        ParticleMovementMap &particleMovementMap,
+                                        StopSubject &stopSubject,
+                                        std::string_view scatteringModel,
+                                        std::string_view gasName,
+                                        double gasConcentration)
 {
     // Check if the requested number of threads exceeds available hardware concurrency.
-    ConfigParser configParser(config_filename);
-    auto numThreads{configParser.getNumThreads_s()};
+    // ConfigParser configParser(config_filename);
+    // auto numThreads{configParser.getNumThreads_s()};
 
 #ifdef USE_OMP
     // If OpenMP is available and requested, use the OMP version.
-    _process_ompver__(numThreads, timeMoment, particles, cubicGrid, gsmAssembler, particleTracker);
+    _process_ompver__(timeMoment, timeStep, numThreads, particles, cubicGrid, gsmAssembler, surfaceMesh, particleTracker,
+                      settledParticlesIds, sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap, particleMovementMap,
+                      stopSubject, scatteringModel, gasName, gasConcentration);
 #else
     // Otherwise, fall back to the standard version.
-    _process_stdver__(numThreads, timeMoment, particles, cubicGrid, gsmAssembler, particleTracker);
+    _process_stdver__(numThreads, timeMoment, timeStep, particles, cubicGrid, gsmAssembler, surfaceMesh, particleTracker,
+                      settledParticlesIds, sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap,
+                      particleMovementMap, stopSubject, scatteringModel, gasName,
+                      util::calculateConcentration_w(config_filename));
 #endif
 }
