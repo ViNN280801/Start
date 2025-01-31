@@ -53,16 +53,13 @@ private:
     std::shared_ptr<StopFlagObserver> m_stopObserver; ///< Observer for managing stop requests.
 
     /* All the neccessary data members from the mesh. */
-    TriangleCellMap _triangleMesh;           ///< Triangle mesh params acquired from the mesh file. Surface mesh.
-    TriangleVector _triangles;               ///< Triangles extracted from the triangle mesh params `_triangleMesh` (surface mesh). Need to initialize AABB tree.
-    AABB_Tree_Triangle _surfaceMeshAABBtree; ///< AABB tree for the surface mesh to effectively detect collisions with surface.
-    GmshSessionManager _gmshSessionManager;  ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
+    SurfaceMesh m_surfaceMesh;               ///< Surface mesh containing triangle cell map, triangles vector and AABB tree for the collision finding optimizations.
+    GmshSessionManager m_gmshSessionManager; ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
 
     /* All the neccessary data members for the simulation. */
-    ParticleVector m_particles;                             ///< Projective particles.
-    double _gasConcentration;                               ///< Gas concentration. Needed to use colide projectives with gas mechanism.
-    ParticlesIDSet _settledParticlesIds;                    ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
-    SettledParticlesCounterMap _settledParticlesCounterMap; ///< Map to handle settled particles: (Triangle ID | Counter of settled particle in this triangle).
+    ParticleVector m_particles;           ///< Projective particles.
+    double m_gasConcentration;            ///< Gas concentration. Needed to use colide projectives with gas mechanism.
+    ParticlesIDSet m_settledParticlesIds; ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
 
     ConfigParser m_config;                   ///< `ConfigParser` object to get all the simulation physical paramters.
     ParticleMovementMap m_particlesMovement; ///< Map to store all the particle movements: (Particle ID | All positions).
@@ -71,39 +68,7 @@ private:
     /// @brief Initializes observer for the stopping modeling process when all particles are settled.
     void _initializeObservers();
 
-    /**
-     * @brief Broadcasts the triangle mesh data from the root rank (rank 0) to all other ranks.
-     * @details This method ensures that all processes in the MPI communicator receive the
-     *          triangle mesh data from rank 0. The data includes triangle IDs, vertex coordinates,
-     *          surface areas, and counters. On rank 0, the data is prepared and broadcast to
-     *          all other ranks, which then reconstruct the mesh locally.
-     *
-     * @note This function uses MPI to perform the broadcasting. The triangle mesh on non-root
-     *       ranks is cleared and reconstructed based on the broadcasted data.
-     */
-    void _broadcastTriangleMesh();
-
     /* Initializers for all the necessary objects. */
-    /**
-     * @brief Initializes the surface mesh by loading it from a file on the root rank and broadcasting it.
-     * @details This method loads the surface mesh data on rank 0 using a mesh filename
-     *          retrieved from the configuration. It then calls `_broadcastTriangleMesh()` to
-     *          distribute the data across all ranks, ensuring all processes have a copy of the mesh.
-     * @throws std::runtime_error if the mesh file is missing or cannot be loaded.
-     */
-    void _initializeSurfaceMesh();
-
-    /**
-     * @brief Initializes the Axis-Aligned Bounding Box (AABB) tree for the surface mesh.
-     * @details This method creates an AABB tree using the valid (non-degenerate) triangles
-     *          from the surface mesh. If the mesh is empty or contains only degenerate triangles,
-     *          an exception is thrown.
-     * @throws std::runtime_error if the surface mesh is empty or contains only degenerate triangles,
-     *         preventing AABB construction.
-     * @note This method should be called after `initializeSurfaceMesh()`.
-     */
-    void _initializeSurfaceMeshAABB();
-
     /**
      * @brief Initializes particles based on the configuration settings.
      * @details This method generates particles either from point sources or surface sources,
