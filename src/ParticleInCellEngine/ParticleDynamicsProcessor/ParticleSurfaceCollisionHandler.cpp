@@ -1,67 +1,72 @@
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
+#include "Geometry/RayTriangleIntersection.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
 
-ParticleSurfaceCollisionHandler::ParticleSurfaceCollisionHandler(
-    std::shared_mutex &settledParticlesMutex,
-    std::mutex &particlesMovementMutex,
-    AABB_Tree_Triangle const &tree,
-    TriangleCellMap const &mesh,
-    ParticlesIDSet &settledParticlesIds,
-    SettledParticlesCounterMap &settledParticlesCounterMap,
-    ParticleMovementMap &particlesMovement,
-    StopSubject &subject) : m_settledParticlesMutex(settledParticlesMutex),
-                            m_particlesMovementMutex(particlesMovementMutex),
-                            m_surfaceMeshAABBtree(tree),
-                            m_triangleMesh(mesh),
-                            m_settledParticleIds(settledParticlesIds),
-                            m_settledParticlesCounterMap(settledParticlesCounterMap),
-                            m_particlesMovement(particlesMovement),
-                            m_subject(subject) {}
-
-std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &particle, Ray const &ray, size_t particlesNumber)
+std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &particle,
+                                                              Ray const &ray,
+                                                              size_t totalParticles,
+                                                              SurfaceMesh &surfaceMesh,
+                                                              std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                                              std::mutex &mutex_particlesMovementMapMutex,
+                                                              ParticleMovementMap &particleMovementMap,
+                                                              ParticlesIDSet &settledParticlesIds,
+                                                              StopSubject &stopSubject)
 {
-    auto intersection{m_surfaceMeshAABBtree.any_intersection(ray)};
+    // 0. If particle is already settled - skip it.
+    if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
+        return std::nullopt;
+
+    // 1. If there any intersection of the ray and current AABB tree of the surface mesh.
+    auto intersection{surfaceMesh.getAABBTree().any_intersection(ray)};
     if (!intersection)
         return std::nullopt;
 
+    // 2. Getting triangle with which ray intersected.
     auto triangle{*intersection->second};
     if (triangle.is_degenerate())
         return std::nullopt;
 
+// 3. If this triangle is really in surface mesh, getting triangle iterator to get it Id.
 #if __cplusplus >= 202002L
-    auto matchedIt{std::ranges::find_if(m_triangleMesh, [triangle](auto const &entry)
-                                        { return triangle == entry.second.triangle; })};
+    auto triangleIdIter{std::ranges::find_if(surfaceMesh.getTriangleCellMap(), [triangle](auto const &entry)
+                                             {
+        auto const &[id, cellData]{entry};
+        return cellData.triangle == triangle; })};
 #else
-    auto matchedIt{std::find_if(m_triangleMesh.cbegin(), m_triangleMesh.cend(), [triangle](auto const &entry)
-                                { return triangle == entry.second.triangle; })};
+    auto triangleIdIter{std::find_if(surfaceMesh.getTriangleCellMap().cbegin(), surfaceMesh.getTriangleCellMap().cend(), [triangle](auto const &entry)
+                                     {
+        auto const &[id, cellData]{entry};
+        return cellData.triangle == triangle; })};
 #endif
 
-    if (matchedIt != m_triangleMesh.end())
-    {
-        auto triangleIdOpt{Mesh::isRayIntersectTriangle(ray, matchedIt)};
-        if (triangleIdOpt.has_value())
-        {
-            {
-                std::unique_lock<std::shared_mutex> lock(m_settledParticlesMutex);
-                ++m_settledParticlesCounterMap[triangleIdOpt.value()];
-                m_settledParticleIds.insert(particle.getId());
+    // 4. If there is no such triangle in mesh, just skip all further processing.
+    if (triangleIdIter == surfaceMesh.getTriangleCellMap().cend())
+        return std::nullopt;
 
-                if (m_settledParticleIds.size() >= particlesNumber)
-                {
-                    m_subject.notifyStopRequested();
-                    return std::nullopt;
-                }
-            }
+    // 5. Getting triangle ID as a 'size_t'.
+    size_t triangleId{triangleIdIter->first};
 
-            {
-                std::lock_guard<std::mutex> lock(m_particlesMovementMutex);
-                auto intersection_point{RayTriangleIntersection::getIntersectionPoint(ray, triangle)};
-                if (intersection_point)
-                    m_particlesMovement[particle.getId()].emplace_back(*intersection_point);
-            }
-            
-            return triangleIdOpt.value();
-        }
-    }
+    // 6. Settling particle.
+    ParticleSettler::settle(particle.getId(),
+                            triangleId,
+                            totalParticles,
+                            surfaceMesh,
+                            sh_mutex_settledParticlesCounterMap,
+                            settledParticlesIds,
+                            stopSubject);
 
-    return std::nullopt;
+    // 7. Recording particle movement.
+    // 7.1. Calculating intersection point.
+    auto intersectionPoint{RayTriangleIntersection::getIntersectionPoint(ray, triangle)};
+
+    // 7.2. If optional is not empty - add it to the particle movement map.
+    if (intersectionPoint.has_value())
+        ParticleMovementTracker::recordMovement(particleMovementMap,
+                                                mutex_particlesMovementMapMutex,
+                                                particle.getId(),
+                                                intersectionPoint.value());
+
+    // 8. Returning triangle ID with which ray intersected.
+    return triangleId;
 }
