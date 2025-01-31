@@ -5,12 +5,6 @@
 #endif
 
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
-#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
-#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticlePhysicsUpdater.hpp"
-#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
-#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
-#include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
-#include "Utilities/ThreadedProcessor.hpp"
 
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                                                         size_t end_index,
