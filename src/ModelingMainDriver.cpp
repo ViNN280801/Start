@@ -32,109 +32,6 @@ void ModelingMainDriver::_initializeObservers()
     addObserver(m_stopObserver);
 }
 
-void ModelingMainDriver::_broadcastTriangleMesh()
-{
-    int rank{};
-#ifdef USE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
-#endif
-
-    size_t numTriangles{};
-    if (rank == 0)
-        numTriangles = _triangleMesh.size();
-
-#ifdef USE_MPI
-    // Broadcast the number of triangles.
-    MPI_Bcast(std::addressof(numTriangles), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-#endif
-
-    // Prepare arrays for sending or receiving.
-    std::vector<size_t> triangleIds(numTriangles);
-    std::vector<double> triangleCoords(numTriangles * 9); // 9 doubles per triangle.
-    std::vector<double> dS_values(numTriangles);
-    std::vector<size_t> counts(numTriangles);
-
-    if (rank == 0)
-    {
-        size_t i{};
-        for (auto const &[id, triangleCell] : _triangleMesh)
-        {
-            triangleIds[i] = id;
-            Triangle const &triangle{triangleCell.triangle};
-            double dS{triangleCell.area};
-            size_t count{triangleCell.count};
-
-            // Extract triangle coordinates.
-            for (short j{}; j < 3; ++j)
-            {
-                const Point &p = triangle.vertex(j);
-                triangleCoords[i * 9 + j * 3 + 0] = p.x();
-                triangleCoords[i * 9 + j * 3 + 1] = p.y();
-                triangleCoords[i * 9 + j * 3 + 2] = p.z();
-            }
-            dS_values[i] = dS;
-            counts[i] = count;
-            ++i;
-        }
-    }
-
-#ifdef USE_MPI
-    // Broadcast the data arrays.
-    MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-    MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(counts.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-#endif
-
-    if (rank != 0)
-    {
-        // Reconstruct the triangle mesh on other ranks
-        _triangleMesh.clear();
-        for (size_t i = 0ul; i < numTriangles; ++i)
-        {
-            size_t triangleId = triangleIds[i];
-            Point p1(triangleCoords[i * 9 + 0], triangleCoords[i * 9 + 1], triangleCoords[i * 9 + 2]);
-            Point p2(triangleCoords[i * 9 + 3], triangleCoords[i * 9 + 4], triangleCoords[i * 9 + 5]);
-            Point p3(triangleCoords[i * 9 + 6], triangleCoords[i * 9 + 7], triangleCoords[i * 9 + 8]);
-            Triangle triangle(p1, p2, p3);
-            double dS{dS_values[i]};
-            size_t count{counts[i]};
-            _triangleMesh[triangleId] = TriangleCell{triangle, dS, count};
-        }
-    }
-}
-
-void ModelingMainDriver::_initializeSurfaceMesh()
-{
-    int rank{};
-#ifdef USE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
-#endif
-
-    if (rank == 0)
-        _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename());
-
-    _broadcastTriangleMesh();
-}
-
-void ModelingMainDriver::_initializeSurfaceMeshAABB()
-{
-    if (_triangleMesh.empty())
-        throw std::runtime_error("Can't construct AABB for triangle mesh - surface mesh is empty");
-
-    for (auto const &[id, triangleCell] : _triangleMesh)
-    {
-        auto const &triangle{triangleCell.triangle};
-        if (!triangle.is_degenerate())
-            _triangles.emplace_back(triangle);
-    }
-
-    if (_triangles.empty())
-        throw std::runtime_error("Can't create AABB for triangle mesh - triangles from the mesh are invalid. Possible reason: all the triangles are degenerate");
-
-    _surfaceMeshAABBtree = AABB_Tree_Triangle(std::cbegin(_triangles), std::cend(_triangles));
-}
-
 void ModelingMainDriver::_initializeParticles()
 {
     if (m_config.isParticleSourcePoint())
@@ -165,23 +62,16 @@ void ModelingMainDriver::_initializeParticles()
 void ModelingMainDriver::_ginitialize()
 {
     _initializeObservers();
-    _initializeSurfaceMesh();
-    _initializeSurfaceMeshAABB();
     _initializeParticles();
 }
 
 void ModelingMainDriver::_updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
-    auto mapEnd{_settledParticlesCounterMap.cend()};
-    for (auto &[id, triangleCell] : _triangleMesh)
-        if (auto it{_settledParticlesCounterMap.find(id)}; it != mapEnd)
-            triangleCell.count = it->second;
-
     std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
     hdf5filename += ".hdf5";
     TriangleMeshHdf5Manager hdf5handler(hdf5filename);
-    hdf5handler.saveMeshToHDF5(_triangleMesh);
+    hdf5handler.saveMeshToHDF5(m_surfaceMesh.getTriangleCellMap());
 }
 
 void ModelingMainDriver::_saveParticleMovements() const
@@ -243,13 +133,14 @@ void ModelingMainDriver::_gfinalize()
 
 ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
     : m_config_filename(config_filename),
-      m_config(config_filename)
+      m_config(config_filename),
+      m_surfaceMesh(m_config.getMeshFilename())
 {
     // Checking mesh filename on validity and assign it to the class member.
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
 
     // Calculating and checking gas concentration.
-    _gasConcentration = util::calculateConcentration_w(config_filename);
+    m_gasConcentration = util::calculateConcentration_w(config_filename);
 
     // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
     _ginitialize();
@@ -267,6 +158,10 @@ void ModelingMainDriver::startModeling()
     auto solutionVector{feminit.getEquationRHS()};
     /* Ending of the FEM initialization. */
 
+    /* == Beginning of the multithreading settings loading. == */
+    auto numThreads{m_config.getNumThreads_s()};
+    /* ======================== End ========================== */
+
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
     for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
     {
@@ -275,7 +170,7 @@ void ModelingMainDriver::startModeling()
                                            cubicGrid,
                                            gsmAssembler,
                                            m_particles,
-                                           _settledParticlesIds,
+                                           m_settledParticlesIds,
                                            m_particleTracker,
                                            nodeChargeDensityMap);
 
@@ -288,10 +183,10 @@ void ModelingMainDriver::startModeling()
                                            boundaryConditions);
 
         // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
-        ParticleDynamicsProcessor particleDynamicProcessor(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
-                                                           _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
-                                                           _settledParticlesCounterMap, m_particlesMovement, *this);
-        particleDynamicProcessor.process(m_config_filename, m_particles, timeMoment, cubicGrid, gsmAssembler, m_particleTracker);
+        ParticleDynamicsProcessor::process(m_config_filename, m_particles, timeMoment, m_config.getTimeStep(),
+                                           numThreads, cubicGrid, gsmAssembler, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
+                                           m_settledParticlesMutex, m_particlesMovementMutex, m_particlesMovement,
+                                           *this, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration);
 
         if (m_stop_processing.test())
         {
