@@ -322,7 +322,7 @@ public:
      * - This vector only contains **valid (non-degenerate)** triangles.
      * - It is primarily used for **rendering** or **direct triangle iteration**.
      */
-    TriangleVector const &getTriangles() const { return m_triangles; }
+    constexpr TriangleVector const &getTriangles() const { return m_triangles; }
 
     /**
      * @brief Provides read-only access to the triangle cell map.
@@ -333,7 +333,7 @@ public:
      * - Triangle area.
      * - Particle counts (if applicable in a simulation).
      */
-    TriangleCellMap const &getTriangleCellMap() const { return m_triangleCellMap; }
+    constexpr TriangleCellMap const &getTriangleCellMap() const { return m_triangleCellMap; }
 
     /**
      * @brief Provides read/write access to the triangle cell map.
@@ -342,7 +342,52 @@ public:
      * Allows modification of the triangle data, but changes may require **rebuilding the AABB tree**.
      * - Modifications to triangle geometry should be followed by `_constructAABB()`.
      */
-    TriangleCellMap &getTriangleCellMap() { return m_triangleCellMap; }
+    constexpr TriangleCellMap &getTriangleCellMap() { return m_triangleCellMap; }
+
+    /**
+     * @brief Computes the total number of settled particles across all triangular cells in the surface mesh.
+     *
+     * This method iterates through all stored triangle cells within the `SurfaceMesh` and
+     * accumulates the particle count from each cell, returning the total number of settled particles.
+     * The accumulation is performed using `std::accumulate` for optimized and functional-style iteration.
+     *
+     * @return size_t
+     *         The total count of settled particles across all triangles in the surface mesh.
+     *         If no particles have settled, the function returns `0`.
+     *
+     * @exception noexcept
+     *            This function is marked `noexcept`, ensuring it does not throw exceptions.
+     *
+     * @complexity The time complexity of this method is **O(n)**, where `n` is the number of
+     *             triangle cells in `m_triangleCellMap`, as it requires a single pass over all elements.
+     *
+     * @thread_safety This method is **not thread-safe** as it reads from `m_triangleCellMap`
+     *                without synchronization. If multiple threads modify the surface mesh,
+     *                external synchronization is required.
+     *
+     * @pre
+     * - The `SurfaceMesh` instance should be fully initialized.
+     * - The `m_triangleCellMap` should contain valid `TriangleCell` objects.
+     *
+     * @post
+     * - The returned value is the sum of `count` attributes of all triangle cells.
+     *
+     * @note
+     * - The function does not modify any member variables.
+     * - If `m_triangleCellMap` is empty, the function returns `0`.
+     *
+     * **Example Usage:**
+     * @code
+     * SurfaceMesh surface("example.msh");
+     * size_t totalParticles = surface.getTotalCountOfSettledParticles();
+     * std::cout << "Total settled particles: " << totalParticles << std::endl;
+     * @endcode
+     *
+     * **Implementation Details:**
+     * - Uses `std::accumulate` with an initial sum of `0`.
+     * - A lambda function extracts the `count` from each `TriangleCell` in `m_triangleCellMap`.
+     */
+    size_t getTotalCountOfSettledParticles() const noexcept;
 };
 
 #endif // !GEOMETRY_TYPES_HPP

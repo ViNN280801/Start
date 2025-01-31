@@ -73,3 +73,9 @@ SurfaceMesh::SurfaceMesh(std::string_view meshFilename, std::string_view physica
     m_triangleCellMap = GmshUtils::getCellsByPhysicalGroupName(physicalGroupName, meshFilename);
     _initialize();
 }
+
+size_t SurfaceMesh::getTotalCountOfSettledParticles() const noexcept
+{
+    return std::accumulate(m_triangleCellMap.cbegin(), m_triangleCellMap.cend(), size_t{}, [](size_t sum, auto const &entry)
+                           { return sum + entry.second.count; });
+}
