@@ -166,7 +166,7 @@ double Particle::getZ() const { return m_centre.z(); }
 double Particle::getPositionModule() const { return PositionVector(m_centre.x(), m_centre.y(), m_centre.z()).module(); }
 double Particle::getVelocityModule() const { return m_velocity.module(); }
 
-void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, ElectricField const &electricField, double time_step)
+void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, ElectricField const &electricField, double time_step) noexcept
 {
 	// Checking 1. Time step can't be null.
 	if (time_step == 0.0)
