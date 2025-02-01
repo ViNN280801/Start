@@ -159,8 +159,6 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
 {
     try
     {
-        std::cout << "ParticleDynamicsProcessor::_process_ompver__: SurfaceMesh address: " << &surfaceMesh << std::endl;
-
         // Set the number of OpenMP threads.
         omp_set_num_threads(numThreads);
 
