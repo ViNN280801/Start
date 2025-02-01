@@ -13,9 +13,9 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
                                                               ParticlesIDSet &settledParticlesIds,
                                                               StopSubject &stopSubject)
 {
-    // 0. If particle is already settled - skip it.
-    if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
-        return std::nullopt;
+    // // 0. If particle is already settled - skip it.
+    // if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
+    //     return std::nullopt;
 
     // 1. If there any intersection of the ray and current AABB tree of the surface mesh.
     auto intersection{surfaceMesh.getAABBTree().any_intersection(ray)};
@@ -62,10 +62,12 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
 
     // 7.2. If optional is not empty - add it to the particle movement map.
     if (intersectionPoint.has_value())
+    {
         ParticleMovementTracker::recordMovement(particleMovementMap,
                                                 mutex_particlesMovementMapMutex,
                                                 particle.getId(),
                                                 intersectionPoint.value());
+    }
 
     // 8. Returning triangle ID with which ray intersected.
     return triangleId;

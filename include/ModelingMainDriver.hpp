@@ -53,9 +53,9 @@ private:
     std::shared_ptr<StopFlagObserver> m_stopObserver; ///< Observer for managing stop requests.
 
     /* All the neccessary data members from the mesh. */
+    GmshSessionManager m_gmshSessionManager; ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
     ConfigParser m_config;                   ///< `ConfigParser` object to get all the simulation physical parameters.
     SurfaceMesh m_surfaceMesh;               ///< Surface mesh containing triangle cell map, triangles vector and AABB tree for the collision finding optimizations.
-    GmshSessionManager m_gmshSessionManager; ///< Object of the volume creator that is RAII object that initializes and finalizes GMSH. Needed to initialize all necessary objects from the mesh.
 
     /* All the neccessary data members for the simulation. */
     ParticleVector m_particles;           ///< Projective particles.

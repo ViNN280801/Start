@@ -159,6 +159,8 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
 {
     try
     {
+        std::cout << "ParticleDynamicsProcessor::_process_ompver__: SurfaceMesh address: " << &surfaceMesh << std::endl;
+
         // Set the number of OpenMP threads.
         omp_set_num_threads(numThreads);
 
@@ -176,7 +178,7 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
                 ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
             // 3. Record previous position.
-            Point const &prev{particle.getCentre()};
+            Point prev{particle.getCentre()};
             ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
             // 4. Update position.
@@ -193,13 +195,10 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
                 continue;
 
             // 7. Surface collision.
-            auto triangleIdOpt{ParticleSurfaceCollisionHandler::handle(particle, ray, particles.size(),
-                                                                       surfaceMesh, sh_mutex_settledParticlesCounterMap,
-                                                                       mutex_particlesMovementMap,
-                                                                       particleMovementMap, settledParticlesIds, stopSubject)};
-            if (triangleIdOpt.has_value())
-                ParticleSettler::settle(particle.getId(), triangleIdOpt.value(), particles.size(),
-                                        surfaceMesh, sh_mutex_settledParticlesCounterMap, settledParticlesIds, stopSubject);
+            ParticleSurfaceCollisionHandler::handle(particle, ray, particles.size(),
+                                                    surfaceMesh, sh_mutex_settledParticlesCounterMap,
+                                                    mutex_particlesMovementMap,
+                                                    particleMovementMap, settledParticlesIds, stopSubject);
         }
     }
     catch (std::exception const &ex)

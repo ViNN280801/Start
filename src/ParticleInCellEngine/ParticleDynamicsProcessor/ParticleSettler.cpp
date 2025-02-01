@@ -22,9 +22,5 @@ void ParticleSettler::settle(size_t particleId,
 
     // 3. If current settled particles count >= count of particles - we need to stop the modeling process.
     if (surfaceMesh.getTotalCountOfSettledParticles() >= totalParticles)
-    {
-        // Notifying stop object (atomic_flag) to stop main modeling loop.
-        stopSubject.notifyStopRequested();
-        return;
-    }
+        stopSubject.notifyStopRequested(); // Notifying stop object (atomic_flag) to stop main modeling loop.
 }

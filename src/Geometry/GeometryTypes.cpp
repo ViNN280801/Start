@@ -37,7 +37,7 @@ void SurfaceMesh::_constructAABB()
         throw std::runtime_error("'m_triangles' is empty, failed to construct AABB tree for the surface mesh");
 
     // 3. Construct the AABB tree.
-    m_aabbTree.insert(m_triangles.begin(), m_triangles.end());
+    m_aabbTree.insert(m_triangles.cbegin(), m_triangles.cend());
     m_aabbTree.build();
 
     // 4. Checking AABB tree on after filling it with triangles vector.
