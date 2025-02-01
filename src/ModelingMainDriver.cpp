@@ -134,7 +134,7 @@ void ModelingMainDriver::_gfinalize()
 ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
     : m_config_filename(config_filename),
       m_config(config_filename),
-      m_surfaceMesh( m_config.getMeshFilename())
+      m_surfaceMesh(m_config.getMeshFilename())
 {
     // Checking mesh filename on validity and assign it to the class member.
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
@@ -151,42 +151,40 @@ ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 void ModelingMainDriver::startModeling()
 {
     /* Beginning of the FEM initialization. */
-    // FEMInitializer feminit(m_config);
-    // auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
-    // auto cubicGrid{feminit.getCubicGrid()};
-    // auto boundaryConditions{feminit.getBoundaryConditions()};
-    // auto solutionVector{feminit.getEquationRHS()};
+    FEMInitializer feminit(m_config);
+    auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
+    auto cubicGrid{feminit.getCubicGrid()};
+    auto boundaryConditions{feminit.getBoundaryConditions()};
+    auto solutionVector{feminit.getEquationRHS()};
     /* Ending of the FEM initialization. */
 
     /* == Beginning of the multithreading settings loading. == */
     auto numThreads{m_config.getNumThreads_s()};
     /* ======================== End ========================== */
 
-    std::cout << "ModelingMainDriver::startModeling: SurfaceMesh address: " << &m_surfaceMesh << std::endl;
-
     std::map<GlobalOrdinal, double> nodeChargeDensityMap;
     for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
     {
-        // NodeChargeDensityProcessor::gather(timeMoment,
-        //                                    m_config_filename,
-        //                                    cubicGrid,
-        //                                    gsmAssembler,
-        //                                    m_particles,
-        //                                    m_settledParticlesIds,
-        //                                    m_particleTracker,
-        //                                    nodeChargeDensityMap);
+        NodeChargeDensityProcessor::gather(timeMoment,
+                                           m_config_filename,
+                                           cubicGrid,
+                                           gsmAssembler,
+                                           m_particles,
+                                           m_settledParticlesIds,
+                                           m_particleTracker,
+                                           nodeChargeDensityMap);
 
-        // // 2. Solve equation in the main thread.
-        // ChargeDensityEquationSolver::solve(timeMoment,
-        //                                    m_config_filename,
-        //                                    nodeChargeDensityMap,
-        //                                    gsmAssembler,
-        //                                    solutionVector,
-        //                                    boundaryConditions);
+        // 2. Solve equation in the main thread.
+        ChargeDensityEquationSolver::solve(timeMoment,
+                                           m_config_filename,
+                                           nodeChargeDensityMap,
+                                           gsmAssembler,
+                                           solutionVector,
+                                           boundaryConditions);
 
         // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
         ParticleDynamicsProcessor::process(m_config_filename, m_particles, timeMoment, m_config.getTimeStep(),
-                                           numThreads, NULL, NULL, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
+                                           numThreads, cubicGrid, gsmAssembler, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
                                            m_settledParticlesMutex, m_particlesMovementMutex, m_particlesMovement,
                                            *this, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration);
 
