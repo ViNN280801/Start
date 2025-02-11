@@ -49,6 +49,7 @@ void SurfaceMesh::_initialize()
 {
     _fillTriangles();
     _constructAABB();
+    _findNeighbors();
 }
 
 SurfaceMesh::SurfaceMesh(std::string_view meshFilename)
@@ -79,3 +80,56 @@ size_t SurfaceMesh::getTotalCountOfSettledParticles() const noexcept
     return std::accumulate(m_triangleCellMap.cbegin(), m_triangleCellMap.cend(), size_t{}, [](size_t sum, auto const &entry)
                            { return sum + entry.second.count; });
 }
+
+void SurfaceMesh::_findNeighbors() {
+    // 1. Create a temporary edge map.
+    std::unordered_map<Edge, std::vector<size_t>, EdgeHash> edgeMap;
+    for (auto const &[id, cell] : m_triangleCellMap) 
+    {
+        // 2. Extract the edges of the triangle.
+        auto edges{getTriangleEdges(cell.triangle)};
+        
+        // 3. For each edge, add cellId to edgeMap.
+        for (auto const &edge : edges)
+            edgeMap[edge].push_back(id);
+    }
+
+    // 4. Find neighbors by common edges.
+    for (auto& [id, cell] : m_triangleCellMap) 
+    {
+        auto edges{getTriangleEdges(cell.triangle)};
+        std::unordered_set<size_t> neighbors;
+
+        // 5. For each edge, find neighbors.
+        for (auto const &edge : edges) 
+        {
+            if (auto it{edgeMap.find(edge)}; it != edgeMap.end()) 
+            {
+                for (auto neighbor_id : it->second)
+                    if (neighbor_id != id)
+                        neighbors.insert(neighbor_id);
+            }
+        }
+        
+        // 6. Save neighbors in the structure.
+        cell.neighbor_ids.assign(neighbors.begin(), neighbors.end());
+    }
+}
+
+std::vector<size_t> SurfaceMesh::getNeighborCells(size_t cellId) const 
+{
+    if (auto it{m_triangleCellMap.find(cellId)}; it != m_triangleCellMap.end())
+        return it->second.neighbor_ids;
+    throw std::out_of_range("Cell ID not found");
+}
+
+std::vector<Edge> getTriangleEdges(Triangle const &triangle)
+{
+    return {
+        Edge(triangle.vertex(0), triangle.vertex(1)),
+        Edge(triangle.vertex(1), triangle.vertex(2)),
+        Edge(triangle.vertex(2), triangle.vertex(0))
+    };
+}
+
+bool operator==(const Edge &a, const Edge &b) noexcept { return (a.p1 == b.p1 && a.p2 == b.p2) || (a.p1 == b.p2 && a.p2 == b.p1); }

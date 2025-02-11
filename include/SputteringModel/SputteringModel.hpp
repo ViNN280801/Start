@@ -24,11 +24,14 @@ private:
     SurfaceMesh m_surfaceMesh;                        ///< Surface mesh that contains cell data for all the cells and AABB tree for the surface mesh.
     ParticleMovementMap m_particlesMovement;          ///< Map to store all the particle movements: (Particle ID | All positions).
     ParticlesIDSet m_settledParticlesIds;             ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
+    int m_particleWeight{12};                         ///< Weight of the modeling particle.
 
     void _initializeObservers();
     void _ginitialize();
     void _updateSurfaceMesh();
     void _gfinalize();
+    void _distributeSettledParticles();
+    void _visualizeDeposition();
 
 public:
     SputteringModel(std::string_view mesh_filename, std::string_view physicalGroupName);
