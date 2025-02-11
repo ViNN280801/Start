@@ -176,10 +176,107 @@ void _saveParticleMovementsHdf5(ParticleMovementMap const &particlesMovement)
     }
 }
 
+double calculate_overlap_ratio(Triangle const& tri, double x_min, double x_max) 
+{
+    // Approximation: count the ratio of the vertices in the band
+    int vertices_inside = 0;
+    for (auto const& p : {tri.vertex(0), tri.vertex(1), tri.vertex(2)}) {
+        if (p.x() >= x_min && p.x() <= x_max) {
+            vertices_inside++;
+        }
+    }
+    return vertices_inside / 3.0; // Simplified calculation
+}
+
 void SputteringModel::_gfinalize()
 {
     _updateSurfaceMesh();
     _saveParticleMovementsHdf5(m_particlesMovement);
+
+    // Coordinates of the central axis (X=50, Y=0→20, Z=1)
+    constexpr double axis_center = 50.0; 
+    constexpr double epsilon = 2.0; // Width of the band ±2 cm from the axis
+
+    // Bounds of the area
+    constexpr double x_min = axis_center - epsilon;
+    constexpr double x_max = axis_center + epsilon;
+
+    auto const& triangleMap = m_surfaceMesh.getTriangleCellMap();
+    std::unordered_map<size_t, double> filtered_counts;
+
+    for (auto const& [id, cell] : triangleMap) 
+    {
+        // Get the coordinates of the centroid
+        Point centroid = TriangleCell::compute_centroid(cell.triangle);
+        
+        // Check if the centroid belongs to the band
+        if (centroid.x() < x_min || centroid.x() > x_max) 
+            continue;
+
+        // Calculate the ratio of the area in the band
+        double overlap_ratio = calculate_overlap_ratio(cell.triangle, x_min, x_max);
+        
+        // Consider only if >50% of the area is in the band
+        if (overlap_ratio >= 0.5)
+            filtered_counts[id] = cell.count * overlap_ratio;
+    }
+
+    // Grouping by Y-coordinate with a step of 1 cm
+    std::map<int, double> y_bins; 
+    
+    for (auto const& [id, count] : filtered_counts) {
+        Point centroid = TriangleCell::compute_centroid(triangleMap.at(id).triangle);
+        int y_bin = static_cast<int>(std::round(centroid.y()));
+        
+        y_bins[y_bin] += count;
+    }
+
+    // Visualization (example for GNUplot)
+    std::ofstream hist("histogram.dat");
+    for (auto const& [y, total] : y_bins) {
+        hist << y << " " << total << "\n";
+    }
+
+    // Generating Gnuplot script
+    std::ofstream gnuplot_script("plot_histogram.gp");
+    gnuplot_script <<
+        "set terminal pngcairo enhanced size 1920,1080\n"
+        "set output 'histogram.png'\n"
+        "set title 'Распределение осажденных частиц вдоль Y-оси'\n"
+        "set xlabel 'Y-координата, см'\n"
+        "set ylabel 'Количество частиц'\n"
+        "set grid\n"
+        "set style fill solid 0.5\n"
+        "plot 'histogram.dat' using 1:2 with boxes lc rgb '#1e90ff' title 'Осаждение'\n";
+    
+    // Running Gnuplot
+    int result = system("gnuplot -persist plot_histogram.gp");
+    
+    // Processing errors
+    if (result != 0) {
+        std::cerr << "Error in visualization: Gnuplot not found or script contains errors\n";
+    }
+
+    std::cout << "Треугольники в полосе [" << x_min << ", " << x_max << "]:\n";
+    std::cout << std::setw(10) << "ID" 
+              << std::setw(12) << "Centroid X" 
+              << std::setw(12) << "Overlap" 
+              << std::setw(12) << "Count\n";
+    
+    for (auto const& [id, cell] : m_surfaceMesh.getTriangleCellMap()) 
+    {
+        Point centroid = TriangleCell::compute_centroid(cell.triangle);
+        double overlap = calculate_overlap_ratio(cell.triangle, x_min, x_max);
+        
+        // Condition for output: any intersection with the band
+        if (overlap > 0.0) {
+            std::cout << std::setw(10) << id 
+                      << std::fixed << std::setprecision(2)
+                      << std::setw(12) << centroid.x()
+                      << std::setw(12) << overlap 
+                      << std::setw(12) << cell.count << "\n";
+        }
+    }
 }
 
 SputteringModel::SputteringModel(std::string_view mesh_filename, std::string_view physicalGroupName)
@@ -254,6 +351,11 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
     std::cout << "Введите вес 1-й моделируемой частицы: ";
     std::cin >> m_particleWeight;
+    if (m_particleWeight <= 1)
+    {
+        ERRMSG("Вес частицы не может быть меньше 1");
+        return;
+    }
     
     // 2.4. Calculating model count of particles on this surface.
     N = 10'000'000;
@@ -387,26 +489,24 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
 void SputteringModel::_distributeSettledParticles()
 {
-    try 
+    try
     {
-        int const exponent{m_particleWeight};
-        double const weight{std::pow(10, exponent)};
-        
-        std::vector<std::array<double, 3>> realParticles;
+        double const weight{std::pow(10, m_particleWeight)};
         auto const &triangleMap{m_surfaceMesh.getTriangleCellMap()};
         
-        // Parallel section
+        std::vector<std::array<double, 3>> realParticles;
+        std::unordered_map<size_t, size_t> realCounts;
+
         #pragma omp parallel
         {
-            // Local buffer for each thread
-            std::vector<std::array<double, 3>> local_particles;
-            
             // Thread-safe random number generator
             std::random_device rd;
             std::mt19937 gen(rd() + omp_get_thread_num());
             std::normal_distribution<> dist(0.0, 0.1);
 
-            // Parallel loop with dynamic distribution
+            std::vector<std::array<double, 3>> local_particles;
+            std::unordered_map<size_t, size_t> localCounts;
+            
             #pragma omp for schedule(dynamic)
             for (size_t idx = 0; idx < triangleMap.size(); ++idx)
             {
@@ -421,25 +521,28 @@ void SputteringModel::_distributeSettledParticles()
                 target_cells.insert(target_cells.end(), neighbors.begin(), neighbors.end());
 
                 // Calculate the total area
-                double total_area{};
+                double total_area = 0.0;
                 for (auto const &cell_id : target_cells)
                     total_area += triangleMap.at(cell_id).area;
 
-                // Distribution of particles
+                // Calculate the real particles for each related cell
                 for (auto const& cell_id : target_cells)
                 {
                     auto const& target_cell = triangleMap.at(cell_id);
                     double ratio = target_cell.area / total_area;
                     size_t num_particles = static_cast<size_t>(cell.count * weight * ratio);
                     
-                    Point centroid = TriangleCell::compute_centroid(target_cell.triangle);
+                    #pragma omp critical
+                    {
+                        localCounts[cell_id] += num_particles;
+                    }
                     
-                    // Generating particles
-                    #pragma omp simd
+                    Point centroid{TriangleCell::compute_centroid(target_cell.triangle)};
+                    
                     for (size_t i = 0; i < num_particles; ++i)
                     {
-                        double dx = dist(gen) * target_cell.area;
-                        double dy = dist(gen) * target_cell.area;
+                        double dx{dist(gen) * target_cell.area};
+                        double dy{dist(gen) * target_cell.area};
                         
                         local_particles.push_back({
                             centroid.x() + dx,
@@ -449,12 +552,24 @@ void SputteringModel::_distributeSettledParticles()
                     }
                 }
             }
-            
-            // Merging results
+
             #pragma omp critical
-            realParticles.insert(realParticles.end(), 
-                               local_particles.begin(), 
-                               local_particles.end());
+            {
+                realParticles.insert(realParticles.end(), local_particles.begin(), local_particles.end());
+                for (auto const& [cid, cnt] : localCounts)
+                    realCounts[cid] += cnt;
+            }
+        }
+
+        // Обновление счетчиков в surfaceMesh
+        #pragma omp parallel for
+        for (size_t idx = 0; idx < triangleMap.size(); ++idx)
+        {
+            auto it = std::next(triangleMap.begin(), idx);
+            auto const& [id, cell] = *it;
+            
+            if (realCounts.count(id))
+                const_cast<TriangleCell&>(cell).count = realCounts[id];
         }
 
         // 2. Check if it's directory and has write permissions
@@ -513,9 +628,13 @@ void SputteringModel::_distributeSettledParticles()
         SUCCESSMSG(util::stringify("Successfully saved ", realParticles.size(), " particles to ", filepath));
     }
     catch (const std::exception& e) {
-        ERRMSG(util::stringify("HDF5 Error: ", e.what()));
+        ERRMSG(util::stringify("Error: ", e.what()));
     }
     catch (...) {
-        ERRMSG("Unknown HDF5 error");
+        ERRMSG("Unknown error");
     }
+
+    for (auto const &[id, cell] : m_surfaceMesh.getTriangleCellMap())
+        if (cell.count > 0)
+            std::cout << "Triangle[" << id << "] = " << cell.count << "\n";
 }
