@@ -113,7 +113,7 @@ struct TriangleCell
  * @brief Edge struct.
  * @details This struct is used to store the edges of the triangles.
  */
-struct Edge 
+struct Edge
 {
     Point p1, p2;
     Edge(const Point &a, const Point &b) : p1(a < b ? a : b), p2(a < b ? b : a) {}
