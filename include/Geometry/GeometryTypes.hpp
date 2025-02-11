@@ -28,9 +28,10 @@ using Tetrahedron = Kernel::Tetrahedron_3;                          ///< 3D tetr
  */
 struct TriangleCell
 {
-    Triangle triangle; ///< Geometric representation of the triangle.
-    double area;       ///< Precomputed area of the triangle (dS).
-    size_t count;      ///< Counter of settled particles on this triangle.
+    Triangle triangle;                  ///< Geometric representation of the triangle.
+    double area;                        ///< Precomputed area of the triangle (dS).
+    size_t count;                       ///< Counter of settled particles on this triangle.
+    std::vector<size_t> neighbor_ids{}; ///< IDs of neighboring cells.
 
     /**
      * @brief Computes the geometric centroid of a triangle from its vertices.
@@ -39,9 +40,9 @@ struct TriangleCell
      * using the coordinates of its three vertices. The centroid is computed as the average
      * of the three vertices' coordinates:
      * \f[
-     * C_x = \frac{x_1 + x_2 + x_3}{3},
-     * C_y = \frac{y_1 + y_2 + y_3}{3},
-     * C_z = \frac{z_1 + z_2 + z_3}{3}
+     * C_x = \frac{x_1 + x_2 + x_3}{3}, x1+x2+x3/3
+     * C_y = \frac{y_1 + y_2 + y_3}{3}, y1+y2+y3/3
+     * C_z = \frac{z_1 + z_2 + z_3}{3}, z1+z2+z3/3
      * \f]
      *
      * @param p1 First vertex of the triangle (Kernel::Point_3)
@@ -62,9 +63,9 @@ struct TriangleCell
      * using the coordinates of its three vertices. The centroid is computed as the average
      * of the three vertices' coordinates:
      * \f[
-     * C_x = \frac{x_1 + x_2 + x_3}{3},
-     * C_y = \frac{y_1 + y_2 + y_3}{3},
-     * C_z = \frac{z_1 + z_2 + z_3}{3}
+     * C_x = \frac{x_1 + x_2 + x_3}{3}, x1+x2+x3/3
+     * C_y = \frac{y_1 + y_2 + y_3}{3}, y1+y2+y3/3
+     * C_z = \frac{z_1 + z_2 + z_3}{3}, z1+z2+z3/3
      * \f]
      *
      * @param triangle_ The triangle whose area is to be computed.
@@ -107,6 +108,44 @@ struct TriangleCell
      */
     static double compute_area(Triangle const &triangle_) { return Kernel::Compute_area_3()(triangle_.vertex(0), triangle_.vertex(1), triangle_.vertex(2)); }
 };
+
+/**
+ * @brief Edge struct.
+ * @details This struct is used to store the edges of the triangles.
+ */
+struct Edge 
+{
+    Point p1, p2;
+    Edge(const Point &a, const Point &b) : p1(a < b ? a : b), p2(a < b ? b : a) {}
+};
+
+/**
+ * @brief getTriangleEdges function.
+ * @details This function is used to get the edges of the triangles.
+ * @param triangle The triangle to get the edges of.
+ * @return std::vector<Edge> The edges of the triangle.
+ */
+std::vector<Edge> getTriangleEdges(Triangle const &triangle);
+
+/**
+ * @brief EdgeHash struct.
+ * @details This struct is used to hash the edges of the triangles.
+ */
+struct EdgeHash 
+{
+    size_t operator()(const Edge &e) const 
+    {
+        auto hash1{CGAL::hash_value(e.p1)};
+        auto hash2{CGAL::hash_value(e.p2)};
+        return hash1 ^ (hash2 << 1);
+    }
+};
+
+/**
+ * @brief operator== for Edge struct.
+ * @details This operator is used to compare the edges of the triangles.
+ */
+bool operator==(const Edge &a, const Edge &b) noexcept;
 
 /**
  * @brief A map for storing and accessing triangle cells by their unique IDs.
@@ -256,6 +295,12 @@ private:
     void _constructAABB();
 
     /**
+     * @brief Finds and sets neighboring cells for all triangles
+     * @details Two cells are considered neighbors if they share an edge
+     */
+    void _findNeighbors();
+
+    /**
      * @brief Initializes the surface mesh by populating triangles and constructing the AABB tree.
      *
      * This method calls `_fillTriangles()` and `_constructAABB()` in sequence, ensuring that:
@@ -388,6 +433,14 @@ public:
      * - A lambda function extracts the `count` from each `TriangleCell` in `m_triangleCellMap`.
      */
     size_t getTotalCountOfSettledParticles() const noexcept;
+
+    /**
+     * @brief Gets the IDs of neighboring cells for a given triangle.
+     * @param cellId ID of the target cell.
+     * @return Vector of IDs of neighboring cells.
+     * @throw std::out_of_range If cellId does not exist.
+     */
+    std::vector<size_t> getNeighborCells(size_t cellId) const;
 };
 
 #endif // !GEOMETRY_TYPES_HPP
