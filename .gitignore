@@ -53,8 +53,9 @@ all_tests
 # GNU plot files
 *.gp
 
-# CSVs
+# Data files
 *.csv
+*.dat
 
 # Archives
 *.tar*
