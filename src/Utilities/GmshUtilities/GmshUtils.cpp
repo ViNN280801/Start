@@ -81,7 +81,6 @@ TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_
 
     // Step 1: Find the physical group with the specified name.
     int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName, meshFilename)};
-    SUCCESSMSG(util::stringify("Target group tag: ", targetGroupTag, ". For the physical group name: ", physicalGroupName));
 
     // Step 2: Get the nodes associated with the searching surface physical group.
     std::vector<size_t> targetNodeTags;
