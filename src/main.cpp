@@ -1,5 +1,4 @@
 #include "ModelingMainDriver.hpp"
-
 #include "SputteringModel/SputteringModel.hpp"
 
 int main(int argc, char *argv[])
