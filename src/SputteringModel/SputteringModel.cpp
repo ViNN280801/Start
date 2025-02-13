@@ -176,18 +176,55 @@ void _saveParticleMovementsHdf5(ParticleMovementMap const &particlesMovement)
     }
 }
 
-double calculate_overlap_ratio(Triangle const &tri, double x_min, double x_max)
+#include <CGAL/Boolean_set_operations_2.h>
+#include <CGAL/Point_2.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/Polygon_with_holes_2.h>
+#include <list>
+
+using Kernel2 = CGAL::Exact_predicates_inexact_constructions_kernel;
+using Point_2 = CGAL::Point_2<Kernel2>;
+using Polygon_2 = CGAL::Polygon_2<Kernel2>;
+using Polygon_with_holes_2 = CGAL::Polygon_with_holes_2<Kernel2>;
+
+double calculate_overlap_ratio(const CGAL::Triangle_3<Kernel2> &tri, double x_min, double x_max)
 {
-    // Approximation: count the ratio of the vertices in the band
-    int vertices_inside = 0;
-    for (auto const &p : {tri.vertex(0), tri.vertex(1), tri.vertex(2)})
+    // Creating a 2D triangle by projecting vertices onto the XY-plane.
+    Polygon_2 triangle_poly;
+    triangle_poly.push_back(Point_2(tri.vertex(0).x(), tri.vertex(0).y()));
+    triangle_poly.push_back(Point_2(tri.vertex(1).x(), tri.vertex(1).y()));
+    triangle_poly.push_back(Point_2(tri.vertex(2).x(), tri.vertex(2).y()));
+
+    // Define the band as a rectangle.
+    double y_min = std::min({tri.vertex(0).y(), tri.vertex(1).y(), tri.vertex(2).y()}) - 1.0;
+    double y_max = std::max({tri.vertex(0).y(), tri.vertex(1).y(), tri.vertex(2).y()}) + 1.0;
+
+    Polygon_2 band;
+    band.push_back(Point_2(x_min, y_min));
+    band.push_back(Point_2(x_max, y_min));
+    band.push_back(Point_2(x_max, y_max));
+    band.push_back(Point_2(x_min, y_max));
+
+    // Compute the intersection; note we store the result as polygons with holes.
+    std::list<Polygon_with_holes_2> intersection_polys;
+    CGAL::intersection(triangle_poly, band, std::back_inserter(intersection_polys));
+
+    double area_triangle = std::abs(triangle_poly.area());
+    double area_intersection = 0.0;
+
+    for (const auto &pwh : intersection_polys)
     {
-        if (p.x() >= x_min && p.x() <= x_max)
-        {
-            vertices_inside++;
-        }
+        // Calculate the area of the outer boundary.
+        double pwh_area = std::abs(pwh.outer_boundary().area());
+
+        // Subtract the area of holes if any.
+        for (auto hit = pwh.holes_begin(); hit != pwh.holes_end(); ++hit)
+            pwh_area -= std::abs(hit->area());
+
+        area_intersection += pwh_area;
     }
-    return vertices_inside / 3.0; // Simplified calculation
+
+    return (area_triangle > 0) ? (area_intersection / area_triangle) : 0.0;
 }
 
 void SputteringModel::_gfinalize()
@@ -209,14 +246,14 @@ void SputteringModel::_gfinalize()
     for (auto const &[id, cell] : triangleMap)
     {
         // Get the coordinates of the centroid
-        Point centroid = TriangleCell::compute_centroid(cell.triangle);
+        Point centroid{TriangleCell::compute_centroid(cell.triangle)};
 
         // Check if the centroid belongs to the band
         if (centroid.x() < x_min || centroid.x() > x_max)
             continue;
 
         // Calculate the ratio of the area in the band
-        double overlap_ratio = calculate_overlap_ratio(cell.triangle, x_min, x_max);
+        double overlap_ratio{calculate_overlap_ratio(cell.triangle, x_min, x_max)};
 
         // Consider only if >75% of the area is in the band
         if (overlap_ratio >= 0.75)
@@ -252,8 +289,8 @@ void SputteringModel::_gfinalize()
         Point centroid = TriangleCell::compute_centroid(cell.triangle);
         double overlap = calculate_overlap_ratio(cell.triangle, x_min, x_max);
 
-        // Condition for output: any intersection with the band
-        if (overlap > 0.0)
+        // Condition for output: 75% of the area of the triangle is in the band
+        if (overlap > 0.75)
         {
             std::cout << std::setw(10) << id
                       << std::fixed << std::setprecision(2)
@@ -345,7 +382,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
     }
 
     // 2.4. Calculating model count of particles on this surface.
-    N = 10'000'000;
+    N = 100'000'000;
     double N_model{std::ceil(N / std::pow(10, m_particleWeight))};
     std::cout << "Таким образом " << N << " реальных частиц = " << N_model << " модельных частиц\n";
 
