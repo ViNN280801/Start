@@ -227,20 +227,20 @@ double calculate_overlap_ratio(const CGAL::Triangle_3<Kernel2> &tri, double x_mi
     return (area_triangle > 0) ? (area_intersection / area_triangle) : 0.0;
 }
 
-void SputteringModel::_gfinalize()
+void SputteringModel::_writeHistogramToFile()
 {
-    _updateSurfaceMesh();
-    _saveParticleMovementsHdf5(m_particlesMovement);
-
+    // =============================================
+    // === 4. Writing the histogram to the file  ===
+    // =============================================
     // Coordinates of the central axis (X=50, Y=0→20, Z=1)
-    constexpr double axis_center = 50.0;
-    constexpr double epsilon = 2.0; // Width of the band ±2 cm from the axis
+    constexpr double axis_center{50.0};
+    constexpr double epsilon{2.0}; // Width of the band ±2 cm from the axis
 
     // Bounds of the area
-    constexpr double x_min = axis_center - epsilon;
-    constexpr double x_max = axis_center + epsilon;
+    constexpr double x_min{axis_center - epsilon};
+    constexpr double x_max{axis_center + epsilon};
 
-    auto const &triangleMap = m_surfaceMesh.getTriangleCellMap();
+    auto const &triangleMap{m_surfaceMesh.getTriangleCellMap()};
     std::unordered_map<size_t, double> filtered_counts;
 
     for (auto const &[id, cell] : triangleMap)
@@ -260,25 +260,24 @@ void SputteringModel::_gfinalize()
             filtered_counts[id] = cell.count * overlap_ratio;
     }
 
-    // Grouping by Y-coordinate with a step of 1 cm
-    std::map<int, double> y_bins;
-
+    // Grouping by Y-coordinate with a step of 0.5 cm
+    constexpr double bin_size{0.5};
+    std::map<double, double> y_bins;
     for (auto const &[id, count] : filtered_counts)
     {
-        Point centroid = TriangleCell::compute_centroid(triangleMap.at(id).triangle);
-        int y_bin = static_cast<int>(std::round(centroid.y()));
+        Point centroid{TriangleCell::compute_centroid(triangleMap.at(id).triangle)};
 
-        y_bins[y_bin] += count;
+        // Calculate the bin by taking the floor of (Y / bin_size) and then multiplying back.
+        double bin{std::floor(centroid.y() / bin_size) * bin_size};
+        y_bins[bin] += count;
     }
 
-    // Visualization (example for GNUplot)
-    std::ofstream hist("histogram.dat");
+    // Writing the histogram to the file in format: y_bin, count
+    std::ofstream hist("results/histogram.dat");
     for (auto const &[y, total] : y_bins)
-    {
         hist << y << " " << total << "\n";
-    }
 
-    std::cout << "Треугольники в полосе [" << x_min << ", " << x_max << "]:\n";
+    std::cout << "Triangles in the band [" << x_min << ", " << x_max << "]:\n";
     std::cout << std::setw(10) << "ID"
               << std::setw(12) << "Centroid X"
               << std::setw(12) << "Overlap"
@@ -286,8 +285,8 @@ void SputteringModel::_gfinalize()
 
     for (auto const &[id, cell] : m_surfaceMesh.getTriangleCellMap())
     {
-        Point centroid = TriangleCell::compute_centroid(cell.triangle);
-        double overlap = calculate_overlap_ratio(cell.triangle, x_min, x_max);
+        Point centroid{TriangleCell::compute_centroid(cell.triangle)};
+        double overlap{calculate_overlap_ratio(cell.triangle, x_min, x_max)};
 
         // Condition for output: 75% of the area of the triangle is in the band
         if (overlap > 0.75)
@@ -301,14 +300,36 @@ void SputteringModel::_gfinalize()
     }
 }
 
+void SputteringModel::_gfinalize()
+{
+    _updateSurfaceMesh();
+    _saveParticleMovementsHdf5(m_particlesMovement);
+    _distributeSettledParticles();
+    _writeHistogramToFile();
+
+    std::ofstream hist("results/kde.dat");
+    if (!hist.is_open())
+    {
+        ERRMSG("Failed to open histogram.dat for writing.");
+        return;
+    }
+    hist << "# X-coordinate(cm) Y-coordinate(cm) Count\n";
+
+    for (auto const &[id, cell] : m_surfaceMesh.getTriangleCellMap())
+    {
+        if (cell.count > 0)
+        {
+            Point centroid{TriangleCell::compute_centroid(cell.triangle)};
+            hist << centroid.x() << " " << centroid.y() << " " << cell.count << "\n";
+        }
+    }
+    hist.close();
+}
+
 SputteringModel::SputteringModel(std::string_view mesh_filename, std::string_view physicalGroupName)
     : m_mesh_filename(mesh_filename) { _ginitialize(); }
 
-SputteringModel::~SputteringModel()
-{
-    _gfinalize();
-    _distributeSettledParticles();
-}
+SputteringModel::~SputteringModel() { _gfinalize(); }
 
 void SputteringModel::startModeling(unsigned int numThreads)
 {
@@ -523,7 +544,8 @@ void SputteringModel::_distributeSettledParticles()
 
 #pragma omp parallel
         {
-            // Thread-safe random number generator
+            // Thread-safe random number generator: each thread has its own
+            // to avoid generating the same random numbers.
             std::random_device rd;
             std::mt19937 gen(rd() + omp_get_thread_num());
             std::normal_distribution<> dist(0.0, 0.1);
@@ -584,7 +606,7 @@ void SputteringModel::_distributeSettledParticles()
             }
         }
 
-// Обновление счетчиков в surfaceMesh
+// Updaing counters in surfaceMesh
 #pragma omp parallel for
         for (size_t idx = 0; idx < triangleMap.size(); ++idx)
         {
@@ -613,15 +635,16 @@ void SputteringModel::_distributeSettledParticles()
 
         // 3. Create file with error checking
         std::string const filepath = dir_path + "/settled_particles.hdf5";
-        hid_t file_id = H5Fcreate(filepath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        hid_t file_id = H5Fcreate(filepath.c_str(),
+                                  H5F_ACC_TRUNC,
+                                  H5P_DEFAULT,
+                                  H5P_DEFAULT);
         if (file_id < 0)
-        {
             throw std::runtime_error("HDF5 file creation failed");
-        }
 
         // 4. Create dataspace
         hsize_t dims[2] = {realParticles.size(), 3};
-        hid_t dataspace = H5Screate_simple(2, dims, NULL);
+        hid_t dataspace{H5Screate_simple(2, dims, NULL)};
         if (dataspace < 0)
         {
             H5Fclose(file_id);
@@ -629,8 +652,13 @@ void SputteringModel::_distributeSettledParticles()
         }
 
         // 5. Create dataset
-        hid_t dataset = H5Dcreate2(file_id, "settled_particles", H5T_NATIVE_DOUBLE,
-                                   dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        hid_t dataset = H5Dcreate2(file_id,
+                                   "settled_particles",
+                                   H5T_NATIVE_DOUBLE,
+                                   dataspace,
+                                   H5P_DEFAULT,
+                                   H5P_DEFAULT,
+                                   H5P_DEFAULT);
         if (dataset < 0)
         {
             H5Sclose(dataspace);
@@ -639,7 +667,12 @@ void SputteringModel::_distributeSettledParticles()
         }
 
         // 6. Write data
-        herr_t status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, realParticles.data());
+        herr_t status{H5Dwrite(dataset,
+                               H5T_NATIVE_DOUBLE,
+                               H5S_ALL,
+                               H5S_ALL,
+                               H5P_DEFAULT,
+                               realParticles.data())};
         if (status < 0)
         {
             H5Dclose(dataset);

@@ -29,9 +29,11 @@ private:
     void _initializeObservers();
     void _ginitialize();
     void _updateSurfaceMesh();
-    void _gfinalize();
+    
     void _distributeSettledParticles();
-    void _visualizeDeposition();
+    void _writeHistogramToFile();
+    
+    void _gfinalize();
 
 public:
     SputteringModel(std::string_view mesh_filename, std::string_view physicalGroupName);
