@@ -312,6 +312,8 @@ private:
     void _initialize();
 
 public:
+    SurfaceMesh() = default;
+
     /**
      * @brief Constructs a SurfaceMesh from a given mesh file.
      *
