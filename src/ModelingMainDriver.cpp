@@ -150,50 +150,123 @@ ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::startModeling()
 {
-    /* Beginning of the FEM initialization. */
-    FEMInitializer feminit(m_config);
-    auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
-    auto cubicGrid{feminit.getCubicGrid()};
-    auto boundaryConditions{feminit.getBoundaryConditions()};
-    auto solutionVector{feminit.getEquationRHS()};
-    /* Ending of the FEM initialization. */
+    // =============================================
+    // === Default main modeling  ==================
+    // =============================================
+    // /* Beginning of the FEM initialization. */
+    // FEMInitializer feminit(m_config);
+    // auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
+    // auto cubicGrid{feminit.getCubicGrid()};
+    // auto boundaryConditions{feminit.getBoundaryConditions()};
+    // auto solutionVector{feminit.getEquationRHS()};
+    // /* Ending of the FEM initialization. */
 
-    /* == Beginning of the multithreading settings loading. == */
-    auto numThreads{m_config.getNumThreads_s()};
-    /* ======================== End ========================== */
+    // /* == Beginning of the multithreading settings loading. == */
+    // auto numThreads{m_config.getNumThreads_s()};
+    // /* ======================== End ========================== */
 
-    std::map<GlobalOrdinal, double> nodeChargeDensityMap;
-    for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
+    // std::map<GlobalOrdinal, double> nodeChargeDensityMap;
+    // for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
+    // {
+    //     NodeChargeDensityProcessor::gather(timeMoment,
+    //                                        m_config_filename,
+    //                                        cubicGrid,
+    //                                        gsmAssembler,
+    //                                        m_particles,
+    //                                        m_settledParticlesIds,
+    //                                        m_particleTracker,
+    //                                        nodeChargeDensityMap);
+
+    //     // 2. Solve equation in the main thread.
+    //     ChargeDensityEquationSolver::solve(timeMoment,
+    //                                        m_config_filename,
+    //                                        nodeChargeDensityMap,
+    //                                        gsmAssembler,
+    //                                        solutionVector,
+    //                                        boundaryConditions);
+
+    //     // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
+    //     ParticleDynamicsProcessor::process(m_config_filename, m_particles, timeMoment, m_config.getTimeStep(),
+    //                                        numThreads, cubicGrid, gsmAssembler, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
+    //                                        m_settledParticlesMutex, m_particlesMovementMutex, m_particlesMovement,
+    //                                        *this, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration);
+
+    //     if (m_stop_processing.test())
+    //     {
+    //         SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
+    //                                    "Last time moment is: ", timeMoment, "s."));
+    //     }
+    //     SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ",
+    //                                m_surfaceMesh.getTotalCountOfSettledParticles(), "/", m_particles.size(), " particles."));
+    // }
+
+    // =============================================
+    // === Sputtering modeling  ====================
+    // =============================================
+    double timeStep{m_config.getTimeStep()};
+    double totalTime{m_config.getSimulationTime()};
+    unsigned int numThreads{m_config.getNumThreads_s()};
+
+    for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test(); timeMoment += timeStep)
     {
-        NodeChargeDensityProcessor::gather(timeMoment,
-                                           m_config_filename,
-                                           cubicGrid,
-                                           gsmAssembler,
-                                           m_particles,
-                                           m_settledParticlesIds,
-                                           m_particleTracker,
-                                           nodeChargeDensityMap);
+        try
+        {
+            omp_set_num_threads(numThreads);
 
-        // 2. Solve equation in the main thread.
-        ChargeDensityEquationSolver::solve(timeMoment,
-                                           m_config_filename,
-                                           nodeChargeDensityMap,
-                                           gsmAssembler,
-                                           solutionVector,
-                                           boundaryConditions);
+#pragma omp parallel for schedule(dynamic)
+            for (size_t i = 0ul; i < m_particles.size(); ++i)
+            {
+                auto &particle = m_particles[i];
 
-        // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
-        ParticleDynamicsProcessor::process(m_config_filename, m_particles, timeMoment, m_config.getTimeStep(),
-                                           numThreads, cubicGrid, gsmAssembler, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
-                                           m_settledParticlesMutex, m_particlesMovementMutex, m_particlesMovement,
-                                           *this, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration);
+                // 1. Check if particle is settled.
+                if (ParticleSettler::isSettled(particle.getId(), m_settledParticlesIds, m_settledParticlesMutex))
+                    continue;
+
+                // 2. Electromagnetic push (Here is no need to do EM-push).
+                // @remark In the sputtering model there is no any field, so, there is no need to do EM-push.
+                // m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetrahedronId);
+
+                // 3. Record previous position.
+                Point prev{particle.getCentre()};
+                ParticleMovementTracker::recordMovement(m_particlesMovement, m_particlesMovementMutex, particle.getId(), prev);
+
+                // 4. Update position.
+                particle.updatePosition(timeStep);
+                Ray ray(prev, particle.getCentre());
+
+                // 5. Gas collision.
+                ParticlePhysicsUpdater::collideWithGas(particle, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration, timeStep);
+
+                // 6. Skip surface collision checks if t == 0.
+                if (timeMoment == 0.0)
+                    continue;
+
+                // 7. Surface collision.
+                ParticleSurfaceCollisionHandler::handle(particle,
+                                                        ray,
+                                                        m_particles.size(),
+                                                        m_surfaceMesh,
+                                                        m_settledParticlesMutex,
+                                                        m_particlesMovementMutex,
+                                                        m_particlesMovement,
+                                                        m_settledParticlesIds,
+                                                        *this);
+            }
+        }
+        catch (std::exception const &ex)
+        {
+            ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
+        }
+        catch (...)
+        {
+            ERRMSG("Some error occured while detecting particles collisions with surfaces (OMP)");
+        }
 
         if (m_stop_processing.test())
         {
             SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
         }
-        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ",
-                                   m_surfaceMesh.getTotalCountOfSettledParticles(), "/", m_particles.size(), " particles."));
+        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", m_settledParticlesIds.size(), "/", m_particles.size(), " particles."));
     }
 }
