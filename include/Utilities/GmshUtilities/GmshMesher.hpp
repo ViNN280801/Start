@@ -23,16 +23,19 @@ enum class MeshType
 class GmshMesher
 {
 private:
-    double m_unit;      ///< Unit scaling factor (e.g. [mm], [cm], [m]).
-    double m_cell_size; ///< Default cell size for uniform meshes.
-    MeshType m_mesh_type; ///< Type of the mesh (Uniform, Adaptive).
+    std::string m_mesh_filename;      ///< Filename of the mesh file.
+    double m_unit;                    ///< Unit scaling factor (e.g. [mm], [cm], [m]).
+    double m_cell_size;               ///< Default cell size for uniform meshes.
+    MeshType m_mesh_type;             ///< Type of the mesh (Uniform, Adaptive).
 
 public:
     /**
      * @brief Constructor for GmshMesher.
      *
      * Initializes the GmshMesher with specified unit scaling and default cell size.
-     *
+     * 
+     * @param mesh_filename Filename of the name with .msh extension. 
+     *                      If the filename does not end with `.msh`, the extension is appended automatically.
      * @param mesh_type Type of the mesh to apply (need for checking).
      * @param cell_size Default cell size for uniform meshes.
      * @param unit Unit scaling factor (e.g., 1.0 for millimeters). All mesh parameters
@@ -45,7 +48,7 @@ public:
      * GmshMesher mesher(1.0, 5.0);
      * @endcode
      */
-    GmshMesher(MeshType mesh_type, double cellSize, double unit);
+    GmshMesher(std::string_view mesh_filename, MeshType mesh_type, double cellSize, double unit);
 
     /**
      * @brief Applies a mesh to the Gmsh model, either uniform or adaptive.
@@ -110,7 +113,7 @@ public:
      * @see applyAdaptiveMesh()
      */
     void applyMesh(MeshType meshType,
-                   std::vector<int> const &boundaryTags = GmshUtils::getAllBoundaryTags(),
+                   std::vector<int> const &boundaryTags,
                    int inFieldTag = 1,
                    double sizeMin = 1.0,
                    double sizeMax = 100.0,
@@ -167,8 +170,6 @@ public:
      * it will be appended automatically. The method validates input parameters and provides error handling
      * for potential failures during mesh generation.
      *
-     * @param filename The name of the file to save the generated mesh.
-     *                 If the filename does not end with `.msh`, the extension is appended automatically.
      * @param dimension The dimension of the mesh to generate (2D or 3D).
      *                  Valid values are:
      *                  - `2`: Generate a 2D mesh.
@@ -216,7 +217,7 @@ public:
      * @see gmsh::model::mesh::generate()
      * @see gmsh::write()
      */
-    void generateMeshfile(std::string_view filename, int dimension) const;
+    void generateMeshfile(int dimension) const;
 };
 
 #endif // !GMSHMESHER_HPP

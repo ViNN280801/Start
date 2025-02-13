@@ -4,7 +4,7 @@
 #include "SputteringModel/TwoPlatesCreator.hpp"
 
 TwoPlatesCreator::TwoPlatesCreator(MeshType mesh_type, double cell_size, double unit)
-    : m_gmsh_mesher(mesh_type, unit, cell_size), m_mesh_type(mesh_type), m_cell_size(cell_size), m_unit(unit)
+    : m_gmsh_mesher(kdefault_mesh_filename, mesh_type, unit, cell_size), m_mesh_type(mesh_type), m_cell_size(cell_size), m_unit(unit)
 {
     static_assert(std::is_floating_point_v<decltype(cell_size)>, "cell_size must be a floating-point type.");
 
@@ -39,8 +39,8 @@ void TwoPlatesCreator::generateMeshfile(int dimension)
 {
     try
     {
-        m_gmsh_mesher.applyMesh(m_mesh_type);
-        m_gmsh_mesher.generateMeshfile(kdefault_mesh_filename, dimension);
+        m_gmsh_mesher.applyMesh(m_mesh_type, GmshUtils::getAllBoundaryTags());
+        m_gmsh_mesher.generateMeshfile(dimension);
 
         SUCCESSMSG(util::stringify("Model successfully created and saved to the file '", kdefault_mesh_filename));
     }
@@ -56,21 +56,22 @@ void TwoPlatesCreator::generateMeshfile(int dimension)
 
 void TwoPlatesCreator::setTargetSurface() const
 {
-    int targetSurfaceTag{GmshUtils::findSurfaceTagByCoords<double>(kdefault_target_point_coords)};
+    int targetSurfaceTag{11}; // Magic number from Gmsh GUI app for the target surface.
     int targetGroupTag{gmsh::model::addPhysicalGroup(2, {targetSurfaceTag})};
     gmsh::model::setPhysicalName(2, targetGroupTag, kdefault_target_name);
 }
 
 void TwoPlatesCreator::setSubstrateSurface() const
 {
-    int targetSurfaceTag{GmshUtils::findSurfaceTagByCoords<double>(kdefault_substrate_point_coords)};
-    int targetGroupTag{gmsh::model::addPhysicalGroup(2, {targetSurfaceTag})};
-    gmsh::model::setPhysicalName(2, targetGroupTag, kdefault_substrate_name);
+    int substrateSurfaceTag{6}; // Magic number from Gmsh GUI app for the substrate surface.
+    int substrateGroupTag{gmsh::model::addPhysicalGroup(2, {substrateSurfaceTag})};
+    gmsh::model::setPhysicalName(2, substrateGroupTag, kdefault_substrate_name);
 }
 
 surface_source_t TwoPlatesCreator::prepareDataForSpawnParticles(size_t N_model, double energy_eV) const
 {
-    auto const &triangleCentersMap{GmshUtils::getCellCentersByPhysicalGroupName(kdefault_target_name)};
+    auto const &triangleCentersMap{GmshUtils::getCellCentersByPhysicalGroupName(
+        kdefault_target_name, kdefault_mesh_filename)};
 
     // Step 5: Populate the `surface_source_t` structure.
     surface_source_t source;

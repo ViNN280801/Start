@@ -2,8 +2,6 @@
 
 #include "Utilities/GmshUtilities/GmshUtils.hpp"
 
-std::string const GmshUtils::kdefault_code_work_in_one_session = "special_code_031";
-
 void GmshUtils::gmshInitializeCheck()
 {
     if (!gmsh::isInitialized())
@@ -13,17 +11,15 @@ void GmshUtils::gmshInitializeCheck()
 void GmshUtils::checkAndOpenMesh(std::string_view meshFilename)
 {
     GmshUtils::gmshInitializeCheck();
-    if (meshFilename != kdefault_code_work_in_one_session)
-    {
-        util::check_gmsh_mesh_file(meshFilename);
-        gmsh::open(meshFilename.data());
-    }
+    util::check_gmsh_mesh_file(meshFilename);
+
+    gmsh::option::setNumber("General.Terminal", 0); // Turn off logging to the terminal.
+    gmsh::open(meshFilename.data());
+    gmsh::option::setNumber("General.Terminal", 1); // Turn on logging to the terminal.
 }
 
-std::vector<int> GmshUtils::getAllBoundaryTags(std::string_view meshFilename)
+std::vector<int> GmshUtils::getAllBoundaryTags()
 {
-    GmshUtils::checkAndOpenMesh(meshFilename);
-
     std::vector<std::pair<int, int>> volumes;
     gmsh::model::getEntities(volumes, 3);
 
@@ -43,6 +39,12 @@ std::vector<int> GmshUtils::getAllBoundaryTags(std::string_view meshFilename)
         throw std::runtime_error("There is no boundary tags.");
 
     return allBoundaryTags;
+}
+
+std::vector<int> GmshUtils::getAllBoundaryTags(std::string_view meshFilename)
+{
+    GmshUtils::checkAndOpenMesh(meshFilename);
+    return GmshUtils::getAllBoundaryTags();
 }
 
 int GmshUtils::getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename)
@@ -79,6 +81,7 @@ TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_
 
     // Step 1: Find the physical group with the specified name.
     int targetGroupTag{GmshUtils::getPhysicalGroupTagByName(physicalGroupName, meshFilename)};
+    SUCCESSMSG(util::stringify("Target group tag: ", targetGroupTag, ". For the physical group name: ", physicalGroupName));
 
     // Step 2: Get the nodes associated with the searching surface physical group.
     std::vector<size_t> targetNodeTags;
@@ -295,7 +298,7 @@ std::vector<std::tuple<int, int, std::string>> GmshUtils::getAllPhysicalGroups(s
 bool GmshUtils::hasPhysicalGroup(std::string_view physicalGroupName, std::string_view meshFilename)
 {
     checkAndOpenMesh(meshFilename);
-    auto physicalGroups{GmshUtils::getAllPhysicalGroups()};
+    auto physicalGroups{GmshUtils::getAllPhysicalGroups(meshFilename)};
 
 #if __cplusplus >= 202002L
     return std::ranges::find_if(physicalGroups, [physicalGroupName](auto const &physicalGroup)

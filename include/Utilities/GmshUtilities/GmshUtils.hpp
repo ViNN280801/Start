@@ -8,9 +8,6 @@
 
 class GmshUtils
 {
-private:
-    static std::string const kdefault_code_work_in_one_session; ///< Default code that points Gmsh is working in one session without openning any file.
-
 public:
     /**
      * @brief Ensures that Gmsh is initialized before performing any operations.
@@ -50,9 +47,7 @@ public:
     static void checkAndOpenMesh(std::string_view meshFilename);
 
     /**
-     * @brief Retrieves all boundary surface tags from the Gmsh model.
-     * @param meshFilename The filename of the mesh (`.msh` format). Default is `kdefault_code_work_in_one_session`,
-     *        which means the function assumes the mesh is already loaded into Gmsh.
+     * @brief Retrieves all boundary surface tags from the Gmsh model in Gmsh session.
      *
      * This function extracts all surface tags that form the boundaries of 3D volume elements
      * present in the model.
@@ -71,7 +66,16 @@ public:
      *
      * @note The returned tags correspond to surfaces that enclose the volume elements.
      */
-    static std::vector<int> getAllBoundaryTags(std::string_view meshFilename = kdefault_code_work_in_one_session);
+    static std::vector<int> getAllBoundaryTags();
+
+    /**
+     * @brief Retrieves all boundary surface tags from the Gmsh model.
+     * @param meshFilename The filename of the mesh (`.msh` format).
+     *
+     * This function extracts all surface tags that form the boundaries of 3D volume elements
+     * present in the model.
+     */
+    static std::vector<int> getAllBoundaryTags(std::string_view meshFilename);
 
     /**
      * @brief Retrieves the integer tag of a physical group by its name.
@@ -80,8 +84,7 @@ public:
      * and returns its tag.
      *
      * @param physicalGroupName The name of the physical group.
-     * @param meshFilename The filename of the mesh (`.msh` format). Default is `kdefault_code_work_in_one_session`,
-     *        which means the function assumes the mesh is already loaded into Gmsh.
+     * @param meshFilename The filename of the mesh (`.msh` format).
      *
      * @return int The tag corresponding to the physical group.
      *
@@ -96,7 +99,7 @@ public:
      *
      * @note This function only searches within **surface** physical groups (dimension = 2).
      */
-    static int getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
+    static int getPhysicalGroupTagByName(std::string_view physicalGroupName, std::string_view meshFilename);
 
     /**
      * @brief Computes centroids of triangular cells belonging to a given physical group.
@@ -105,7 +108,7 @@ public:
      * The centroid is computed as the average of the three vertex coordinates.
      *
      * @param physicalGroupName The name of the physical group to process.
-     * @param meshFilename The filename of the `.msh` file. Default is `kdefault_code_work_in_one_session`.
+     * @param meshFilename The filename of the `.msh` file. Default is ``.
      *
      * @return TriangleCellCentersMap A map containing:
      *  - **Key:** Triangle cell ID.
@@ -123,7 +126,7 @@ public:
      *
      * @note The function assumes that all elements in the physical group are triangular.
      */
-    static TriangleCellCentersMap getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
+    static TriangleCellCentersMap getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename);
 
     /**
      * @brief Extracts all triangle cells associated with a physical group.
@@ -133,7 +136,7 @@ public:
      * an initial count of deposited particles.
      *
      * @param physicalGroupName The name of the physical group.
-     * @param meshFilename The filename of the `.msh` mesh file. Default is `kdefault_code_work_in_one_session`.
+     * @param meshFilename The filename of the `.msh` mesh file. Default is ``.
      *
      * @return TriangleCellMap A map of triangle cells.
      *
@@ -148,7 +151,7 @@ public:
      *
      * @note Only triangular cells are extracted. Degenerate triangles (zero area) are skipped.
      */
-    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
+    static TriangleCellMap getCellsByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename);
 
     /**
      * @brief Retrieves all physical groups in the Gmsh model.
@@ -166,7 +169,7 @@ public:
      *    - Constructs a tuple `(dim, tag, name)` and adds it to the output vector.
      * 4. If no physical groups are found, throws an exception.
      *
-     * @param meshFilename The filename of the Gmsh mesh file. If left as the default `kdefault_code_work_in_one_session`,
+     * @param meshFilename The filename of the Gmsh mesh file. If left as the default ``,
      *                     the function assumes the Gmsh session is already active and does not explicitly open a file.
      *
      * @return A vector of tuples where:
@@ -188,7 +191,7 @@ public:
      * }
      * @endcode
      */
-    static std::vector<std::tuple<int, int, std::string>> getAllPhysicalGroups(std::string_view meshFilename = kdefault_code_work_in_one_session);
+    static std::vector<std::tuple<int, int, std::string>> getAllPhysicalGroups(std::string_view meshFilename);
 
     /**
      * @brief Checks if a physical group with the specified name exists in the Gmsh model.
@@ -200,7 +203,7 @@ public:
      * 3. Iterates over the retrieved groups and checks if any match the specified `physicalGroupName`.
      *
      * @param physicalGroupName The name of the physical group to check for existence.
-     * @param meshFilename The filename of the Gmsh mesh file. If left as the default `kdefault_code_work_in_one_session`,
+     * @param meshFilename The filename of the Gmsh mesh file. If left as the default ``,
      *                     the function assumes the Gmsh session is already active and does not explicitly open a file.
      *
      * @return `true` if a physical group with the given name exists; otherwise, `false`.
@@ -226,7 +229,7 @@ public:
      * }
      * @endcode
      */
-    static bool hasPhysicalGroup(std::string_view physicalGroupName, std::string_view meshFilename = kdefault_code_work_in_one_session);
+    static bool hasPhysicalGroup(std::string_view physicalGroupName, std::string_view meshFilename);
 
 /**
  * @brief Finds the tag of a surface by matching its 3D coordinates.
@@ -255,7 +258,7 @@ public:
  */
 #if __cplusplus >= 202002L
     template <typename ValueType>
-    static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords, std::string_view meshFilename = kdefault_code_work_in_one_session)
+    static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords, std::string_view meshFilename)
 #else
     template <typename MatrixType, typename ValueType>
     std::enable_if<is_matrix_v<MatrixType, ValueType>, int> static int findSurfaceTagByCoords(MatrixType const &surfaceCoords)

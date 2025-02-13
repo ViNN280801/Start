@@ -5,9 +5,20 @@
 
 #include "Utilities/GmshUtilities/GmshMesher.hpp"
 
-GmshMesher::GmshMesher(MeshType mesh_type, double unit, double cell_size)
-    : m_unit(unit), m_cell_size(cell_size)
+GmshMesher::GmshMesher(std::string_view mesh_filename, MeshType mesh_type, double unit, double cell_size)
+    : m_mesh_filename(mesh_filename), m_unit(unit), m_cell_size(cell_size)
 {
+    if (mesh_filename.empty())
+        throw std::invalid_argument("Filename of the mesh can't be empty.");
+    std::string tmp(mesh_filename);
+    if (!tmp.ends_with(".msh"))
+    {
+        tmp += ".msh";
+        WARNINGMSG(util::stringify("Missed '.msh' extension in passed filename: ",
+                                   mesh_filename, ", adding it manually to get: ", tmp));
+    }
+    m_mesh_filename = tmp;
+
     if (mesh_type == MeshType::Uniform && (unit <= 0 || cell_size <= 0))
         throw std::invalid_argument("Unit and desired cell size must be positive values and not equal to 0.");
     GmshUtils::gmshInitializeCheck();
@@ -73,17 +84,8 @@ void GmshMesher::applyAdaptiveMesh(std::vector<int> const &boundaryTags,
     gmsh::model::mesh::field::setAsBackgroundMesh(thresholdFieldTag);
 }
 
-void GmshMesher::generateMeshfile(std::string_view filename, int dimension) const
+void GmshMesher::generateMeshfile(int dimension) const
 {
-    if (filename.empty())
-        throw std::invalid_argument("Filename can't be empty.");
-    std::string mesh_filename(filename);
-    if (!filename.ends_with(".msh"))
-    {
-        mesh_filename += ".msh";
-        WARNINGMSG(util::stringify("Missed '.msh' extension in passed filename: ", filename, ", adding it manually to get: ", mesh_filename));
-    }
-
     GmshUtils::gmshInitializeCheck();
 
     if (dimension < 2 || dimension > 3)
@@ -92,9 +94,9 @@ void GmshMesher::generateMeshfile(std::string_view filename, int dimension) cons
     try
     {
         gmsh::model::mesh::generate(dimension);
-        gmsh::write(mesh_filename);
+        gmsh::write(m_mesh_filename.data());
 
-        LOGMSG(util::stringify("Model successfully created and saved to the file '", mesh_filename));
+        LOGMSG(util::stringify("Model successfully created and saved to the file '", m_mesh_filename));
     }
     catch (const std::exception &ex)
     {
