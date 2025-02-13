@@ -15,6 +15,12 @@
 /// @brief A class to create two plates for perform simple test on sputtering.
 class TwoPlatesCreator
 {
+public:
+    // Important! These parameters must initialized before GmshMesher class.
+    std::string const kdefault_mesh_filename{"TwoPlates.msh"}; ///< Default mesh filename.
+    std::string const kdefault_target_name{"Target"};          ///< Default target (мишень) physical group name.
+    std::string const kdefault_substrate_name{"Substrate"};    ///< Default substrate (подложка) physical group name.
+
 private:
     GmshSessionManager m_gmsh_session;  ///< RAII class to manage Gmsh session;
     GmshMesher m_gmsh_mesher;           ///< Instance of class to perform different types of meshing.
@@ -22,19 +28,6 @@ private:
     double m_cell_size;                 ///< The size of the mesh cells (for uniform mesh).
     double m_unit;                      ///< Scaling coefficient (e.g., for millimeters).
     std::array<int, 2ul> m_volume_tags; ///< Stores volume tags of the plates.
-
-    std::string const kdefault_mesh_filename{"TwoPlates.msh"}; ///< Default mesh filename.
-    std::string const kdefault_target_name{"Target"};          ///< Default target (мишень) physical group name.
-    std::string const kdefault_substrate_name{"Substrate"};    ///< Default substrate (подложка) physical group name.
-
-    static constexpr std::array<std::array<double, 3ul>, 4ul> kdefault_target_point_coords = {{{{20, 5, 100}},
-                                                                                               {{20, 15, 100}},
-                                                                                               {{80, 5, 100}},
-                                                                                               {{80, 15, 100}}}}; ///< Default point coords for the target surface.
-    static constexpr std::array<std::array<double, 3ul>, 4ul> kdefault_substrate_point_coords = {{{{0, 0, 1}},
-                                                                                                  {{0, 20, 1}},
-                                                                                                  {{100, 0, 1}},
-                                                                                                  {{100, 20, 1}}}}; ///< Default point coords for the substrate surface.
 
 public:
     /**
@@ -74,7 +67,7 @@ public:
 
     /**
      * @brief Generates the mesh based on the specified mesh type.
-     * 
+     *
      * @param dimension Dimension of mesh: 2D - surface triangle mesh.
      *                               3D - volumetric tetrahedral mesh.
      *
