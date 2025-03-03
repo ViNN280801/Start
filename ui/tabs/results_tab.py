@@ -17,8 +17,8 @@ from logger.log_console import LogConsole
 from styles import DEFAULT_QLINEEDIT_STYLE
 from field_validators import CustomIntValidator, CustomDoubleValidator
 from .results import ParticleAnimator
-from util.project_manager import ProjectManager
 from .results.electric_field_manager import ElectricFieldManager
+from util.vtk_helpers import convert_mshfile_to_vtkactor, add_actor
 
 
 class ResultsTab(QWidget):
@@ -113,6 +113,13 @@ class ResultsTab(QWidget):
             callback=self.save_screenshot,
             layout=self.toolbarLayout
         )
+        
+        self.uploadMeshButton = self.create_toolbar_button(
+            icon_path="",
+            tooltip="Test",
+            callback=self.upload_mesh,
+            layout=self.toolbarLayout
+        )
 
         self.spacer = QSpacerItem(
             40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -126,6 +133,24 @@ class ResultsTab(QWidget):
         self.posFileCheckbox = QCheckBox("Load .pos file")
         self.posFileCheckbox.stateChanged.connect(self.on_posFileCheckbox_state_changed)
         self.toolbarLayout.addWidget(self.posFileCheckbox)
+    
+    def upload_mesh(self):
+        # Open a file dialog to select a .msh file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select a Gmsh Mesh File", "", "Gmsh Mesh Files (*.msh)"
+        )
+        if not file_path:
+            return  # User canceled the dialog
+
+        try:
+            actor = convert_mshfile_to_vtkactor(file_path)
+            if actor:
+                add_actor(self.vtkWidget, self.renderer, actor, needResetCamera=True)
+            else:
+                QMessageBox.critical(self, "Error", "Failed to load and render the .vtk file.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred: {e}")
         
     def show_animation(self):
         self.particle_animator.show_animation()

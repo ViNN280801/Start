@@ -1,7 +1,12 @@
 #ifndef PARTICLEDYNAMICSPROCESSOR_HPP
 #define PARTICLEDYNAMICSPROCESSOR_HPP
 
+#include <shared_mutex>
+
+#include "FiniteElementMethod/GSMAssembler.hpp"
 #include "Geometry/CubicGrid.hpp"
+#include "Particle/Particle.hpp"
+#include "ParticleInCellEngine/PICTypes.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticlePhysicsUpdater.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
@@ -11,135 +16,148 @@
 
 /**
  * @class ParticleDynamicsProcessor
- * @brief Encapsulates the dynamics simulation loop for particle tracking and updates.
+ * @brief Handles the processing of particle dynamics in a plasma environment.
  *
- * This class provides methods to process particles in a simulation, including:
- * - Electromagnetic force updates
- * - Gas collision handling
- * - Surface collision detection
- * - Particle movement tracking
- * - Particle settlement updates
- *
- * It utilizes parallel execution to handle particle operations efficiently.
+ * This class performs computations for:
+ * - **Electromagnetic forces** acting on particles
+ * - **Particle movement tracking**
+ * - **Gas collisions** using various scattering models (HS, VHS, VSS)
+ * - **Surface interactions** (settling, collisions)
+ * - **Multi-threaded execution** using `std::execution::par` and OpenMP (if enabled)
  */
 class ParticleDynamicsProcessor
 {
 private:
-    ParticleSettler m_particleSettler;                  ///< Handles particle settlement on surfaces.
-    ParticlePhysicsUpdater m_physicsUpdater;            ///< Updates particle physical properties.
-    ParticleMovementTracker m_movementTracker;          ///< Tracks particle movements.
-    ParticleSurfaceCollisionHandler m_collisionHandler; ///< Detects and handles surface collisions.
+    /**
+     * @brief Helper function for parallel particle processing using C++ Standard Parallel Algorithms.
+     *
+     * @param start_index Starting index of the particle batch.
+     * @param end_index Ending index of the particle batch.
+     * @param timeMoment Current simulation time.
+     * @param timeStep Time step for integration.
+     * @param particles Vector of particles.
+     * @param cubicGrid Pointer to the simulation grid.
+     * @param gsmAssembler Pointer to the finite element assembler.
+     * @param surfaceMesh Reference to the surface mesh for collision detection.
+     * @param particleTracker Map for tracking particle movements.
+     * @param settledParticlesIds Set of settled particle IDs.
+     * @param sh_mutex_settledParticlesCounterMap Shared mutex for particle counter.
+     * @param mutex_particlesMovementMap Mutex for movement tracking.
+     * @param particleMovementMap Map storing particle movement history.
+     * @param stopSubject Reference to the stop condition handler.
+     * @param scatteringModel The scattering model used for gas collisions.
+     * @param gasName The type of gas used for collisions.
+     * @param gasConcentration The concentration of gas molecules.
+     */
+    static void _process_stdver__helper(size_t start_index,
+                                        size_t end_index,
+                                        double timeMoment,
+                                        double timeStep,
+                                        ParticleVector &particles,
+                                        std::shared_ptr<CubicGrid> cubicGrid,
+                                        std::shared_ptr<GSMAssembler> gsmAssembler,
+                                        SurfaceMesh &surfaceMesh,
+                                        ParticleTrackerMap &particleTracker,
+                                        ParticlesIDSet &settledParticlesIds,
+                                        std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                        std::mutex &mutex_particlesMovementMap,
+                                        ParticleMovementMap &particleMovementMap,
+                                        StopSubject &stopSubject,
+                                        std::string_view scatteringModel,
+                                        std::string_view gasName,
+                                        double gasConcentration);
 
     /**
-     * @brief Helper function for processing a segment of particles using standard parallel execution.
-     * @details This function processes a subset of the particle vector (from start_index to end_index)
-     *          using a parallel execution policy. It applies electromagnetic forces, handles gas and
-     *          surface collisions, and updates particle movements. Any errors are caught and logged.
+     * @brief Processes particle dynamics in parallel using standard algorithms.
      *
-     * @param start_index The starting index of the particle subset to process.
-     * @param end_index The ending index (exclusive) of the particle subset to process.
-     * @param timeMoment The current simulation time.
-     * @param particles A reference to the vector of particles to process.
-     * @param cubicGrid A shared pointer to the cubic grid used for spatial indexing.
-     * @param gsmAssembler A shared pointer to the GSM assembler for mesh data access.
-     * @param particleTracker A reference to the particle tracker map.
+     * @param numThreads Number of threads to use.
+     * @param timeMoment Current simulation time.
+     * @param timeStep Time step for integration.
+     * @param particles Vector of particles.
      */
-    void _process_stdver__helper(size_t start_index,
-                                 size_t end_index,
-                                 double timeMoment,
-                                 ParticleVector &particles,
-                                 std::shared_ptr<CubicGrid> cubicGrid,
-                                 std::shared_ptr<GSMAssembler> gsmAssembler,
-                                 ParticleTrackerMap &particleTracker);
-
-    /**
-     * @brief Processes all particles using standard parallel execution.
-     * @details This method divides the work among multiple threads using the ThreadedProcessor utility,
-     *          which further splits the particles into segments and calls `_process_stdver__helper`
-     *          for each segment. The parallel execution is deferred until the result is needed.
-     *
-     * @param numThreads The number of threads to use for parallel processing.
-     * @param timeMoment The current simulation time.
-     * @param particles The vector of particles to process.
-     * @param cubicGrid A shared pointer to the cubic grid used for spatial indexing.
-     * @param gsmAssembler A shared pointer to the GSM assembler for mesh data access.
-     * @param particleTracker A reference to the particle tracker map.
-     */
-    void _process_stdver__(unsigned int numThreads,
-                           double timeMoment,
-                           ParticleVector &particles,
-                           std::shared_ptr<CubicGrid> cubicGrid,
-                           std::shared_ptr<GSMAssembler> gsmAssembler,
-                           ParticleTrackerMap &particleTracker);
+    static void _process_stdver__(unsigned int numThreads,
+                                  double timeMoment,
+                                  double timeStep,
+                                  ParticleVector &particles,
+                                  std::shared_ptr<CubicGrid> cubicGrid,
+                                  std::shared_ptr<GSMAssembler> gsmAssembler,
+                                  SurfaceMesh &surfaceMesh,
+                                  ParticleTrackerMap &particleTracker,
+                                  ParticlesIDSet &settledParticlesIds,
+                                  std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                  std::mutex &mutex_particlesMovementMap,
+                                  ParticleMovementMap &particleMovementMap,
+                                  StopSubject &stopSubject,
+                                  std::string_view scatteringModel,
+                                  std::string_view gasName,
+                                  double gasConcentration);
 
 #ifdef USE_OMP
     /**
-     * @brief Processes all particles using OpenMP parallelization.
-     * @details This function uses OpenMP directives to distribute particle processing across multiple threads.
-     *          It performs the same operations as `_process_stdver__` but without the ThreadedProcessor.
-     *          Instead, it relies on OpenMP's `#pragma omp parallel for` to loop over the particles.
+     * @brief Processes particle dynamics in parallel using OpenMP.
      *
-     *          Each thread applies electromagnetic forces to particles, simulates gas collisions, checks
-     *          for surface collisions, and records their movements. By leveraging OpenMP, this method
-     *          can achieve improved performance on machines with multiple cores.
-     *
-     * @param numThreads The number of OpenMP threads to use for parallel processing.
-     * @param timeMoment The current simulation time.
-     * @param particles The vector of particles to process.
-     * @param cubicGrid A shared pointer to the cubic grid used for spatial indexing.
-     * @param gsmAssembler A shared pointer to the GSM assembler for mesh data access.
-     * @param particleTracker A reference to the particle tracker map.
+     * @param numThreads Number of threads to use.
+     * @param timeMoment Current simulation time.
+     * @param timeStep Time step for integration.
+     * @param particles Vector of particles.
      */
-    void _process_ompver__(unsigned int numThreads,
-                           double timeMoment,
-                           ParticleVector &particles,
-                           std::shared_ptr<CubicGrid> cubicGrid,
-                           std::shared_ptr<GSMAssembler> gsmAssembler,
-                           ParticleTrackerMap &particleTracker);
+    static void _process_ompver__(double timeMoment,
+                                  double timeStep,
+                                  unsigned int numThreads,
+                                  ParticleVector &particles,
+                                  std::shared_ptr<CubicGrid> cubicGrid,
+                                  std::shared_ptr<GSMAssembler> gsmAssembler,
+                                  SurfaceMesh &surfaceMesh,
+                                  ParticleTrackerMap &particleTracker,
+                                  ParticlesIDSet &settledParticlesIds,
+                                  std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                                  std::mutex &mutex_particlesMovementMap,
+                                  ParticleMovementMap &particleMovementMap,
+                                  StopSubject &stopSubject,
+                                  std::string_view scatteringModel,
+                                  std::string_view gasName,
+                                  double gasConcentration);
 #endif // !USE_OMP
 
 public:
     /**
-     * @brief Constructs the ParticleDynamicsProcessor, initializing its dependencies.
-     * @param config_filename The configuration file for the simulation.
-     * @param settledParticlesMutex Mutex for accessing settled particle data.
-     * @param particlesMovementMutex Mutex for accessing particle movement data.
-     * @param surfaceMeshAABBtree Reference to the AABB tree for collision detection.
-     * @param triangleMesh Vector containing mesh triangle parameters.
-     * @param settledParticlesIds Set of IDs of settled particles.
-     * @param settledParticlesCounterMap Counter map for settled particles on triangles.
-     * @param particlesMovement Map tracking particle movements.
-     * @param subject Reference to a StopSubject for triggering stop events.
-     */
-    ParticleDynamicsProcessor(std::string_view config_filename,
-                              std::shared_mutex &settledParticlesMutex,
-                              std::mutex &particlesMovementMutex,
-                              AABB_Tree_Triangle const &surfaceMeshAABBtree,
-                              MeshTriangleParamVector const &triangleMesh,
-                              ParticlesIDSet &settledParticlesIds,
-                              SettledParticlesCounterMap &settledParticlesCounterMap,
-                              ParticleMovementMap &particlesMovement,
-                              StopSubject &subject);
-
-    /**
-     * @brief Processes all particles at the given time moment.
-     * @details Based on the compiled configuration, this method uses either the standard version or
-     *          the OpenMP-accelerated version to process particles. It applies electromagnetic pushes,
-     *          handles gas and surface collisions, and updates particle movements accordingly.
+     * @brief Main function to process particles using either OpenMP or standard parallel execution.
      *
-     * @param config_filename The configuration file used for simulation parameters.
-     * @param particles The vector of particles to process.
-     * @param timeMoment The current simulation time.
-     * @param cubicGrid A shared pointer to the cubic grid used for spatial indexing.
-     * @param gsmAssembler A shared pointer to the GSM assembler for mesh data access.
-     * @param particleTracker A reference to the particle tracker map.
+     * @param config_filename Name of the configuration file.
+     * @param particles Vector of particles.
+     * @param timeMoment Current simulation time.
+     * @param timeStep Time step for integration.
+     * @param numThreads Number of threads to use.
+     * @param cubicGrid Pointer to the simulation grid.
+     * @param gsmAssembler Pointer to the finite element assembler.
+     * @param surfaceMesh Reference to the surface mesh for collision detection.
+     * @param particleTracker Map for tracking particle movements.
+     * @param settledParticlesIds Set of settled particle IDs.
+     * @param sh_mutex_settledParticlesCounterMap Shared mutex for particle counter.
+     * @param mutex_particlesMovementMap Mutex for movement tracking.
+     * @param particleMovementMap Map storing particle movement history.
+     * @param stopSubject Reference to the stop condition handler.
+     * @param scatteringModel The scattering model used for gas collisions.
+     * @param gasName The type of gas used for collisions.
+     * @param gasConcentration The concentration of gas molecules.
      */
-    void process(std::string_view config_filename,
-                 ParticleVector &particles,
-                 double timeMoment,
-                 std::shared_ptr<CubicGrid> cubicGrid,
-                 std::shared_ptr<GSMAssembler> gsmAssembler,
-                 ParticleTrackerMap &particleTracker);
+    static void process(std::string_view config_filename,
+                        ParticleVector &particles,
+                        double timeMoment,
+                        double timeStep,
+                        unsigned int numThreads,
+                        std::shared_ptr<CubicGrid> cubicGrid,
+                        std::shared_ptr<GSMAssembler> gsmAssembler,
+                        SurfaceMesh &surfaceMesh,
+                        ParticleTrackerMap &particleTracker,
+                        ParticlesIDSet &settledParticlesIds,
+                        std::shared_mutex &sh_mutex_settledParticlesCounterMap,
+                        std::mutex &mutex_particlesMovementMap,
+                        ParticleMovementMap &particleMovementMap,
+                        StopSubject &stopSubject,
+                        std::string_view scatteringModel,
+                        std::string_view gasName,
+                        double gasConcentration);
 };
 
 #endif // !PARTICLEDYNAMICSPROCESSOR_HPP

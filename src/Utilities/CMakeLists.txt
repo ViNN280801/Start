@@ -6,6 +6,8 @@ set(UTILITIES_SOURCES
     Utilities.cpp
 )
 
+add_subdirectory(GmshUtilities)
+
 set(LIB_UTILITIES Utilities)
 add_library(${LIB_UTILITIES} ${UTILITIES_SOURCES})
 

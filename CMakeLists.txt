@@ -240,6 +240,11 @@ if(GPU_CUDA_ON)
   enable_language(CUDA)
 endif()
 
+# Check if the compiler supports at least C++17
+if (CMAKE_CXX_STANDARD LESS 17)
+    message(FATAL_ERROR "This project requires C++17 or newer.")
+endif()
+
 # Global C++ standard setting
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -720,7 +725,9 @@ target_link_libraries(
           ParticleInCellEngine
           ParticleInCellEngine_ParticleDynamicsProcessor
           SessionManagers
+          SputteringModel
           Utilities
+          GmshUtilities
 )
 
 if(GPU_CUDA_ON)

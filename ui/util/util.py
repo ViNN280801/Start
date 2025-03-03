@@ -1,5 +1,4 @@
 
-import sys
 import tempfile
 
 from vtk import vtkRenderer

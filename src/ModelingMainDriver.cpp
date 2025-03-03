@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#include "DataHandling/HDF5Handler.hpp"
+#include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMInitializer.hpp"
@@ -30,109 +30,6 @@ void ModelingMainDriver::_initializeObservers()
 {
     m_stopObserver = std::make_shared<StopFlagObserver>(m_stop_processing);
     addObserver(m_stopObserver);
-}
-
-void ModelingMainDriver::_broadcastTriangleMesh()
-{
-    int rank{};
-#ifdef USE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
-#endif
-
-    size_t numTriangles{};
-    if (rank == 0)
-        numTriangles = _triangleMesh.size();
-
-#ifdef USE_MPI
-    // Broadcast the number of triangles.
-    MPI_Bcast(std::addressof(numTriangles), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-#endif
-
-    // Prepare arrays for sending or receiving.
-    std::vector<size_t> triangleIds(numTriangles);
-    std::vector<double> triangleCoords(numTriangles * 9); // 9 doubles per triangle.
-    std::vector<double> dS_values(numTriangles);
-    std::vector<int> counters(numTriangles);
-
-    if (rank == 0)
-    {
-        // Prepare data on rank 0.
-        for (size_t i{}; i < numTriangles; ++i)
-        {
-            auto const &meshParam{_triangleMesh[i]};
-            triangleIds[i] = std::get<0>(meshParam);
-            Triangle const &triangle{std::get<1>(meshParam)};
-            double dS{std::get<2>(meshParam)};
-            int counter{std::get<3>(meshParam)};
-
-            // Extract triangle coordinates
-            for (int j{}; j < 3; ++j)
-            {
-                const Point &p = triangle.vertex(j);
-                triangleCoords[i * 9 + j * 3 + 0] = p.x();
-                triangleCoords[i * 9 + j * 3 + 1] = p.y();
-                triangleCoords[i * 9 + j * 3 + 2] = p.z();
-            }
-            dS_values[i] = dS;
-            counters[i] = counter;
-        }
-    }
-
-#ifdef USE_MPI
-    // Broadcast the data arrays.
-    MPI_Bcast(triangleIds.data(), numTriangles, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-    MPI_Bcast(triangleCoords.data(), numTriangles * 9, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(dS_values.data(), numTriangles, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(counters.data(), numTriangles, MPI_INT, 0, MPI_COMM_WORLD);
-#endif
-
-    if (rank != 0)
-    {
-        // Reconstruct the triangle mesh on other ranks
-        _triangleMesh.clear();
-        for (size_t i = 0; i < numTriangles; ++i)
-        {
-            size_t triangleId = triangleIds[i];
-            Point p1(triangleCoords[i * 9 + 0], triangleCoords[i * 9 + 1], triangleCoords[i * 9 + 2]);
-            Point p2(triangleCoords[i * 9 + 3], triangleCoords[i * 9 + 4], triangleCoords[i * 9 + 5]);
-            Point p3(triangleCoords[i * 9 + 6], triangleCoords[i * 9 + 7], triangleCoords[i * 9 + 8]);
-            Triangle triangle(p1, p2, p3);
-            double dS{dS_values[i]};
-            int counter{counters[i]};
-            _triangleMesh.emplace_back(std::make_tuple(triangleId, triangle, dS, counter));
-        }
-    }
-}
-
-void ModelingMainDriver::_initializeSurfaceMesh()
-{
-    int rank{};
-#ifdef USE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD, std::addressof(rank));
-#endif
-
-    if (rank == 0)
-        _triangleMesh = Mesh::getMeshParams(m_config.getMeshFilename());
-
-    _broadcastTriangleMesh();
-}
-
-void ModelingMainDriver::_initializeSurfaceMeshAABB()
-{
-    if (_triangleMesh.empty())
-        throw std::runtime_error("Can't construct AABB for triangle mesh - surface mesh is empty");
-
-    for (auto const &meshParam : _triangleMesh)
-    {
-        auto const &triangle{std::get<1>(meshParam)};
-        if (!triangle.is_degenerate())
-            _triangles.emplace_back(triangle);
-    }
-
-    if (_triangles.empty())
-        throw std::runtime_error("Can't create AABB for triangle mesh - triangles from the mesh are invalid. Possible reason: all the triangles are degenerate");
-
-    _surfaceMeshAABBtree = AABB_Tree_Triangle(std::cbegin(_triangles), std::cend(_triangles));
 }
 
 void ModelingMainDriver::_initializeParticles()
@@ -165,23 +62,16 @@ void ModelingMainDriver::_initializeParticles()
 void ModelingMainDriver::_ginitialize()
 {
     _initializeObservers();
-    _initializeSurfaceMesh();
-    _initializeSurfaceMeshAABB();
     _initializeParticles();
 }
 
 void ModelingMainDriver::_updateSurfaceMesh()
 {
     // Updating hdf5file to know how many particles settled on certain triangle from the surface mesh.
-    auto mapEnd{_settledParticlesCounterMap.cend()};
-    for (auto &meshParam : _triangleMesh)
-        if (auto it{_settledParticlesCounterMap.find(std::get<0>(meshParam))}; it != mapEnd)
-            std::get<3>(meshParam) = it->second;
-
     std::string hdf5filename(std::string(m_config.getMeshFilename().substr(0ul, m_config.getMeshFilename().find("."))));
     hdf5filename += ".hdf5";
-    HDF5Handler hdf5handler(hdf5filename);
-    hdf5handler.saveMeshToHDF5(_triangleMesh);
+    TriangleMeshHdf5Manager hdf5handler(hdf5filename);
+    hdf5handler.saveMeshToHDF5(m_surfaceMesh.getTriangleCellMap());
 }
 
 void ModelingMainDriver::_saveParticleMovements() const
@@ -204,6 +94,8 @@ void ModelingMainDriver::_saveParticleMovements() const
                     positions.push_back({{"x", point.x()}, {"y", point.y()}, {"z", point.z()}});
                 j[std::to_string(id)] = positions;
             }
+            else
+                throw std::runtime_error("There is no movements between particles, something may go wrong.");
         }
 
         std::string filepath("results/particles_movements.json");
@@ -241,15 +133,16 @@ void ModelingMainDriver::_gfinalize()
 
 ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
     : m_config_filename(config_filename),
-      m_config(config_filename)
+      m_config(config_filename),
+      m_surfaceMesh(m_config.getMeshFilename())
 {
     // Checking mesh filename on validity and assign it to the class member.
     FEMCheckers::checkMeshFile(m_config.getMeshFilename());
 
     // Calculating and checking gas concentration.
-    _gasConcentration = util::calculateConcentration_w(config_filename);
+    m_gasConcentration = util::calculateConcentration_w(config_filename);
 
-    // Global initializator. Initializes surface mesh, AABB for this mesh and spawning particles.
+    // Global initializator. Initializes stop obervers and spawning particles.
     _ginitialize();
 }
 
@@ -257,46 +150,123 @@ ModelingMainDriver::~ModelingMainDriver() { _gfinalize(); }
 
 void ModelingMainDriver::startModeling()
 {
-    /* Beginning of the FEM initialization. */
-    FEMInitializer feminit(m_config);
-    auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
-    auto cubicGrid{feminit.getCubicGrid()};
-    auto boundaryConditions{feminit.getBoundaryConditions()};
-    auto solutionVector{feminit.getEquationRHS()};
-    /* Ending of the FEM initialization. */
+    // =============================================
+    // === Default main modeling  ==================
+    // =============================================
+    // /* Beginning of the FEM initialization. */
+    // FEMInitializer feminit(m_config);
+    // auto gsmAssembler{feminit.getGlobalStiffnessMatrixAssembler()};
+    // auto cubicGrid{feminit.getCubicGrid()};
+    // auto boundaryConditions{feminit.getBoundaryConditions()};
+    // auto solutionVector{feminit.getEquationRHS()};
+    // /* Ending of the FEM initialization. */
 
-    std::map<GlobalOrdinal, double> nodeChargeDensityMap;
+    // /* == Beginning of the multithreading settings loading. == */
+    // auto numThreads{m_config.getNumThreads_s()};
+    // /* ======================== End ========================== */
 
-    for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
+    // std::map<GlobalOrdinal, double> nodeChargeDensityMap;
+    // for (double timeMoment{}; timeMoment <= m_config.getSimulationTime() && !m_stop_processing.test(); timeMoment += m_config.getTimeStep())
+    // {
+    //     NodeChargeDensityProcessor::gather(timeMoment,
+    //                                        m_config_filename,
+    //                                        cubicGrid,
+    //                                        gsmAssembler,
+    //                                        m_particles,
+    //                                        m_settledParticlesIds,
+    //                                        m_particleTracker,
+    //                                        nodeChargeDensityMap);
+
+    //     // 2. Solve equation in the main thread.
+    //     ChargeDensityEquationSolver::solve(timeMoment,
+    //                                        m_config_filename,
+    //                                        nodeChargeDensityMap,
+    //                                        gsmAssembler,
+    //                                        solutionVector,
+    //                                        boundaryConditions);
+
+    //     // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
+    //     ParticleDynamicsProcessor::process(m_config_filename, m_particles, timeMoment, m_config.getTimeStep(),
+    //                                        numThreads, cubicGrid, gsmAssembler, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
+    //                                        m_settledParticlesMutex, m_particlesMovementMutex, m_particlesMovement,
+    //                                        *this, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration);
+
+    //     if (m_stop_processing.test())
+    //     {
+    //         SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
+    //                                    "Last time moment is: ", timeMoment, "s."));
+    //     }
+    //     SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ",
+    //                                m_surfaceMesh.getTotalCountOfSettledParticles(), "/", m_particles.size(), " particles."));
+    // }
+
+    // =============================================
+    // === Sputtering modeling  ====================
+    // =============================================
+    double timeStep{m_config.getTimeStep()};
+    double totalTime{m_config.getSimulationTime()};
+    unsigned int numThreads{m_config.getNumThreads_s()};
+
+    for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test(); timeMoment += timeStep)
     {
-        NodeChargeDensityProcessor::gather(timeMoment,
-                                           m_config_filename,
-                                           cubicGrid,
-                                           gsmAssembler,
-                                           m_particles,
-                                           _settledParticlesIds,
-                                           m_particleTracker,
-                                           nodeChargeDensityMap);
+        try
+        {
+            omp_set_num_threads(numThreads);
 
-        // 2. Solve equation in the main thread.
-        ChargeDensityEquationSolver::solve(timeMoment,
-                                           m_config_filename,
-                                           nodeChargeDensityMap,
-                                           gsmAssembler,
-                                           solutionVector,
-                                           boundaryConditions);
+#pragma omp parallel for schedule(dynamic)
+            for (size_t i = 0ul; i < m_particles.size(); ++i)
+            {
+                auto &particle = m_particles[i];
 
-        // 3. Process all the particle dynamics in parallel (settling on surface, velocity and energy updater, EM-pusher and movement tracker).
-        ParticleDynamicsProcessor particleDynamicProcessor(m_config_filename, m_settledParticlesMutex, m_particlesMovementMutex,
-                                                           _surfaceMeshAABBtree, _triangleMesh, _settledParticlesIds,
-                                                           _settledParticlesCounterMap, m_particlesMovement, *this);
-        particleDynamicProcessor.process(m_config_filename, m_particles, timeMoment, cubicGrid, gsmAssembler, m_particleTracker);
+                // 1. Check if particle is settled.
+                if (ParticleSettler::isSettled(particle.getId(), m_settledParticlesIds, m_settledParticlesMutex))
+                    continue;
+
+                // 2. Electromagnetic push (Here is no need to do EM-push).
+                // @remark In the sputtering model there is no any field, so, there is no need to do EM-push.
+                // m_physicsUpdater.doElectroMagneticPush(particle, gsmAssembler, *tetrahedronId);
+
+                // 3. Record previous position.
+                Point prev{particle.getCentre()};
+                ParticleMovementTracker::recordMovement(m_particlesMovement, m_particlesMovementMutex, particle.getId(), prev);
+
+                // 4. Update position.
+                particle.updatePosition(timeStep);
+                Ray ray(prev, particle.getCentre());
+
+                // 5. Gas collision.
+                ParticlePhysicsUpdater::collideWithGas(particle, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration, timeStep);
+
+                // 6. Skip surface collision checks if t == 0.
+                if (timeMoment == 0.0)
+                    continue;
+
+                // 7. Surface collision.
+                ParticleSurfaceCollisionHandler::handle(particle,
+                                                        ray,
+                                                        m_particles.size(),
+                                                        m_surfaceMesh,
+                                                        m_settledParticlesMutex,
+                                                        m_particlesMovementMutex,
+                                                        m_particlesMovement,
+                                                        m_settledParticlesIds,
+                                                        *this);
+            }
+        }
+        catch (std::exception const &ex)
+        {
+            ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
+        }
+        catch (...)
+        {
+            ERRMSG("Some error occured while detecting particles collisions with surfaces (OMP)");
+        }
 
         if (m_stop_processing.test())
         {
             SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
         }
-        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", _settledParticlesIds.size(), "/", m_particles.size(), " particles."));
+        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", m_settledParticlesIds.size(), "/", m_particles.size(), " particles."));
     }
 }

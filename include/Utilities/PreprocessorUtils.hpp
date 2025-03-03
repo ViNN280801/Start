@@ -1,6 +1,8 @@
 #ifndef PREPROCESSORUTILS_HPP
 #define PREPROCESSORUTILS_HPP
 
+#include "Utilities/VersionCheck.hpp"
+
 #if __GNUC__ >= 12 && __cplusplus >= 201103L // C++11 or later
     #define STARTCONSTEXPR constexpr
 #else
