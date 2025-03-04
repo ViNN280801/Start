@@ -23,6 +23,10 @@ cmake_install.cmake
 __pycache__/
 python*.btr
 
+# Python virtual environment
+venv*/
+.venv*/
+
 # VMD files
 *.xyz
 
@@ -92,3 +96,7 @@ proj*/*
 # Crash log files
 crash*.log
 crash*.txt
+
+# Excluding help instructions for the compilation for CGAL and Trilinos
+!Compiling_CGAL.txt
+!Compiling_Trilinos.txt
