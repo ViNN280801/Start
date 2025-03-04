@@ -1,0 +1,59 @@
+# Cursor files
+
+.cursorrules
+.cursorignore
+
+# VSCode files
+.vscode/
+
+# All the modeling files
+configs/
+intermediateResults/
+meshes/
+results/
+
+tests/configs/
+tests/meshes/
+
+# Build files
+build/
+dist/
+
+# Documentation files
+docs/
+Doxyfile
+*.sty
+
+# Text files
+*.txt
+*.md
+*.rst
+*.tex
+*.pdf
+*.docx
+*.doc
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+
+# Images
+icons/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+
+# Python files
+__pycache__/
+venv/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
