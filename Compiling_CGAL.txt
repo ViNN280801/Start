@@ -1,0 +1,41 @@
+1. Go to the github page of CGAL and releases, for example let's take 6.0.1:
+   https://github.com/CGAL/cgal/releases/tag/v6.0.1
+
+2. Select the necessary version and download the source code:
+   wget -c https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1.tar.xz
+
+3. Unarchive the file:
+   tar -xJvf CGAL-6.0.1.tar.xz
+
+4. Go to the unarchived folder:
+   cd CGAL-6.0.1
+
+5. Create the build folder:
+   mkdir -pv build && cd build
+
+6. Configure the build:
+   cmake -DCMAKE_INSTALL_PREFIX=/usr/local/CGAL -DCMAKE_BUILD_TYPE=Release ..
+
+7. Build the project:
+   make
+
+8. Install the project:
+   sudo make install
+
+9. Add the following to your ~/.bashrc:
+   export CGAL_DIR=/usr/local/CGAL
+   export CGAL_INCLUDE_DIRS=$CGAL_DIR/include
+   export CGAL_LIBRARY_DIRS=$CGAL_DIR/lib
+   export CGAL_CMAKE_DIR=$CGAL_DIR/lib/cmake/CGAL
+
+
+Or you have the 2nd option:
+
+1. Downloading precompiled libraries:
+   wget -c https://github.com/CGAL/cgal/releases/download/v6.0.1/CGAL-6.0.1-library.tar.xz
+
+2. Unarchive the file:
+   tar -xJvf CGAL-6.0.1-library.tar.xz
+
+3. Copy it content to the /usr/local/CGAL-<version> folder:
+   sudo mv CGAL-6.0.1-library/* /usr/local/CGAL-6.0.1
