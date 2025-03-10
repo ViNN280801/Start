@@ -33,6 +33,10 @@ struct TriangleCell
     size_t count;                       ///< Counter of settled particles on this triangle.
     std::vector<size_t> neighbor_ids{}; ///< IDs of neighboring cells.
 
+    TriangleCell() = default;
+    TriangleCell(Triangle const &tri, double area_, size_t count_)
+        : triangle(tri), area(area_), count(count_) {}
+
     /**
      * @brief Computes the geometric centroid of a triangle from its vertices.
      *
@@ -131,9 +135,9 @@ std::vector<Edge> getTriangleEdges(Triangle const &triangle);
  * @brief EdgeHash struct.
  * @details This struct is used to hash the edges of the triangles.
  */
-struct EdgeHash 
+struct EdgeHash
 {
-    size_t operator()(const Edge &e) const 
+    size_t operator()(const Edge &e) const
     {
         auto hash1{CGAL::hash_value(e.p1)};
         auto hash2{CGAL::hash_value(e.p2)};
@@ -195,6 +199,13 @@ using TriangleCellCentersMap = std::unordered_map<size_t, std::array<double, 3ul
 struct TetrahedronCell
 {
     Tetrahedron tetrahedron; ///< Geometric representation of the tetrahedron.
+
+    TetrahedronCell() = default;
+    TetrahedronCell(TetrahedronCell const &) = default;
+    TetrahedronCell(TetrahedronCell &&) = default;
+    TetrahedronCell &operator=(TetrahedronCell const &) = default;
+    TetrahedronCell &operator=(TetrahedronCell &&) = default;
+    TetrahedronCell(Tetrahedron const &tetrahedron_) : tetrahedron(tetrahedron_) {}
 };
 
 /**

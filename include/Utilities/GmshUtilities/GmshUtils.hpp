@@ -261,7 +261,8 @@ public:
     static int findSurfaceTagByCoords(Matrix<ValueType> auto const &surfaceCoords, std::string_view meshFilename)
 #else
     template <typename MatrixType, typename ValueType>
-    std::enable_if<is_matrix_v<MatrixType, ValueType>, int> static int findSurfaceTagByCoords(MatrixType const &surfaceCoords)
+    static std::enable_if_t<is_matrix_v<MatrixType, ValueType>, int>
+    findSurfaceTagByCoords(MatrixType const &surfaceCoords, std::string_view meshFilename)
 #endif
     {
         checkAndOpenMesh(meshFilename);

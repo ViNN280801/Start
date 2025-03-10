@@ -2,6 +2,7 @@
 #include <concepts>
 #include <ranges>
 #else
+#include <iterator>
 #include <type_traits>
 #endif
 
@@ -94,7 +95,7 @@ using range_reference_t = decltype(*std::begin(std::declval<T>()));
  * @tparam Range The range type.
  * @tparam ValueType The value type to check.
  */
-template <typename Range, typename ValueType>
+template <typename Range, typename ValueType, typename = void>
 struct all_elements_convertible_to : std::false_type
 {
 };

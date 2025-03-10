@@ -162,9 +162,9 @@ public:
     }
 
     /* === Getters for each component. === */
-    constexpr T getX() const { return x; }
-    constexpr T getY() const { return y; }
-    constexpr T getZ() const { return z; }
+    START_CUDA_HOST_DEVICE constexpr T getX() const { return x; }
+    START_CUDA_HOST_DEVICE constexpr T getY() const { return y; }
+    START_CUDA_HOST_DEVICE constexpr T getZ() const { return z; }
 
     /* === Setters for each component. === */
     constexpr void setX(T x_) { x = x_; }

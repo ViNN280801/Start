@@ -4,18 +4,11 @@
 
 std::atomic<size_t> Particle::m_nextId{0ul};
 
-void Particle::calculateBoundingBox() noexcept
-{
-	m_bbox = CGAL::Bbox_3(getX() - getRadius(), getY() - getRadius(), getZ() - getRadius(),
-						  getX() + getRadius(), getY() + getRadius(), getZ() + getRadius());
-}
-
 Particle::Particle(ParticleType type_)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(Point(0, 0, 0)),
-	  m_velocity(0, 0, 0),
-	  m_bbox(0, 0, 0, 0, 0, 0) {}
+	  m_velocity(0, 0, 0) {}
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 				   double energy_eV, std::array<double, 3> const &thetaPhi)
@@ -25,7 +18,6 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_energy(energy_eV)
 {
 	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
@@ -36,7 +28,6 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_velocity(MathVector(vx_, vy_, vz_))
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, Point const &centre,
@@ -47,7 +38,6 @@ Particle::Particle(ParticleType type_, Point const &centre,
 	  m_velocity(MathVector(vx_, vy_, vz_))
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, Point &&centre,
@@ -58,7 +48,6 @@ Particle::Particle(ParticleType type_, Point &&centre,
 	  m_velocity(MathVector(vx_, vy_, vz_))
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, Point const &centre, double energy_eV,
@@ -69,7 +58,6 @@ Particle::Particle(ParticleType type_, Point const &centre, double energy_eV,
 	  m_energy(energy_eV)
 {
 	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, Point &&centre, double energy_eV,
@@ -80,7 +68,6 @@ Particle::Particle(ParticleType type_, Point &&centre, double energy_eV,
 	  m_energy(energy_eV)
 {
 	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
@@ -91,7 +78,6 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_velocity(velvec)
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
@@ -102,7 +88,6 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	  m_velocity(std::move(velvec))
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, Point const &centre,
@@ -113,7 +98,6 @@ Particle::Particle(ParticleType type_, Point const &centre,
 	  m_velocity(velvec)
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
-	calculateBoundingBox();
 }
 
 Particle::Particle(ParticleType type_, Point &&centre,
@@ -124,7 +108,6 @@ Particle::Particle(ParticleType type_, Point &&centre,
 	  m_velocity(std::move(velvec))
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
-	calculateBoundingBox();
 }
 
 void Particle::updatePosition(double dt)

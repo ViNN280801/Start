@@ -37,17 +37,43 @@ ParticleVector ParticleDeviceMemoryConverter::copyToHost(ParticleDeviceArray con
     if (deviceArray.empty())
         return {}; // Return an empty vector if no particles exist
 
+    if (!deviceArray.get())
+        throw std::runtime_error("Device particle array pointer is null");
+
+    START_CHECK_CUDA_ERROR(cudaDeviceSynchronize(), "cudaDeviceSynchronize failed during copyToHost");
+
     // Allocate host memory to hold the particles
     std::vector<ParticleDevice_t> hostDeviceParticles(deviceArray.size());
 
-    // Copy data from the device to the host
-    cuda_utils::check_cuda_err(cudaMemcpy(
-                                   hostDeviceParticles.data(),                          // Host destination
-                                   deviceArray.get(),                             // Device source
-                                   deviceArray.size() * sizeof(ParticleDevice_t), // Size of data in bytes
-                                   cudaMemcpyDeviceToHost),                       // Direction: device -> host
-                               "CUDA memcpy device to host failed");
-    ParticleVector particles(hostDeviceParticles.cbegin(), hostDeviceParticles.cend());
+    // Copy data from the device to the host with enhanced error checking
+    START_CHECK_CUDA_ERROR(cudaMemcpy(
+                               hostDeviceParticles.data(),                    // Host destination
+                               deviceArray.get(),                             // Device source
+                               deviceArray.size() * sizeof(ParticleDevice_t), // Size of data in bytes
+                               cudaMemcpyDeviceToHost),                       // Direction: device -> host
+                           "CUDA memcpy device to host failed");
+
+    // Verify successful copy by checking cudaGetLastError
+    START_CHECK_CUDA_ERROR(cudaGetLastError(), "Error after cudaMemcpy in copyToHost");
+
+    ParticleVector particles;
+    particles.reserve(hostDeviceParticles.size());
+
+    // Use a try-catch block to identify which particle causes problems
+    for (size_t i = 0; i < hostDeviceParticles.size(); ++i)
+    {
+        try
+        {
+            particles.emplace_back(hostDeviceParticles[i]);
+        }
+        catch (const std::exception &e)
+        {
+            throw std::runtime_error(
+                "Failed to convert device particle " + std::to_string(i) +
+                " to host particle: " + e.what());
+        }
+    }
+
     return particles;
 }
 

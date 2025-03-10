@@ -153,7 +153,7 @@ std::optional<size_t> CubicGrid::getContainingTetrahedron(ParticleTrackerMap con
         if (std::ranges::find_if(particlesInside, [&particle](Particle const &storedParticle)
                                  { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
 #else
-        if (std::find_if(particlesInside, [&particle](Particle const &storedParticle)
+        if (std::find_if(particlesInside.begin(), particlesInside.end(), [&particle](Particle const &storedParticle)
                          { return particle.getId() == storedParticle.getId(); }) != particlesInside.cend())
 #endif
             return tetraId;

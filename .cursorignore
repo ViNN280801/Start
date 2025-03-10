@@ -1,7 +1,13 @@
 # Cursor files
-
 .cursorrules
 .cursorignore
+
+# CMake files
+!CMakeLists.txt
+build/
+out/
+CMakeCache.txt
+Makefile
 
 # VSCode files
 .vscode/
@@ -25,7 +31,6 @@ Doxyfile
 *.sty
 
 # Text files
-*.txt
 *.md
 *.rst
 *.tex

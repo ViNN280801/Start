@@ -4,6 +4,7 @@ using json = nlohmann::json;
 
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "Generators/ParticleGenerator.hpp"
+#include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 #include "SputteringModel/SputteringModel.hpp"
 #include "SputteringModel/TwoPlatesCreator.hpp"
@@ -338,7 +339,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
     [[maybe_unused]] int meshTypeInt;
 
     int choiceInt{};
-    std::cout << "Ручной ввод (1)/Автоматический (2): ";
+    std::cout << "Manual input (1)/Automatic (2): ";
     std::cin >> choiceInt;
 
     InputMode inputMode{choiceInt == 1 ? InputMode::Manual : InputMode::Auto};
@@ -346,13 +347,13 @@ void SputteringModel::startModeling(unsigned int numThreads)
     // ===================================
     // 1. Generating 3D-model of 2 plates.
     // ===================================
-    std::cout << "Введите тип сетки (1 - равномерная, 2 - неравномерная): ";
+    std::cout << "Enter the type of mesh (1 - uniform, 2 - adaptive): ";
     std::cin >> meshTypeInt;
     MeshType meshType{meshTypeInt == 1 ? MeshType::Uniform : MeshType::Adaptive};
 
     if (meshType == MeshType::Uniform)
     {
-        std::cout << "Введите желаемый размер стороны ячейки сетки: ";
+        std::cout << "Enter the desired size of the cell side: ";
         std::cin >> cellSize;
     }
 
@@ -378,51 +379,51 @@ void SputteringModel::startModeling(unsigned int numThreads)
     // ==========================================
     if (inputMode == InputMode::Manual)
     {
-        std::cout << "Введите плотность материала мишени [кг/м3]: ";
+        std::cout << "Enter the density of the target material [kg/m3]: ";
         std::cin >> targetMaterialDensity;
 
-        std::cout << "Введите молярную массу атома материала, из которого состоит мишень [кг/моль]: ";
+        std::cout << "Enter the molar mass of the atom of the material that makes up the target [kg/mol]: ";
         std::cin >> targetMaterialMolarMass;
     }
 
     // 2.2. Calculating surface area.
     double S{tpc.calculateTargetSurfaceArea()};
-    std::cout << "Площадь плоскости мишени: " << S << " [м2]\n";
-    std::cout << "Радиус атома Ti = " << constants::physical_constants::Ti_mass << " [м]\n";
+    std::cout << "The surface area of the target: " << S << " [m2]\n";
+    std::cout << "The radius of the Ti atom = " << constants::physical_constants::Ti_mass << " [m]\n";
 
     // 2.3. Calculating real count of particles on this surface.
     double N{tpc.calculateCountOfParticlesOnTargetSurface(targetMaterialDensity, targetMaterialMolarMass)};
-    std::cout << "Количество атомов на поверхности мишени: " << N << '\n';
+    std::cout << "The number of atoms on the target surface: " << N << '\n';
 
-    std::cout << "Введите вес 1-й моделируемой частицы: ";
+    std::cout << "Enter the weight of the 1st simulated particle: ";
     std::cin >> m_particleWeight;
     if (m_particleWeight <= 1)
     {
-        ERRMSG("Вес частицы не может быть меньше 1");
+        ERRMSG("The weight of the particle cannot be less than 1");
         return;
     }
 
     // 2.4. Calculating model count of particles on this surface.
     N = 100'000'000;
     double N_model{std::ceil(N / std::pow(10, m_particleWeight))};
-    std::cout << "Таким образом " << N << " реальных частиц = " << N_model << " модельных частиц\n";
+    std::cout << "Thus, " << N << " real particles = " << N_model << " simulated particles\n";
 
     double totalTime{};
-    std::cout << "Введите время симуляции [с]: ";
+    std::cout << "Enter the simulation time [s]: ";
     std::cin >> totalTime;
 
     double timeStep{};
-    std::cout << "Введите шаг по времени [с] (желательно, маленький, например, 0.0001): ";
+    std::cout << "Enter the time step [s] (preferably, small, e.g. 0.0001): ";
     std::cin >> timeStep;
 
     // 2.5. Calculating flux of the particles from this surface.
     double J_model{N_model / (S * totalTime)};
-    std::cout << "Поток модельных частиц: " << J_model << " [N/(м2⋅c)]\n";
+    std::cout << "The flux of the simulated particles: " << J_model << " [N/(m2⋅c)]\n";
 
     double energy_eV{10};
     if (inputMode == InputMode::Manual)
     {
-        std::cout << "Введите энергию, вылетающих частиц (не всех, а каждой) [эВ]: ";
+        std::cout << "Enter the energy of the particles that leave the surface [eV]: ";
         std::cin >> energy_eV;
     }
 
@@ -432,20 +433,20 @@ void SputteringModel::startModeling(unsigned int numThreads)
     double expansionAngle{30};
     if (inputMode == InputMode::Manual)
     {
-        std::cout << "Введите угол рассеяния [в градусах]: ";
+        std::cout << "Enter the scattering angle [in degrees]: ";
         std::cin >> expansionAngle;
     }
     expansionAngle *= START_PI_NUMBER / 180.0;
 
     // 2.7. Generating particles on the target surface.
-    auto particles{ParticleGenerator::fromSurfaceSource({surfaceSource}, expansionAngle)};
+    ParticleVector particles{ParticleGenerator::fromSurfaceSource({surfaceSource}, expansionAngle)};
     if (particles.empty())
     {
-        ERRMSG("Ошибка генерации частиц на поверхности.");
+        ERRMSG("Error generating particles on the surface.");
     }
     else
     {
-        SUCCESSMSG(util::stringify("Было сгенерировано ", particles.size(), " частиц на поверхности мишени."));
+        SUCCESSMSG(util::stringify(" ", particles.size(), " particles were generated on the target surface."));
     }
 
     // =============================================
@@ -454,9 +455,9 @@ void SputteringModel::startModeling(unsigned int numThreads)
     double pressure{1}, temperature{273};
     if (inputMode == InputMode::Manual)
     {
-        std::cout << "Введите давление [Па]: ";
+        std::cout << "Enter the pressure [Pa]: ";
         std::cin >> pressure;
-        std::cout << "Введите температуру [К]: ";
+        std::cout << "Enter the temperature [K]: ";
         std::cin >> temperature;
     }
 
@@ -466,8 +467,17 @@ void SputteringModel::startModeling(unsigned int numThreads)
         WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
     }
 
+#if __cplusplus >= 202002L
     for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test(); timeMoment += timeStep)
+#else
+    for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test_and_set(); timeMoment += timeStep)
+#endif
     {
+#if __cplusplus <= 201703L
+        // When we use test_and_set(), we need to reset the flag after each iteration.
+        m_stop_processing.clear();
+#endif
+
         try
         {
             omp_set_num_threads(numThreads);
@@ -523,7 +533,11 @@ void SputteringModel::startModeling(unsigned int numThreads)
             ERRMSG("Some error occured while detecting particles collisions with surfaces (OMP)");
         }
 
+#if __cplusplus >= 202002L
         if (m_stop_processing.test())
+#else
+        if (m_stop_processing.test_and_set())
+#endif
         {
             SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
@@ -696,4 +710,22 @@ void SputteringModel::_distributeSettledParticles()
     {
         ERRMSG("Unknown error");
     }
+}
+
+int main()
+{
+    try
+    {
+        SputteringModel sm("meshes/TwoPlates.msh", "Substrate");
+        sm.startModeling(10);
+    }
+    catch (std::exception const &ex)
+    {
+        ERRMSG(util::stringify("Error: ", ex.what()));
+    }
+    catch (...)
+    {
+        ERRMSG("Unknown error during sputtering modeling");
+    }
+    return EXIT_SUCCESS;
 }

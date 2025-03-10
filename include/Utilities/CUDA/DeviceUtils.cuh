@@ -17,7 +17,7 @@
                   << "Line: " << __LINE__ << std::endl;                                  \
         throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
     }
-#elif START_RELEASE
+#elif defined(START_RELEASE)
 #define START_CHECK_CUDA_ERROR(err, context)                                             \
     if ((err) != cudaSuccess)                                                            \
     {                                                                                    \

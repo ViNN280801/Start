@@ -1,3 +1,7 @@
+#if __cplusplus <= 201703L
+#include <variant>
+#endif
+
 #include "Geometry/RayTriangleIntersection.hpp"
 
 bool RayTriangleIntersection::isIntersectTriangleImpl(Ray const &ray, Triangle const &triangle)
@@ -12,7 +16,8 @@ std::optional<Point> RayTriangleIntersection::getIntersectionPointImpl(Ray const
     if (!result)
         return std::nullopt;
 
-    // Use std::visit to handle the different possible types in the std::variant.
+// Use std::visit to handle the different possible types in the std::variant.
+#if __cplusplus > 201703L
     return std::visit([](auto &&arg) -> std::optional<Point>
                       {
         using T = std::decay_t<decltype(arg)>;
@@ -25,4 +30,11 @@ std::optional<Point> RayTriangleIntersection::getIntersectionPointImpl(Ray const
             return arg.source();
         else
             return std::nullopt; }, *result);
+#else
+    if (const Point * p{std::get_if<Point>(boost::addressof(*result))})
+        return *p;
+    else if (const Ray * s{std::get_if<Ray>(boost::addressof(*result))})
+        return s->source();
+    return std::nullopt;
+#endif
 }
