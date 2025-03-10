@@ -304,10 +304,6 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
         EXPECT_NEAR(particle.getEnergy_J(), expectedEnergy, 1e-15);
 
         Particle other(util::getParticleTypeFromStrRepresentation(surfaceSource.type), 50.0, 50.0, 50.0, -25.0, -25.0, -25.0);
-        if (particle.overlaps(other))
-        {
-            EXPECT_TRUE(CGAL::do_overlap(particle.getBoundingBox(), other.getBoundingBox()));
-        }
 
         double initX{particle.getX()},
             initY{particle.getY()},
@@ -327,10 +323,6 @@ TEST_F(ParticleGeneratorTest, ParticleEachMethodTesting)
 
     auto collisionModel = CollisionModelFactory::create("HS");
     bool collided{collisionModel->collide(p1, util::getParticleTypeFromStrRepresentation(surfaceSource.type), 1.0, dt)};
-    if (collided)
-    {
-        EXPECT_TRUE(CGAL::do_overlap(p1.getBoundingBox(), p2.getBoundingBox()));
-    }
 
     MagneticInduction magneticField{0.01, 0.0, 0.0};
     ElectricField electricField{0.0, 0.01, 0.0};

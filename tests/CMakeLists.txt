@@ -404,7 +404,7 @@ set(UTILITIES_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Utilities)
 set(UTILITIES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Utilities)
 
 set(DATA_HANDLING_SOURCES
-    ${DATA_HANDLING_SRC_PATH}/HDF5Handler.cpp
+    ${DATA_HANDLING_SRC_PATH}/TriangleMeshHdf5Manager.cpp
     ${DATA_HANDLING_SRC_PATH}/TetrahedronMeshManager.cpp
 )
 set(FINITE_ELEMENT_METHOD_SOURCES
@@ -455,7 +455,7 @@ set(SOURCES
 )
 
 set(DATA_HANDLING_TEST_SOURCES
-    DataHandling/HDF5HandlerTests.cpp
+    DataHandling/TriangleMeshHdf5ManagerTests.cpp
     DataHandling/TetrahedronMeshManagerTests.cpp
 )
 set(FINITE_ELEMENT_METHOD_TEST_SOURCES

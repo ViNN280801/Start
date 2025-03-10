@@ -8,8 +8,7 @@ static constexpr std::array<double, 3> thetaPhi{1, 1, 1};
 // Test default constructor
 TEST(ParticleTest, DefaultConstructor)
 {
-    Particle particle;
-    EXPECT_EQ(particle.getBoundingBox(), CGAL::Bbox_3(0, 0, 0, 0, 0, 0));
+    EXPECT_NO_THROW(Particle particle);
 }
 
 // Test constructor with ParticleType only

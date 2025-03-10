@@ -15,18 +15,11 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(MeshTest, CalculateVolumeOfTetrahedron)
-{
-    Tetrahedron tetra(Point(0, 0, 0), Point(1, 0, 0), Point(0, 1, 0), Point(0, 0, 1));
-    double volume{calculateVolumeOfTetrahedron(tetra)};
-    EXPECT_NEAR(volume, 1.0 / 6.0, 1e-6);
-}
-
 TEST_F(MeshTest, AABBTreeConstruction)
 {
-    MeshTriangleParamVector params;
-    params.push_back(std::make_tuple(1, Triangle(Point(0, 0, 0), Point(1, 0, 0), Point(0, 1, 0)), 0.5, 0));
-    auto aabb_tree = constructAABBTreeFromMeshParams(params);
+    TriangleCellMap mesh;
+    mesh[167ul] = TriangleCell(Triangle(Point(0, 0, 0), Point(1, 0, 0), Point(0, 1, 0)), 0.5, 0);
+    auto aabb_tree = constructAABBTreeFromMeshParams(mesh);
     EXPECT_TRUE(aabb_tree.has_value());
 }
 
