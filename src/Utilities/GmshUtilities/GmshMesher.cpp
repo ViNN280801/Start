@@ -11,7 +11,12 @@ GmshMesher::GmshMesher(std::string_view mesh_filename, MeshType mesh_type, doubl
     if (mesh_filename.empty())
         throw std::invalid_argument("Filename of the mesh can't be empty.");
     std::string tmp(mesh_filename);
+
+#if __cplusplus >= 202002L
     if (!tmp.ends_with(".msh"))
+#else
+    if (tmp.find(".msh") == std::string::npos)
+#endif
     {
         tmp += ".msh";
         WARNINGMSG(util::stringify("Missed '.msh' extension in passed filename: ",

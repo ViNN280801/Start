@@ -40,6 +40,7 @@ cd .. && rm -rvf build/
 mkdir -pv build && cd build
 cmake -DCMAKE_INSTALL_PREFIX=/usr/local/Trilinos \
       -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=ON \
       -DCMAKE_C_COMPILER=mpicc \
       -DCMAKE_CXX_COMPILER=mpicxx \
       -DKOKKOSKERNELS_ENABLE_TPL_CUSPARSE=ON \

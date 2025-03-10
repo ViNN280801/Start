@@ -27,13 +27,9 @@ private:
     Point m_centre;                      ///< Position in Cartesian coordinates (x, y, z).
     VelocityVector m_velocity;           ///< Velocity vector (Vx, Vy, Vz).
     double m_energy{};                   ///< Particle energy in [J] by default.
-    CGAL::Bbox_3 m_bbox;                 ///< Bounding box for particle.
-
-    /// @brief Calculates bounding box for the current particle.
-    void calculateBoundingBox() noexcept;
 
 public:
-    Particle() : m_bbox(0, 0, 0, 0, 0, 0) {}
+    Particle() {}
     Particle(ParticleType type_);
     Particle(ParticleType type_, double x_, double y_, double z_, double energyJ_, std::array<double, 3> const &thetaPhi);
     Particle(ParticleType type_, double x_, double y_, double z_, double vx_, double vy_, double vz_);
@@ -97,7 +93,6 @@ public:
     constexpr Point const &getCentre() const { return m_centre; }
     constexpr VelocityVector const &getVelocityVector() const { return m_velocity; }
     constexpr VelocityVector &getVelocityVector() { return m_velocity; }
-    constexpr CGAL::Bbox_3 const &getBoundingBox() const { return m_bbox; }
     constexpr ParticleType getType() const { return m_type; }
     double getMass() const { return ParticlePropertiesManager::getMassFromType(m_type); }
     double getRadius() const { return ParticlePropertiesManager::getRadiusFromType(m_type); }
@@ -140,8 +135,7 @@ public:
                lhs.m_type == rhs.m_type &&
                lhs.m_centre == rhs.m_centre &&
                lhs.m_velocity == rhs.m_velocity &&
-               lhs.m_energy == rhs.m_energy &&
-               lhs.m_bbox == rhs.m_bbox;
+               lhs.m_energy == rhs.m_energy;
     }
 
     /**

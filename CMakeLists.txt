@@ -1,8 +1,8 @@
 # CMakeLists.txt
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 # --------{---(@    Setting custom options with default values   @}}>-----
-option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" OFF)
+option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
@@ -16,7 +16,10 @@ option(START_RELEASE "Compile the project in Start Release mode" ON)
 # ##############################################################################
 # #########                    Reporting about custom project flags ##########
 if(BUILD_SHARED_LIBS)
-  add_compile_options(-fPIC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  message(STATUS "✅ Shared libraries are enabled, Adding -fPIC flag to CMAKE_CXX_FLAGS.")
+else()
+  message(STATUS "🚫 Shared libraries are disabled.")
 endif()
 
 if(GPU_CUDA_ON)
@@ -104,8 +107,7 @@ endfunction()
 
 # ──► Setting compilers ◄──
 set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc" "C compiler")
-set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++"
-                            "C++ compiler")
+set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++" "C++ compiler")
 
 if(GPU_CUDA_ON)
   set(CUDAHOSTCXX "/usr/bin/g++")
@@ -125,6 +127,7 @@ if(GPU_CUDA_ON)
         "⚙️  Using nvcc_wrapper at ${NVCC_WRAPPER_PATH} as the C++ compiler for CUDA-enabled targets."
     )
     set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-gpu-targets")
 
     set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
         "--expt-extended-lambda --expt-relaxed-constexpr -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
@@ -138,7 +141,8 @@ if(GPU_CUDA_ON)
   else()
     message(
       FATAL_ERROR
-        "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed."
+        "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed.
+        You can download it from here: https://github.com/kokkos/kokkos in bin/ directory."
     )
   endif()
 endif()
@@ -251,8 +255,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Global CUDA include directories if GPU support is enabled
 if(GPU_CUDA_ON)
-  set(CMAKE_CXX_STANDARD 17)
-  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_STANDARD 20)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
   include_directories(${CUDA_INCLUDE_DIR})
@@ -491,7 +494,7 @@ set(SUPRESS_SOME_WARNINGS
 )
 message(
   STATUS
-    "⚙️  Setting flags [${SUPRESS_SOME_WARNINGS}] to suppress warnings like: ‘template<class _Tp> struct std::is_pod’ is deprecated: use 'is_standard_layout && is_trivial'"
+    "⚙️  Setting flags [${SUPRESS_SOME_WARNINGS}] to suppress warnings like: 'template<class _Tp> struct std::is_pod' is deprecated: use 'is_standard_layout && is_trivial'"
 )
 set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
 message(
@@ -509,7 +512,6 @@ set(COMMON_CPP_FLAGS
 set(FINAL_CPP_FLAGS
     "${COMMON_CPP_FLAGS} ${SUPRESS_SOME_WARNINGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}"
 )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
 
 # Initialize variables for optional flags
 set(ANTI_ALIASING_FLAG "")
@@ -574,7 +576,7 @@ if(VECTORIZATION_ON)
 endif()
 
 # Append the common and custom flags to CMAKE_CXX_FLAGS
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS} -mno-amx-tile")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FINAL_CPP_FLAGS}")
 message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
 
 # ╔══════════════════════════════════════════════════════════════════════════╗

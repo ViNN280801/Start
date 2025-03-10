@@ -251,7 +251,7 @@ TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physical
                 continue;
             }
 
-            // Assuming that in initial time moment (t=0) there is no any settled particles (3ed param is 0).
+            // Assuming that in initial time moment (t=0) there is no any settled particles (3rd param is 0).
             cellsMap[triangleTag] = TriangleCell(triangle, TriangleCell::compute_area(triangle), 0);
         }
         catch (std::exception const &ex)

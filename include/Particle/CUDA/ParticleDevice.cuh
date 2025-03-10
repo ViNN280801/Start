@@ -30,8 +30,8 @@ struct ParticleDevice_t
 class ParticleDeviceArray
 {
 private:
-    ParticleDevice_t *d_particles = nullptr; ///< Pointer to particles on the device.
-    size_t count = 0ul;                      ///< Number of particles.
+    ParticleDevice_t *d_particles{}; ///< Pointer to particles on the device.
+    size_t count{};                  ///< Number of particles.
 
 public:
     /**
@@ -120,6 +120,36 @@ public:
      * @param newCount New number of particles.
      */
     void resize(size_t newCount);
+
+    /**
+     * @brief Access particle at index without bounds checking.
+     * @param index Index of particle to access.
+     * @return Reference to the particle at the given index.
+     */
+    ParticleDevice_t &operator[](size_t index);
+    
+    /**
+     * @brief Access particle at index without bounds checking (const version).
+     * @param index Index of particle to access.
+     * @return Const reference to the particle at the given index.
+     */
+    ParticleDevice_t const &operator[](size_t index) const;
+
+    /**
+     * @brief Access particle at index with bounds checking.
+     * @param index Index of particle to access.
+     * @return Reference to the particle at the given index.
+     * @throws std::out_of_range if index is out of bounds.
+     */
+    ParticleDevice_t &at(size_t index);
+    
+    /**
+     * @brief Access particle at index with bounds checking (const version).
+     * @param index Index of particle to access.
+     * @return Const reference to the particle at the given index.
+     * @throws std::out_of_range if index is out of bounds.
+     */
+    ParticleDevice_t const &at(size_t index) const;
 };
 
 #endif // !USE_CUDA
