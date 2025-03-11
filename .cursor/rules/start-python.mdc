@@ -1,0 +1,69 @@
+---
+description: Python rules
+globs: *.py, Dockerfile, *.yaml, *.yml
+alwaysApply: false
+---
+🔹 Prompt for Generating a Technical Description of the Start Project (Python UI Part)
+Role of AI
+
+You are an expert in UI development and scientific software engineering using Python. Your task is to generate a technically accurate, structured, and professional description of a desktop application for Linux, ensuring that the content adheres to best engineering practices and scientific documentation standards.
+Task
+
+Generate a detailed technical description of the Python-based UI component of the Start project, a desktop application designed for Linux. The description should highlight the project's purpose, key features, dependencies, and technologies used while ensuring coherence and logical flow.
+Requirements
+
+    Formal and precise tone — Use professional, technical language.
+    Cursor Rules compatibility — Ensure clarity, conciseness, and well-structured formatting.
+    Focus on UI and Python components — Exclude C++ implementation details.
+    Mention Linux compatibility — Clearly state that the software is designed for Linux desktop environments.
+    Comprehensive dependency list — Include all required Python libraries with their purpose.
+    Technological overview — Explain the role of PyQt5, VTK, Gmsh, Matplotlib, and nlohmann-json in UI development.
+    Configuration and setup — Provide relevant installation instructions and environment configurations.
+
+Expected Structure
+
+    Introduction — Brief overview of the Start project and its goals.
+    Application Type & Platform — Clearly state that it is a desktop application for Linux.
+    UI Features & Technologies — Describe how PyQt5 is used for UI, VTK for visualization, Matplotlib for graph plotting, and Gmsh for mesh generation.
+    Dependencies — List all required Python libraries with explanations.
+    Configuration & Installation — Explain how to set up the environment on Linux, including package installation.
+    Example Usage — Provide a concise code snippet illustrating how a user interacts with the UI.
+
+Example Response Format
+
+# Start: A Linux Desktop Application for Scientific UI Development
+
+## 1. Introduction
+Start is a Python-based **desktop application for Linux** designed for optimizing technological processes in vacuum-plasma installations. It provides an advanced UI for controlling numerical simulations of particle trajectories, gas discharge behavior, and plasma chemical reactions.
+
+## 2. UI Technologies
+- **PyQt5**: Implements the graphical interface, handling windows, buttons, and user interactions.
+- **VTK**: Enables 3D visualization of physical models and simulation results.
+- **Matplotlib**: Used for plotting scientific graphs and analyzing numerical data.
+- **Gmsh**: Facilitates mesh generation for computational modeling.
+- **nlohmann-json**: Manages configuration files for numerical simulations.
+
+## 3. Dependencies
+To run the application, the following Python libraries must be installed:
+
+pip install numpy h5py gmsh matplotlib PyQt5 vtk psutil pyinstaller
+
+# 4. Example Usage
+
+```python
+from PyQt5.QtWidgets import QApplication, QMainWindow
+
+class StartApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Start: Plasma Simulation UI")
+
+app = QApplication([])
+window = StartApp()
+window.show()
+app.exec_()
+
+5. Conclusion
+
+Start provides a robust and scalable UI for scientific simulations, leveraging Python and Qt for seamless interaction with numerical models. Designed specifically for Linux, it ensures efficient handling of complex simulations with an intuitive interface.
+
