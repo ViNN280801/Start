@@ -88,11 +88,13 @@
 #ifdef USE_CUDA
     #define START_CUDA_HOST_DEVICE __host__ __device__
     #define START_CUDA_HOST __host__
-    #define START_CUDA_GLOBAL __global__
+    #define START_CUDA_GLOBAL extern "C" __global__
+    #define START_CUDA_DEVICE_FUNCTION __device__
 #else
     #define START_CUDA_HOST_DEVICE
     #define START_CUDA_HOST
     #define START_CUDA_GLOBAL
+    #define START_CUDA_DEVICE_FUNCTION
 #endif
 
 #if defined(USE_CUDA) && defined(__CUDA_ARCH__)

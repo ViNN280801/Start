@@ -173,6 +173,20 @@ endif()
 
 if(GPU_CUDA_ON)
   # ############################################################################
+  # CUDA Architecture Setup                     #
+  # ############################################################################
+  # Define all supported CUDA architectures for the project
+  set(CUDA_SUPPORTED_ARCHS "70;75;80;86;89;90")
+  # Create a string for directly setting in CUDA compile flags
+  set(CUDA_ARCH_FLAGS "")
+  foreach(arch ${CUDA_SUPPORTED_ARCHS})
+    set(CUDA_ARCH_FLAGS "${CUDA_ARCH_FLAGS} -arch=sm_${arch}")
+  endforeach()
+  # Flag for suppressing warnings about deprecated architectures
+  set(CUDA_ARCH_FLAGS "${CUDA_ARCH_FLAGS} -Wno-deprecated-gpu-targets")
+  message(STATUS "🔧 CUDA architecture flags: ${CUDA_ARCH_FLAGS}")
+  
+  # ############################################################################
   # CUDA Toolkit Directory Setup                #
   # ############################################################################
   # ══► Function to check if a directory exists and handle errors ◄══
@@ -214,7 +228,7 @@ if(GPU_CUDA_ON)
   # ############################################################################
 
   # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
-  set(CMAKE_CUDA_ARCHITECTURES "native")
+  set(CMAKE_CUDA_ARCHITECTURES ${CUDA_SUPPORTED_ARCHS})
   set_property(GLOBAL PROPERTY CMAKE_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
   message(
     STATUS
@@ -735,9 +749,8 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${START_LINK_LIBRARIES})
 if(GPU_CUDA_ON)
   target_compile_options(
     ${EXECUTABLE_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
-  target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${CUDA_LIBRARIES})
-  set_target_properties(${EXECUTABLE_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION
-                                                      ON)
+  target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${CUDA_LIBRARIES} cudadevrt)
+  set_target_properties(${EXECUTABLE_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
 endif()
 if(START_OPENMP_ON)
   target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${OpenMP_LIBRARIES})

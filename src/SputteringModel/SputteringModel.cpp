@@ -261,8 +261,8 @@ void SputteringModel::_writeHistogramToFile()
             filtered_counts[id] = cell.count * overlap_ratio;
     }
 
-    // Grouping by Y-coordinate with a step of 0.5 cm
-    constexpr double bin_size{0.5};
+    // Grouping by Y-coordinate with a step of 1 cm
+    constexpr double bin_size{1.0};
     std::map<double, double> y_bins;
     for (auto const &[id, count] : filtered_counts)
     {

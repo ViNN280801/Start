@@ -4,13 +4,15 @@
 #ifdef USE_CUDA
 
 #include <cuda_runtime.h>
+
 #include "Geometry/CUDA/GeometryDeviceTypes.cuh"
+#include "Geometry/CUDA/Impl/RayTriangleIntersection.cuh"
 #include "Utilities/CUDAWarningSuppress.hpp"
 #include "Utilities/PreprocessorUtils.hpp"
 
 /**
  * @brief Kernel to check if points are inside a mesh represented by triangles
- * 
+ *
  * @param points Array of points to check
  * @param triangles Array of triangles representing the mesh
  * @param numPoints Number of points
@@ -18,16 +20,15 @@
  * @param results Output array indicating if each point is inside (1) or outside (0)
  */
 START_CUDA_GLOBAL void checkPointsInsideMeshKernel(
-    DevicePoint* points,
-    DeviceTriangle* triangles,
+    DevicePoint *points,
+    DeviceTriangle *triangles,
     int numPoints,
     int numTriangles,
-    int* results
-);
+    int *results);
 
 /**
  * @brief Kernel to calculate distances from points to a mesh
- * 
+ *
  * @param points Array of points
  * @param triangles Array of triangles representing the mesh
  * @param numPoints Number of points
@@ -35,16 +36,15 @@ START_CUDA_GLOBAL void checkPointsInsideMeshKernel(
  * @param distances Output array of distances
  */
 START_CUDA_GLOBAL void calculateDistancesToMeshKernel(
-    DevicePoint* points,
-    DeviceTriangle* triangles,
+    DevicePoint *points,
+    DeviceTriangle *triangles,
     int numPoints,
     int numTriangles,
-    double* distances
-);
+    double *distances);
 
 /**
  * @brief Kernel to perform ray-triangle intersection tests
- * 
+ *
  * @param rays Array of rays
  * @param triangles Array of triangles
  * @param numRays Number of rays
@@ -53,14 +53,14 @@ START_CUDA_GLOBAL void calculateDistancesToMeshKernel(
  * @param hitDistances Output array of hit distances (if hit)
  */
 START_CUDA_GLOBAL void rayTriangleIntersectionKernel(
-    DeviceRay* rays,
-    DeviceTriangle* triangles,
+    DeviceRay *rays,
+    DeviceTriangle *triangles,
     int numRays,
     int numTriangles,
-    int* hitResults,
-    double* hitDistances
-);
+    int *hitResults,
+    double *hitDistances);
+
+// The rayTriangleIntersection function is now implemented in Impl/RayTriangleIntersection.cuh
 
 #endif // !USE_CUDA
-
-#endif // !GEOMETRYKERNELS_CUH 
+#endif // !GEOMETRYKERNELS_CUH

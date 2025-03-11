@@ -9,7 +9,7 @@
 #include "Utilities/CUDAWarningSuppress.hpp"
 
 /**
- * @brief Device representation of a 3D point
+ * @brief A 3D point for use on the device
  */
 struct DevicePoint
 {
@@ -39,14 +39,17 @@ struct DevicePoint
 };
 
 /**
- * @brief Device representation of a triangle
+ * @brief A triangle for use on the device
  */
 struct DeviceTriangle
 {
     DevicePoint v0, v1, v2;
     
-    START_CUDA_HOST_DEVICE DeviceTriangle() noexcept = default;
-    START_CUDA_HOST_DEVICE DeviceTriangle(DevicePoint const& v0_, DevicePoint const& v1_, DevicePoint const& v2_) noexcept
+    START_CUDA_HOST_DEVICE DeviceTriangle() noexcept {}
+    START_CUDA_HOST_DEVICE DeviceTriangle(
+        const DevicePoint& v0_,
+        const DevicePoint& v1_,
+        const DevicePoint& v2_) noexcept
         : v0(v0_), v1(v1_), v2(v2_) {}
     
     /**
@@ -103,7 +106,7 @@ struct DeviceTriangle
 };
 
 /**
- * @brief Device representation of a ray (line segment)
+ * @brief A ray for use on the device
  */
 struct DeviceRay
 {
@@ -113,22 +116,11 @@ struct DeviceRay
     
     START_CUDA_HOST_DEVICE DeviceRay() noexcept : length(0.0) {}
     
-    START_CUDA_HOST_DEVICE DeviceRay(DevicePoint const& origin_, DevicePoint const& target) noexcept
-        : origin(origin_)
-    {
-        direction.x = target.x - origin.x;
-        direction.y = target.y - origin.y;
-        direction.z = target.z - origin.z;
-        
-        length = sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
-        
-        // Normalize direction if length is not too small
-        if (length > 1e-10) {
-            direction.x /= length;
-            direction.y /= length;
-            direction.z /= length;
-        }
-    }
+    START_CUDA_HOST_DEVICE DeviceRay(
+        const DevicePoint& origin_,
+        const DevicePoint& direction_,
+        double length_ = 1.0) noexcept
+        : origin(origin_), direction(direction_), length(length_) {}
     
     /**
      * @brief Check if the ray is degenerate (too short)
@@ -158,7 +150,7 @@ struct DeviceTetrahedron
 {
     DevicePoint v0, v1, v2, v3;
     
-    START_CUDA_HOST_DEVICE DeviceTetrahedron() noexcept = default;
+    DeviceTetrahedron() noexcept = default;
     START_CUDA_HOST_DEVICE DeviceTetrahedron(DevicePoint const& v0_, DevicePoint const& v1_, DevicePoint const& v2_, DevicePoint const& v3_) noexcept
         : v0(v0_), v1(v1_), v2(v2_), v3(v3_) {}
     
