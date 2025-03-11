@@ -6,6 +6,10 @@
 
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 
+#ifdef USE_CUDA
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/CUDA/ParticleDynamicsProcessorCUDA.cuh"
+#endif
+
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                                                         size_t end_index,
                                                         double timeMoment,
@@ -59,27 +63,22 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                           // 5. Simulate collisions between the particle and gas molecules.
                           ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-                          // 6. Skip surface collision checks at the initial simulation time (t == 0).
-                          // 7. Detect and handle collisions with the surface mesh.
-                          if (timeMoment != 0.0)
+                          // 6. Handle collisions between the particle and the surface mesh.
+                          auto collision{ParticleSurfaceCollisionHandler::handle(
+                              particle, ray, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
+                              mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject)};
+
+                          // 7. If we collided and settled with a tetrahedron or triangle, we need to update collision counter.
+                          if (collision)
                           {
-                              auto triangleIdOpt{ParticleSurfaceCollisionHandler::handle(particle, ray, particles.size(),
-                                                                                         surfaceMesh, sh_mutex_settledParticlesCounterMap,
-                                                                                         mutex_particlesMovementMap,
-                                                                                         particleMovementMap, settledParticlesIds, stopSubject)};
-                              if (triangleIdOpt.has_value())
-                                  ParticleSettler::settle(particle.getId(), triangleIdOpt.value(), particles.size(),
-                                                          surfaceMesh, sh_mutex_settledParticlesCounterMap, settledParticlesIds, stopSubject);
+                              if (stopSubject.isStopRequested())
+                                  return;
                           }
                       });
     }
-    catch (std::exception const &ex)
+    catch (std::exception const &e)
     {
-        ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces: ", ex.what()));
-    }
-    catch (...)
-    {
-        ERRMSG("Some error occured while detecting particles collisions with surfaces");
+        throw std::runtime_error{std::string{"[process_stdver__helper] "} + e.what()};
     }
 }
 
@@ -228,20 +227,46 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
                                         std::string_view gasName,
                                         double gasConcentration)
 {
-    // Check if the requested number of threads exceeds available hardware concurrency.
-    // ConfigParser configParser(config_filename);
-    // auto numThreads{configParser.getNumThreads_s()};
+#ifdef USE_CUDA
+    try
+    {
+        LOGMSG("Using CUDA");
+        int result = system("nvidia-smi");
+        if (result != 0)
+        {
+            ERRMSG("Failed to execute nvidia-smi");
+        }
+        ParticleDynamicsProcessorCUDA::process(
+            timeMoment, timeStep, particles, cubicGrid, gsmAssembler,
+            surfaceMesh, particleTracker, settledParticlesIds,
+            sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap,
+            particleMovementMap, stopSubject, scatteringModel, gasName, gasConcentration);
+        return;
+    }
+    catch (const std::exception &e)
+    {
+        // If CUDA processing fails, fall back to CPU processing
+        ERRMSG(util::stringify("CUDA processing failed: ", e.what()));
+    }
+#endif
 
 #ifdef USE_OMP
-    // If OpenMP is available and requested, use the OMP version.
-    _process_ompver__(timeMoment, timeStep, numThreads, particles, cubicGrid, gsmAssembler, surfaceMesh, particleTracker,
-                      settledParticlesIds, sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap, particleMovementMap,
-                      stopSubject, scatteringModel, gasName, gasConcentration);
-#else
-    // Otherwise, fall back to the standard version.
-    _process_stdver__(numThreads, timeMoment, timeStep, particles, cubicGrid, gsmAssembler, surfaceMesh, particleTracker,
-                      settledParticlesIds, sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap,
-                      particleMovementMap, stopSubject, scatteringModel, gasName,
-                      util::calculateConcentration_w(config_filename));
+    // Check if we should use OpenMP first
+    if (numThreads > 1)
+    {
+        LOGMSG(util::stringify("Using OpenMP with ", numThreads, " threads"));
+        _process_ompver__(timeMoment, timeStep, numThreads, particles, cubicGrid, gsmAssembler,
+                          surfaceMesh, particleTracker, settledParticlesIds, sh_mutex_settledParticlesCounterMap,
+                          mutex_particlesMovementMap, particleMovementMap, stopSubject, scatteringModel,
+                          gasName, gasConcentration);
+        return;
+    }
 #endif
+
+    // Fall back to standard C++ parallel execution
+    LOGMSG(util::stringify("Using standard C++ parallel execution with ", numThreads, " threads"));
+    _process_stdver__(numThreads, timeMoment, timeStep, particles, cubicGrid, gsmAssembler,
+                      surfaceMesh, particleTracker, settledParticlesIds, sh_mutex_settledParticlesCounterMap,
+                      mutex_particlesMovementMap, particleMovementMap, stopSubject, scatteringModel,
+                      gasName, gasConcentration);
 }

@@ -43,6 +43,7 @@ class StopSubject
 {
 private:
     std::vector<std::shared_ptr<StopObserver>> m_observers; ///< List of observers.
+    std::atomic<bool> m_stopRequested{false}; ///< Flag indicating if stop has been requested
 
 public:
     /**
@@ -55,6 +56,12 @@ public:
      * @brief Notifies all registered observers that a stop is requested.
      */
     void notifyStopRequested();
+    
+    /**
+     * @brief Checks if a stop has been requested.
+     * @return True if a stop has been requested, false otherwise.
+     */
+    bool isStopRequested() const noexcept { return m_stopRequested.load(); }
 };
 
 /**

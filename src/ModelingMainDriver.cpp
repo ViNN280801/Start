@@ -195,70 +195,10 @@ void ModelingMainDriver::startModeling()
 
         // 3. Process all the particle dynamics in parallel (settling on surface,
         //    velocity and energy updater, EM-pusher and movement tracker).
-        try
-        {
-            omp_set_num_threads(numThreads);
-
-#pragma omp parallel for schedule(dynamic)
-            for (size_t i = 0ul; i < countOfParticles; ++i)
-            {
-                auto &particle = m_particles[i];
-
-                // 1. Check if particle is settled.
-                if (ParticleSettler::isSettled(particle.getId(),
-                                               m_settledParticlesIds,
-                                               m_settledParticlesMutex))
-                    continue;
-
-                // 2. Electromagnetic push (Here is no need to do EM-push).
-                // @remark In the sputtering model there is no any field, so, there is no need to do EM-push.
-                if (auto tetraId{CubicGrid::getContainingTetrahedron(m_particleTracker, particle, timeMoment)})
-                    ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
-
-                // 3. Record previous position.
-                Point prev{particle.getCentre()};
-                ParticleMovementTracker::recordMovement(m_particlesMovement,
-                                                        m_particlesMovementMutex,
-                                                        particle.getId(),
-                                                        prev);
-
-                // 4. Update position.
-                particle.updatePosition(timeStep);
-                Ray ray(prev, particle.getCentre());
-                if (ray.is_degenerate())
-                    continue;
-
-                // 5. Gas collision.
-                ParticlePhysicsUpdater::collideWithGas(particle,
-                                                       m_config.getScatteringModel(),
-                                                       m_config.getGasStr(),
-                                                       m_gasConcentration,
-                                                       timeStep);
-
-                // 6. Skip surface collision checks if t == 0.
-                if (timeMoment == 0.0)
-                    continue;
-
-                // 7. Surface collision.
-                ParticleSurfaceCollisionHandler::handle(particle,
-                                                        ray,
-                                                        countOfParticles,
-                                                        m_surfaceMesh,
-                                                        m_settledParticlesMutex,
-                                                        m_particlesMovementMutex,
-                                                        m_particlesMovement,
-                                                        m_settledParticlesIds,
-                                                        *this);
-            }
-        }
-        catch (std::exception const &ex)
-        {
-            ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
-        }
-        catch (...)
-        {
-            ERRMSG("Some error occured while detecting particles collisions with surfaces (OMP)");
-        }
+        ParticleDynamicsProcessor::process(m_config_filename, m_particles, timeMoment, m_config.getTimeStep(),
+                                           numThreads, cubicGrid, gsmAssembler, m_surfaceMesh, m_particleTracker, m_settledParticlesIds,
+                                           m_settledParticlesMutex, m_particlesMovementMutex, m_particlesMovement,
+                                           *this, m_config.getScatteringModel(), m_config.getGasStr(), m_gasConcentration);
 
 #if __cplusplus >= 202002L
         if (m_stop_processing.test())

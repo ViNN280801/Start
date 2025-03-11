@@ -4,6 +4,10 @@ void StopSubject::addObserver(std::shared_ptr<StopObserver> observer) { m_observ
 
 void StopSubject::notifyStopRequested()
 {
+    // Set the stop requested flag
+    m_stopRequested.store(true);
+    
+    // Notify all observers
     for (auto &observer : m_observers)
         observer->onStopRequested();
 }
