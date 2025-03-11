@@ -22,7 +22,7 @@
     "ParticleSourceSurface": {
         "1": {
             "Type": "Ti",
-            "Count": 5000,
+            "Count": 50000,
             "Energy": 1.0,
             "BaseCoordinates": {
                 "7.13, 5.43, 49.74": [

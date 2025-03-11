@@ -214,12 +214,11 @@ if(GPU_CUDA_ON)
   # ############################################################################
 
   # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
-  set(CMAKE_CUDA_ARCHITECTURES "89")
-  set_property(GLOBAL PROPERTY CMAKE_CUDA_ARCHITECTURES
-                               ${CMAKE_CUDA_ARCHITECTURES})
+  set(CMAKE_CUDA_ARCHITECTURES "native")
+  set_property(GLOBAL PROPERTY CMAKE_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
   message(
     STATUS
-      "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES={${CMAKE_CUDA_ARCHITECTURES}}"
+      "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}"
   )
 
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda --expt-relaxed-constexpr")
@@ -700,11 +699,8 @@ endif()
 set(EXECUTABLE_NAME nia_start_core)
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                                    "${CMAKE_SOURCE_DIR}")
-target_link_libraries(
-  ${EXECUTABLE_NAME}
-  PRIVATE ${CGAL_NAMESPACE}
+set(START_LINK_LIBRARIES
+          ${CGAL_NAMESPACE}
           ${GMSH_LIBRARIES}
           ${Boost_LIBRARIES}
           ${GMP_LIBRARIES}
@@ -732,6 +728,10 @@ target_link_libraries(
           GmshUtilities
 )
 
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                                                    "${CMAKE_SOURCE_DIR}")
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${START_LINK_LIBRARIES})
+
 if(GPU_CUDA_ON)
   target_compile_options(
     ${EXECUTABLE_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
@@ -746,3 +746,10 @@ endif()
 add_custom_target(
   distclean COMMAND rm -rf MakeCache.txt CMakeFiles Makefile
                     cmake_install.cmake CTestTestfile.cmake Testing)
+
+#### ~~~ Compiling sputtering model from SputteringModel/SputteringModel.cpp ~~~ ####
+set(SPUTTERING_MODEL_EXECUTABLE_NAME sputtering_model)
+set(SPUTTERING_MODEL_SOURCES src/SputteringModel/SputteringModel.cpp)
+add_executable(${SPUTTERING_MODEL_EXECUTABLE_NAME} ${SPUTTERING_MODEL_SOURCES})
+target_link_libraries(${SPUTTERING_MODEL_EXECUTABLE_NAME} PRIVATE ${START_LINK_LIBRARIES})
+#### ~~~ End of sputtering model compilation ~~~ ####

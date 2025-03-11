@@ -24,6 +24,12 @@
  * - **Gas collisions** using various scattering models (HS, VHS, VSS)
  * - **Surface interactions** (settling, collisions)
  * - **Multi-threaded execution** using `std::execution::par` and OpenMP (if enabled)
+ * - **CUDA-accelerated execution** (if CUDA is enabled)
+ * 
+ * @note The implementation chooses the best available acceleration method:
+ *       1. CUDA (if available and enabled via environment variable START_USE_CUDA=1)
+ *       2. OpenMP (if available and numThreads > 1)
+ *       3. Standard C++ parallel execution (fallback)
  */
 class ParticleDynamicsProcessor
 {
@@ -121,7 +127,12 @@ private:
 
 public:
     /**
-     * @brief Main function to process particles using either OpenMP or standard parallel execution.
+     * @brief Main function to process particles using either GPU (CUDA), OpenMP, or standard parallel execution.
+     * 
+     * The function selects the best available processing method in the following order of preference:
+     * 1. CUDA GPU acceleration (if USE_CUDA is defined and enabled via environment variable START_USE_CUDA=1)
+     * 2. OpenMP (if USE_OMP is defined and numThreads > 1)
+     * 3. Standard C++ parallel algorithms (fallback)
      *
      * @param config_filename Name of the configuration file.
      * @param particles Vector of particles.
