@@ -9,6 +9,7 @@
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/CUDA/ParticleDynamicsProcessorCUDA.cuh"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/CUDA/ParticleKernelHelpers.cuh"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/CUDA/ParticleSurfaceCollisionHandlerCUDA.cuh"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
@@ -30,7 +31,7 @@ constexpr int MAX_THREADS_PER_BLOCK = 256;
  * @param params Kernel parameters including time step, etc.
  */
 START_CUDA_WARNING_SUPPRESS
-__global__ void particleDynamicsKernel(ParticleDevice_t *particles, size_t count, ParticleDynamicsKernelParams params)
+extern "C" __global__ void particleDynamicsKernel(ParticleDevice_t *particles, size_t count, ParticleDynamicsKernelParams params)
 {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -93,12 +94,15 @@ void ParticleDynamicsProcessorCUDA::updateHostParticles(ParticleDeviceArray &dev
         {
             // Only copy position, velocity, and energy
             // Do not overwrite other particle properties
+            hostParticles[i].setCentre(
+                updatedParticles[i].getX(),
+                updatedParticles[i].getY(),
+                updatedParticles[i].getZ());
             hostParticles[i].setVelocity(
                 updatedParticles[i].getVx(),
                 updatedParticles[i].getVy(),
                 updatedParticles[i].getVz());
             hostParticles[i].setEnergy_J(updatedParticles[i].getEnergy_J());
-            // The position is already updated by the kernel
         }
     }
 }
@@ -146,6 +150,20 @@ void ParticleDynamicsProcessorCUDA::process(double timeMoment,
 {
     try
     {
+        int deviceCount = 0;
+        cudaError_t err = cudaGetDeviceCount(&deviceCount);
+        START_CHECK_CUDA_ERROR(err, "Error querying CUDA device count");
+        if (deviceCount == 0) {
+            throw std::runtime_error("No CUDA devices found");
+        }
+        
+        cudaDeviceProp deviceProp;
+        err = cudaGetDeviceProperties(&deviceProp, 0);
+        START_CHECK_CUDA_ERROR(err, "Error getting CUDA device properties");
+        
+        LOGMSG(util::stringify("Using CUDA device: ", deviceProp.name, 
+               " with compute capability ", deviceProp.major, ".", deviceProp.minor));
+
         // Skip if there are no particles to process
         if (particles.empty())
             return;
@@ -153,12 +171,13 @@ void ParticleDynamicsProcessorCUDA::process(double timeMoment,
         // 1. Prepare particles for GPU processing
         auto deviceParticles = prepareParticlesForGPU(particles);
 
-        // 2. Record previous positions for movement tracking (need to do this before sending to GPU)
-        std::vector<Point> previousPositions;
+        // 2. Record previous positions for movement tracking
+        std::vector<DevicePoint> previousPositions;
         previousPositions.reserve(particles.size());
         for (auto &particle : particles)
         {
-            previousPositions.push_back(particle.getCentre());
+            Point center = particle.getCentre();
+            previousPositions.push_back(DevicePoint(center.x(), center.y(), center.z()));
         }
 
         // 3. Prepare kernel parameters
@@ -169,9 +188,12 @@ void ParticleDynamicsProcessorCUDA::process(double timeMoment,
         params.scatteringModelType = convertScatteringModelToInt(scatteringModel);
         params.gasType = convertGasNameToParticleType(gasName);
 
-        // 4. Launch kernel
+        // 4. Launch kernel to update particle positions and handle gas collisions
         int numThreads = MAX_THREADS_PER_BLOCK;
         int numBlocks = static_cast<int>((particles.size() + numThreads - 1) / numThreads);
+        
+        LOGMSG(util::stringify("Launching particle dynamics kernel with ", numBlocks, 
+               " blocks and ", numThreads, " threads per block for ", particles.size(), " particles"));
 
         particleDynamicsKernel<<<numBlocks, numThreads>>>(
             deviceParticles.get(),
@@ -179,52 +201,165 @@ void ParticleDynamicsProcessorCUDA::process(double timeMoment,
             params);
 
         // Check for kernel errors
-        cudaError_t err = cudaGetLastError();
-        cuda_utils::check_cuda_err(err, "Failed to launch particle dynamics kernel");
+        err = cudaGetLastError();
+        START_CHECK_CUDA_ERROR(err, "Failed to launch particle dynamics kernel");
 
         // Wait for kernel to finish
         err = cudaDeviceSynchronize();
-        cuda_utils::check_cuda_err(err, "Failed to synchronize after particle dynamics kernel");
+        START_CHECK_CUDA_ERROR(err, "Failed to synchronize after particle dynamics kernel");
 
-        // 5. Update host particles with results from GPU
-        updateHostParticles(deviceParticles, particles);
-
-        // 6. Process particle movement and surface collisions on CPU
-        // These operations involve complex data structures not easily handled on GPU
-        for (size_t i = 0; i < particles.size(); ++i)
+        // 5. Prepare for surface collision detection
+        // 5.1 Convert triangles to device format
+        std::vector<DeviceTriangle> deviceTriangles;
+        auto const& triangles = surfaceMesh.getTriangles();
+        deviceTriangles.reserve(triangles.size());
+        
+        for (auto const& triangle : triangles)
         {
-            auto &particle = particles[i];
-
-            // Skip already settled particles
-            if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
-                continue;
-
-            // Record particle movement
-            ParticleMovementTracker::recordMovement(
-                particleMovementMap,
-                mutex_particlesMovementMap,
-                particle.getId(),
-                previousPositions[i]);
-
-            // Create ray from previous to current position for collision detection
-            Ray ray(previousPositions[i], particle.getCentre());
-            if (!ray.is_degenerate())
+            DevicePoint v0(triangle.vertex(0).x(), triangle.vertex(0).y(), triangle.vertex(0).z());
+            DevicePoint v1(triangle.vertex(1).x(), triangle.vertex(1).y(), triangle.vertex(1).z());
+            DevicePoint v2(triangle.vertex(2).x(), triangle.vertex(2).y(), triangle.vertex(2).z());
+            deviceTriangles.push_back(DeviceTriangle(v0, v1, v2));
+        }
+        
+        // 5.2 Initialize the AABB tree for surface collision detection
+        ParticleSurfaceCollisionHandlerCUDA::initialize(deviceTriangles);
+        
+        // 5.3 Allocate device memory for previous positions
+        DevicePoint* d_previousPositions;
+        err = cudaMalloc(&d_previousPositions, particles.size() * sizeof(DevicePoint));
+        START_CHECK_CUDA_ERROR(err, "Failed to allocate device memory for previous positions");
+        
+        err = cudaMemcpy(d_previousPositions, previousPositions.data(), particles.size() * sizeof(DevicePoint), cudaMemcpyHostToDevice);
+        START_CHECK_CUDA_ERROR(err, "Failed to copy previous positions to device");
+        
+        // 5.4 Allocate device memory for settled particles
+        int* d_settledParticles;
+        err = cudaMalloc(&d_settledParticles, particles.size() * sizeof(int));
+        START_CHECK_CUDA_ERROR(err, "Failed to allocate device memory for settled particles");
+        
+        // Initialize settled particles array
+        std::vector<int> settledParticlesArray(particles.size(), 0);
+        for (auto const& id : settledParticlesIds)
+        {
+            for (size_t i = 0; i < particles.size(); ++i)
             {
-                // Handle surface collisions
-                auto collision = ParticleSurfaceCollisionHandler::handle(
-                    particle,
-                    ray,
-                    particles.size(),
-                    surfaceMesh,
-                    sh_mutex_settledParticlesCounterMap,
-                    mutex_particlesMovementMap,
-                    particleMovementMap,
-                    settledParticlesIds,
-                    stopSubject);
+                if (particles[i].getId() == id)
+                {
+                    settledParticlesArray[i] = 1;
+                    break;
+                }
             }
         }
+        
+        err = cudaMemcpy(d_settledParticles, settledParticlesArray.data(), particles.size() * sizeof(int), cudaMemcpyHostToDevice);
+        START_CHECK_CUDA_ERROR(err, "Failed to copy settled particles to device");
+        
+        // 5.5 Allocate device memory for collision results
+        DevicePoint* d_collisionPoints;
+        int* d_collisionTriangles;
+        int* d_numCollisions;
+        
+        err = cudaMalloc(&d_collisionPoints, particles.size() * sizeof(DevicePoint));
+        START_CHECK_CUDA_ERROR(err, "Failed to allocate device memory for collision points");
+        
+        err = cudaMalloc(&d_collisionTriangles, particles.size() * sizeof(int));
+        START_CHECK_CUDA_ERROR(err, "Failed to allocate device memory for collision triangles");
+        
+        err = cudaMalloc(&d_numCollisions, sizeof(int));
+        START_CHECK_CUDA_ERROR(err, "Failed to allocate device memory for collision counter");
+        
+        // 6. Process surface collisions on GPU
+        ParticleSurfaceCollisionHandlerCUDA::processCollisions(
+            deviceParticles.get(),
+            particles.size(),
+            d_previousPositions,
+            d_settledParticles,
+            d_collisionPoints,
+            d_collisionTriangles,
+            d_numCollisions
+        );
+        
+        // 7. Retrieve collision results
+        int numCollisions = 0;
+        err = cudaMemcpy(&numCollisions, d_numCollisions, sizeof(int), cudaMemcpyDeviceToHost);
+        START_CHECK_CUDA_ERROR(err, "Failed to copy collision count from device");
+        
+        if (numCollisions > 0)
+        {
+            // 7.1 Copy collision data back to host
+            std::vector<DevicePoint> collisionPoints(numCollisions);
+            std::vector<int> collisionTriangles(numCollisions);
+            
+            err = cudaMemcpy(collisionPoints.data(), d_collisionPoints, numCollisions * sizeof(DevicePoint), cudaMemcpyDeviceToHost);
+            START_CHECK_CUDA_ERROR(err, "Failed to copy collision points from device");
+            
+            err = cudaMemcpy(collisionTriangles.data(), d_collisionTriangles, numCollisions * sizeof(int), cudaMemcpyDeviceToHost);
+            START_CHECK_CUDA_ERROR(err, "Failed to copy collision triangles from device");
+            
+            // 7.2 Update settled particles set and movement map
+            std::vector<int> updatedSettledParticles(particles.size());
+            err = cudaMemcpy(updatedSettledParticles.data(), d_settledParticles, particles.size() * sizeof(int), cudaMemcpyDeviceToHost);
+            START_CHECK_CUDA_ERROR(err, "Failed to copy updated settled particles from device");
+            
+            for (size_t i = 0; i < particles.size(); ++i)
+            {
+                if (updatedSettledParticles[i] == 1 && settledParticlesArray[i] == 0)
+                {
+                    // This particle was settled during this step
+                    size_t particleId = particles[i].getId();
+                    
+                    // Find the collision data for this particle
+                    for (int j = 0; j < numCollisions; ++j)
+                    {
+                        // Add to settled particles set
+                        {
+                            std::unique_lock<std::shared_mutex> lock(sh_mutex_settledParticlesCounterMap);
+                            settledParticlesIds.insert(particleId);
+                        }
+                        
+                        // Update triangle counter in surface mesh
+                        size_t triangleId = static_cast<size_t>(collisionTriangles[j]);
+                        if (triangleId < surfaceMesh.getTriangleCellMap().size())
+                        {
+                            std::unique_lock<std::shared_mutex> lock(sh_mutex_settledParticlesCounterMap);
+                            surfaceMesh.getTriangleCellMap()[triangleId].count += 1;
+                            
+                            // Check if we should stop the simulation
+                            if (surfaceMesh.getTotalCountOfSettledParticles() >= particles.size())
+                            {
+                                stopSubject.notifyStopRequested();
+                            }
+                        }
+                        
+                        // Record movement
+                        Point intersectionPoint(collisionPoints[j].x, collisionPoints[j].y, collisionPoints[j].z);
+                        ParticleMovementTracker::recordMovement(
+                            particleMovementMap,
+                            mutex_particlesMovementMap,
+                            particleId,
+                            intersectionPoint
+                        );
+                        
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // 8. Free device memory
+        cudaFree(d_previousPositions);
+        cudaFree(d_settledParticles);
+        cudaFree(d_collisionPoints);
+        cudaFree(d_collisionTriangles);
+        cudaFree(d_numCollisions);
+        
+        ParticleSurfaceCollisionHandlerCUDA::cleanup();
 
-        // Free device memory
+        // 9. Update host particles with results from GPU
+        updateHostParticles(deviceParticles, particles);
+        
+        // Free device memory for particles
         deviceParticles.reset();
     }
     catch (std::exception const &e)
@@ -233,4 +368,4 @@ void ParticleDynamicsProcessorCUDA::process(double timeMoment,
     }
 }
 
-#endif // USE_CUDA
+#endif // !USE_CUDA

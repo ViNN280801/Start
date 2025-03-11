@@ -1,86 +1,16 @@
 #ifdef USE_CUDA
 
 #include <cmath>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <thrust/device_vector.h>
 
 #include "Geometry/CUDA/GeometryKernels.cuh"
-#include "Utilities/CUDAWarningSuppress.hpp"
-#include "Utilities/PreprocessorUtils.hpp"
-
-// Helper function to check if a ray intersects a triangle
-START_CUDA_DEVICE bool rayTriangleIntersection(
-    const DeviceRay &ray,
-    const DeviceTriangle &triangle,
-    double &distance)
-{
-    // Moller-Trumbore algorithm
-    const double EPSILON = 1e-8;
-
-    // Edge vectors
-    double e1x = triangle.v1.x - triangle.v0.x;
-    double e1y = triangle.v1.y - triangle.v0.y;
-    double e1z = triangle.v1.z - triangle.v0.z;
-
-    double e2x = triangle.v2.x - triangle.v0.x;
-    double e2y = triangle.v2.y - triangle.v0.y;
-    double e2z = triangle.v2.z - triangle.v0.z;
-
-    // Begin calculating determinant - also used to calculate U parameter
-    double px = ray.direction.y * e2z - ray.direction.z * e2y;
-    double py = ray.direction.z * e2x - ray.direction.x * e2z;
-    double pz = ray.direction.x * e2y - ray.direction.y * e2x;
-
-    // Determinant
-    double det = e1x * px + e1y * py + e1z * pz;
-
-    // Check if ray is parallel to triangle
-    if (fabs(det) < EPSILON)
-    {
-        return false;
-    }
-
-    double inv_det = 1.0 / det;
-
-    // Calculate vector from triangle origin to ray origin
-    double tx = ray.origin.x - triangle.v0.x;
-    double ty = ray.origin.y - triangle.v0.y;
-    double tz = ray.origin.z - triangle.v0.z;
-
-    // Calculate U parameter
-    double u = (tx * px + ty * py + tz * pz) * inv_det;
-
-    // Check if intersection is outside triangle
-    if (u < 0.0 || u > 1.0)
-    {
-        return false;
-    }
-
-    // Calculate V parameter
-    double qx = ty * e1z - tz * e1y;
-    double qy = tz * e1x - tx * e1z;
-    double qz = tx * e1y - ty * e1x;
-
-    double v = (ray.direction.x * qx + ray.direction.y * qy + ray.direction.z * qz) * inv_det;
-
-    // Check if intersection is outside triangle
-    if (v < 0.0 || u + v > 1.0)
-    {
-        return false;
-    }
-
-    // Calculate distance
-    distance = (e2x * qx + e2y * qy + e2z * qz) * inv_det;
-
-    // Check if intersection is behind ray origin
-    if (distance < 0.0)
-    {
-        return false;
-    }
-
-    return true;
-}
+#include "Utilities/CUDA/DeviceUtils.cuh"
+#include "Utilities/LogMacros.hpp"
 
 // Implementation of the kernel to check if points are inside a mesh
-START_CUDA_GLOBAL void checkPointsInsideMeshKernel(
+extern "C" __global__ void checkPointsInsideMeshKernel(
     DevicePoint *points,
     DeviceTriangle *triangles,
     int numPoints,
@@ -110,7 +40,7 @@ START_CUDA_GLOBAL void checkPointsInsideMeshKernel(
 
     for (int i = 0; i < numTriangles; i++)
     {
-        if (rayTriangleIntersection(ray, triangles[i], distance))
+        if (cuda_kernels::rayTriangleIntersection(ray, triangles[i], distance))
         {
             intersectionCount++;
         }
@@ -121,7 +51,7 @@ START_CUDA_GLOBAL void checkPointsInsideMeshKernel(
 }
 
 // Implementation of the kernel to calculate distances from points to a mesh
-START_CUDA_GLOBAL void calculateDistancesToMeshKernel(
+extern "C" __global__ void calculateDistancesToMeshKernel(
     DevicePoint *points,
     DeviceTriangle *triangles,
     int numPoints,
@@ -159,7 +89,7 @@ START_CUDA_GLOBAL void calculateDistancesToMeshKernel(
 }
 
 // Implementation of the kernel to perform ray-triangle intersection tests
-START_CUDA_GLOBAL void rayTriangleIntersectionKernel(
+extern "C" __global__ void rayTriangleIntersectionKernel(
     DeviceRay *rays,
     DeviceTriangle *triangles,
     int numRays,
@@ -181,7 +111,7 @@ START_CUDA_GLOBAL void rayTriangleIntersectionKernel(
     for (int i = 0; i < numTriangles; i++)
     {
         double distance;
-        if (rayTriangleIntersection(ray, triangles[i], distance))
+        if (cuda_kernels::rayTriangleIntersection(ray, triangles[i], distance))
         {
             if (distance < minDistance)
             {

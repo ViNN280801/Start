@@ -102,12 +102,15 @@ public:
     int getChargeInIons() const { return ParticlePropertiesManager::getChargeInIonsFromType(m_type); }
     /* === ---- ---- ---- ---- ---- --- === */
 
-    /* === Getters for particle params. === */
+    /* === Setters for particle params. === */
     void setEnergy_eV(double energy_eV) { m_energy = util::convert_energy_eV_to_energy_J(energy_eV); }
     void setEnergy_J(double energy_J) { m_energy = energy_J; }
 
     void setVelocity(VelocityVector const &velvec) { m_velocity = velvec; }
     void setVelocity(double vx, double vy, double vz) { m_velocity = VelocityVector(vx, vy, vz); }
+
+    void setCentre(Point const &centre) { m_centre = centre; }
+    void setCentre(double x, double y, double z) { m_centre = Point(x, y, z); }
     /* === ---- ---- ---- ---- ---- --- === */
 
     /**
