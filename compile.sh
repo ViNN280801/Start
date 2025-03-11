@@ -23,6 +23,7 @@ INTERMEDIATE=false             # Default behavior does not compile intermediate 
 INTERMEDIATE_FILE=""           # No intermediate file by default
 INTERMEDIATE_REBUILD=false     # No need to recompile from scratch intermediate results
 COMPILE_TESTS=false            # No need to compile all the tests
+NEED_VERBOSE=false             # No need to compile with verbose output
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -70,6 +71,9 @@ while [[ "$#" -gt 0 ]]; do
         ;;
     --tests)
         COMPILE_TESTS=true
+        ;;
+    -v | --verbose)
+        NEED_VERBOSE=true
         ;;
     *)
         usage
@@ -133,5 +137,9 @@ if [ "$INTERMEDIATE" = true ] && [ -n "$INTERMEDIATE_FILE" ]; then
 else
     mkdir -pv build && cd build
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS
+    if [ "$NEED_VERBOSE" = true ]; then
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS VERBOSE=1
+    else
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS
+    fi
 fi
