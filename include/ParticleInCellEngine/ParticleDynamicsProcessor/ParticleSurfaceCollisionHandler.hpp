@@ -3,6 +3,7 @@
 
 #include <shared_mutex>
 
+#include "Geometry/Mesh/Surface/SurfaceMesh.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 
@@ -113,14 +114,14 @@ public:
      *
      * @warning Ensure that the `SurfaceMesh` is properly initialized before invoking this method.
      */
-    static std::optional<size_t> handle(Particle const &particle,
-                                        Ray const &ray,
+    static std::optional<size_t> handle(Particle_cref particle,
+                                        Segment_cref segment,
                                         size_t totalParticles,
-                                        SurfaceMesh &surfaceMesh,
+                                        SurfaceMesh_ref surfaceMesh,
                                         std::shared_mutex &sh_mutex_settledParticlesCounterMap,
                                         std::mutex &mutex_particlesMovementMapMutex,
-                                        ParticleMovementMap &particleMovementMap,
-                                        ParticlesIDSet &settledParticlesIds,
+                                        ParticleMovementMap_ref particleMovementMap,
+                                        ParticlesIDSet_ref settledParticlesIds,
                                         StopSubject &stopSubject);
 };
 

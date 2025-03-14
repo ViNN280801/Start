@@ -21,6 +21,12 @@ struct ParticleDevice_t
     double energy;     ///< Energy of the particle.
 };
 
+using ParticleDevice = ParticleDevice_t;
+using ParticleDevice_ref = ParticleDevice_t &;
+using ParticleDevice_rref = ParticleDevice_t &&;
+using ParticleDevice_cref = ParticleDevice_t const &;
+
+
 /**
  * @brief Manages a dynamic array of particles on the GPU.
  *

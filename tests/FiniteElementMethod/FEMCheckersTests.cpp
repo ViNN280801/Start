@@ -4,8 +4,9 @@
 #include <stdexcept>
 
 #include "FiniteElementMethod/Cell/CellSelectorException.hpp"
-#include "FiniteElementMethod/FEMCheckers.hpp"
-#include "Utilities/Utilities.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
+#include "FiniteElementMethod/Utils/FEMUtilsExceptions.hpp"
+#include "Utilities/GmshUtilities/GmshUtils.hpp"
 
 // Test fixture for FEMCheckers
 class FEMCheckersTest : public ::testing::Test
@@ -37,7 +38,7 @@ TEST_F(FEMCheckersTest, ValidMeshFile)
     dst.close();
 
     // Step 2: Check the copied file using FEMCheckers.
-    EXPECT_NO_THROW(FEMCheckers::checkMeshFile(copiedFile));
+    EXPECT_NO_THROW(GmshUtils::checkGmshMeshFile(copiedFile));
 
     // Step 3: Delete the copied file
     EXPECT_EQ(std::remove(copiedFile.c_str()), 0) << "Failed to delete the copied mesh file: " << copiedFile;
@@ -45,7 +46,7 @@ TEST_F(FEMCheckersTest, ValidMeshFile)
 
 TEST_F(FEMCheckersTest, InvalidMeshFile)
 {
-    EXPECT_THROW(FEMCheckers::checkMeshFile("invalid_mesh.msh"), std::runtime_error);
+    EXPECT_THROW(GmshUtils::checkGmshMeshFile("invalid_mesh.msh"), GmshUtilsFileDoesNotExistException);
 }
 
 TEST_F(FEMCheckersTest, DesiredAccuracyNegative)
@@ -95,7 +96,8 @@ TEST_F(FEMCheckersTest, ValidCellType)
 
 TEST_F(FEMCheckersTest, InvalidCellType)
 {
-    EXPECT_THROW(FEMCheckers::checkCellType(static_cast<CellType>(999)), CellSelectorException);
+    EXPECT_THROW(FEMCheckers::checkCellType(static_cast<CellType>(999)),
+                 FEMCheckersUnsupportedCellTypeException);
 }
 
 TEST_F(FEMCheckersTest, IndexNegativeSigned)

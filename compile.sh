@@ -13,6 +13,7 @@ usage() {
     echo "  -release                       Compile the project in CMake Release mode."
     echo "  -sdebug                        Compile the project with custom Start Debug flags (default)."
     echo "  -srelease                      Compile the project with custom Start Release flags."
+    echo "  -sputtering                    Compile the sputtering model simple test."
     exit 1
 }
 
@@ -24,6 +25,7 @@ INTERMEDIATE_FILE=""           # No intermediate file by default
 INTERMEDIATE_REBUILD=false     # No need to recompile from scratch intermediate results
 COMPILE_TESTS=false            # No need to compile all the tests
 NEED_VERBOSE=false             # No need to compile with verbose output
+COMPILE_SPUTTERING_MODEL=false # No need to compile the sputtering model by default
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -66,6 +68,9 @@ while [[ "$#" -gt 0 ]]; do
     -release)
         BUILD_TYPE="Release"
         ;;
+    -sputtering)
+        COMPILE_SPUTTERING_MODEL=true
+        ;;
     -h | --help)
         usage
         ;;
@@ -95,8 +100,8 @@ if [ "$COMPILE_TESTS" = true ]; then
     TESTS_DIR="tests"
 
     mkdir -pv "$TESTS_DIR/build" && cd "$TESTS_DIR/build"
-    echo "Compiling tests with $NUM_THREADS threads. Your PC provides $(nproc) threads."
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && make -j"$NUM_THREADS"
+    echo "Compiling tests with 2 threads. Your PC provides $(nproc) threads."
+    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && make -j2
 
     if [ $? -ne 0 ]; then
         echo "Compilation failed, exiting..."
@@ -138,8 +143,8 @@ else
     mkdir -pv build && cd build
     echo "Making with $NUM_THREADS threads. Your PC provides $(nproc) threads."
     if [ "$NEED_VERBOSE" = true ]; then
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS VERBOSE=1
+        cmake -DCOMPILE_SPUTTERING_MODEL=$COMPILE_SPUTTERING_MODEL -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS VERBOSE=1
     else
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS
+        cmake -DCOMPILE_SPUTTERING_MODEL=$COMPILE_SPUTTERING_MODEL -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON .. && make -j$NUM_THREADS
     fi
 fi

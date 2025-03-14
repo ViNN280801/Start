@@ -6,10 +6,6 @@
 
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 
-#ifdef USE_CUDA
-#include "ParticleInCellEngine/ParticleDynamicsProcessor/CUDA/ParticleDynamicsProcessorCUDA.cuh"
-#endif
-
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                                                         size_t end_index,
                                                         double timeMoment,
@@ -56,8 +52,8 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 
                           // 4. Update the particle's position.
                           particle.updatePosition(timeStep);
-                          Ray ray(prev, particle.getCentre());
-                          if (ray.is_degenerate())
+                          Segment segment(prev, particle.getCentre());
+                          if (segment.is_degenerate())
                               return;
 
                           // 5. Simulate collisions between the particle and gas molecules.
@@ -65,7 +61,7 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 
                           // 6. Handle collisions between the particle and the surface mesh.
                           auto collision{ParticleSurfaceCollisionHandler::handle(
-                              particle, ray, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
+                              particle, segment, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
                               mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject)};
 
                           // 7. If we collided and settled with a tetrahedron or triangle, we need to update collision counter.
@@ -180,8 +176,8 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
 
             // 4. Update position.
             particle.updatePosition(timeStep);
-            Ray ray(prev, particle.getCentre());
-            if (ray.is_degenerate())
+            Segment segment(prev, particle.getCentre());
+            if (segment.is_degenerate())
                 continue;
 
             // 5. Gas collision.
@@ -192,7 +188,7 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
                 continue;
 
             // 7. Surface collision.
-            ParticleSurfaceCollisionHandler::handle(particle, ray, particles.size(),
+            ParticleSurfaceCollisionHandler::handle(particle, segment, particles.size(),
                                                     surfaceMesh, sh_mutex_settledParticlesCounterMap,
                                                     mutex_particlesMovementMap,
                                                     particleMovementMap, settledParticlesIds, stopSubject);
@@ -227,46 +223,50 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
                                         std::string_view gasName,
                                         double gasConcentration)
 {
-#ifdef USE_CUDA
-    try
-    {
-        LOGMSG("Using CUDA");
-        int result = system("nvidia-smi");
-        if (result != 0)
-        {
-            ERRMSG("Failed to execute nvidia-smi");
-        }
-        ParticleDynamicsProcessorCUDA::process(
-            timeMoment, timeStep, particles, cubicGrid, gsmAssembler,
-            surfaceMesh, particleTracker, settledParticlesIds,
-            sh_mutex_settledParticlesCounterMap, mutex_particlesMovementMap,
-            particleMovementMap, stopSubject, scatteringModel, gasName, gasConcentration);
-        return;
-    }
-    catch (const std::exception &e)
-    {
-        // If CUDA processing fails, fall back to CPU processing
-        ERRMSG(util::stringify("CUDA processing failed: ", e.what()));
-    }
-#endif
+    // Implement a fallback mechanism: first OpenMP, then standard multi-threading
+    bool processing_success = false;
 
 #ifdef USE_OMP
-    // Check if we should use OpenMP first
-    if (numThreads > 1)
+    // Try OpenMP if CUDA failed
+    if (!processing_success && numThreads > 1)
     {
-        LOGMSG(util::stringify("Using OpenMP with ", numThreads, " threads"));
-        _process_ompver__(timeMoment, timeStep, numThreads, particles, cubicGrid, gsmAssembler,
-                          surfaceMesh, particleTracker, settledParticlesIds, sh_mutex_settledParticlesCounterMap,
-                          mutex_particlesMovementMap, particleMovementMap, stopSubject, scatteringModel,
-                          gasName, gasConcentration);
-        return;
+        try
+        {
+            LOGMSG(util::stringify("Using OpenMP with ", numThreads, " threads"));
+            _process_ompver__(timeMoment, timeStep, numThreads, particles, cubicGrid, gsmAssembler,
+                              surfaceMesh, particleTracker, settledParticlesIds, sh_mutex_settledParticlesCounterMap,
+                              mutex_particlesMovementMap, particleMovementMap, stopSubject, scatteringModel,
+                              gasName, gasConcentration);
+            processing_success = true;
+            return;
+        }
+        catch (std::exception const &e)
+        {
+            processing_success = false;
+            ERRMSG(util::stringify("OpenMP processing failed: ", e.what()));
+        }
     }
 #endif
 
-    // Fall back to standard C++ parallel execution
-    LOGMSG(util::stringify("Using standard C++ parallel execution with ", numThreads, " threads"));
-    _process_stdver__(numThreads, timeMoment, timeStep, particles, cubicGrid, gsmAssembler,
-                      surfaceMesh, particleTracker, settledParticlesIds, sh_mutex_settledParticlesCounterMap,
-                      mutex_particlesMovementMap, particleMovementMap, stopSubject, scatteringModel,
-                      gasName, gasConcentration);
+    // Fall back to standard C++ parallel execution if OpenMP failed
+    if (!processing_success)
+    {
+        try
+        {
+            LOGMSG(util::stringify("Using standard C++ parallel execution with ", numThreads, " threads"));
+            _process_stdver__(numThreads, timeMoment, timeStep, particles, cubicGrid, gsmAssembler,
+                              surfaceMesh, particleTracker, settledParticlesIds, sh_mutex_settledParticlesCounterMap,
+                              mutex_particlesMovementMap, particleMovementMap, stopSubject, scatteringModel,
+                              gasName, gasConcentration);
+            processing_success = true;
+        }
+        catch (std::exception const &e)
+        {
+            processing_success = false;
+            ERRMSG(util::stringify("Standard C++ parallel execution failed: ", e.what()));
+        }
+    }
+
+    if (!processing_success)
+        ERRMSG("Resume: Failed to process particles");
 }

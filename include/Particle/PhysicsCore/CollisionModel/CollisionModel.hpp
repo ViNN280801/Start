@@ -18,7 +18,7 @@ public:
      * @param time_step Simulation time step.
      * @return true if collision occurred, false otherwise.
      */
-    virtual bool collide(Particle &particle, ParticleType targetType, double n_concentration, double time_step) = 0;
+    virtual bool collide(Particle_ref particle, ParticleType targetType, double n_concentration, double time_step) = 0;
 };
 
 #endif // COLLISION_MODEL_HPP

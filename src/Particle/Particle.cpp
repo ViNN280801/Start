@@ -25,32 +25,32 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(Point(x_, y_, z_)),
-	  m_velocity(MathVector(vx_, vy_, vz_))
+	  m_velocity(vx_, vy_, vz_)
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
 }
 
-Particle::Particle(ParticleType type_, Point const &centre,
+Particle::Particle(ParticleType type_, Point_cref centre,
 				   double vx_, double vy_, double vz_)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(centre),
-	  m_velocity(MathVector(vx_, vy_, vz_))
+	  m_velocity(vx_, vy_, vz_)
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
 }
 
-Particle::Particle(ParticleType type_, Point &&centre,
+Particle::Particle(ParticleType type_, Point_rref centre,
 				   double vx_, double vy_, double vz_)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(std::move(centre)),
-	  m_velocity(MathVector(vx_, vy_, vz_))
+	  m_velocity(vx_, vy_, vz_)
 {
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), vx_, vy_, vz_);
 }
 
-Particle::Particle(ParticleType type_, Point const &centre, double energy_eV,
+Particle::Particle(ParticleType type_, Point_cref centre, double energy_eV,
 				   std::array<double, 3> const &thetaPhi)
 	: m_id(m_nextId++),
 	  m_type(type_),
@@ -60,7 +60,7 @@ Particle::Particle(ParticleType type_, Point const &centre, double energy_eV,
 	m_velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(m_energy, getMass(), thetaPhi);
 }
 
-Particle::Particle(ParticleType type_, Point &&centre, double energy_eV,
+Particle::Particle(ParticleType type_, Point_rref centre, double energy_eV,
 				   std::array<double, 3> const &thetaPhi)
 	: m_id(m_nextId++),
 	  m_type(type_),
@@ -71,7 +71,7 @@ Particle::Particle(ParticleType type_, Point &&centre, double energy_eV,
 }
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
-				   VelocityVector const &velvec)
+				   VelocityVector_cref velvec)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(Point(x_, y_, z_)),
@@ -81,7 +81,7 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 }
 
 Particle::Particle(ParticleType type_, double x_, double y_, double z_,
-				   VelocityVector &&velvec)
+				   VelocityVector_rref velvec)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(Point(x_, y_, z_)),
@@ -90,8 +90,8 @@ Particle::Particle(ParticleType type_, double x_, double y_, double z_,
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 }
 
-Particle::Particle(ParticleType type_, Point const &centre,
-				   VelocityVector const &velvec)
+Particle::Particle(ParticleType type_, Point_cref centre,
+				   VelocityVector_cref velvec)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(centre),
@@ -100,8 +100,8 @@ Particle::Particle(ParticleType type_, Point const &centre,
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 }
 
-Particle::Particle(ParticleType type_, Point &&centre,
-				   VelocityVector &&velvec)
+Particle::Particle(ParticleType type_, Point_rref centre,
+				   VelocityVector_rref velvec)
 	: m_id(m_nextId++),
 	  m_type(type_),
 	  m_centre(std::move(centre)),
@@ -163,11 +163,11 @@ void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, E
 		return;
 
 	// 1. Calculating acceleration using II-nd Newton's Law:
-	MathVector<double> a_L{getCharge() * (electricField + m_velocity.crossProduct(magneticInduction)) / getMass()};
+	VelocityVector a_L{getCharge() * (electricField + m_velocity.crossProduct(magneticInduction)) / getMass()};
 
 	/// Update particle positions: \( x = x + V_x \cdot \Delta t \)
 	/// 2. Acceleration semistep: \( V_- = V_{\text{old}} + a_L \cdot \frac{\Delta t}{2} \)
-	MathVector<double> v_minus{m_velocity + a_L * time_step / 2.};
+	VelocityVector v_minus{m_velocity + a_L * time_step / 2.};
 
 	/// 3. Rotation:
 	/// \f{align}{
@@ -176,7 +176,7 @@ void Particle::electroMagneticPush(MagneticInduction const &magneticInduction, E
 	/// V' &= V_- + V_- \times t,
 	/// V_+ &= V_- + V' \times s.
 	/// \f}
-	MathVector<double> t{getCharge() * magneticInduction * time_step / (2. * getMass())},
+	VelocityVector t{getCharge() * magneticInduction * time_step / (2. * getMass())},
 		s{2. * t / (1 + t.module() * t.module())},
 		v_apostrophe{v_minus + v_minus.crossProduct(t)},
 		v_plus{v_minus + v_apostrophe.crossProduct(s)};

@@ -4,8 +4,8 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "FiniteElementMethod/GSMAssembler.hpp"
-#include "Geometry/CubicGrid.hpp"
+#include "FiniteElementMethod/Assemblers/GSMAssembler.hpp"
+#include "Geometry/Mesh/Cubic/CubicGrid.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
 #include "Utilities/ConfigParser.hpp"
 

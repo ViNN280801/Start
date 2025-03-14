@@ -3,7 +3,7 @@
 
 #include "FiniteElementMethod/Cell/CellSelectorException.hpp"
 #include "FiniteElementMethod/Cubature/CubatureManager.hpp"
-#include "FiniteElementMethod/FEMLimits.hpp"
+#include "FiniteElementMethod/Utils/FEMLimits.hpp"
 
 extern void supress_output(std::ostream &stream);
 extern void restore_output(std::ostream &stream);

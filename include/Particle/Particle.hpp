@@ -8,8 +8,8 @@
 #include <CGAL/Bbox_3.h>
 #include <atomic>
 
-#include "Geometry/GeometryTypes.hpp"
-#include "Geometry/MathVector.hpp"
+#include "Geometry/Basics/BaseTypes.hpp"
+#include "Geometry/Basics/GeometryVector.hpp"
 #include "Particle/ParticlePropertiesManager.hpp"
 #include "Utilities/ConfigParser.hpp"
 
@@ -33,18 +33,18 @@ public:
     Particle(ParticleType type_);
     Particle(ParticleType type_, double x_, double y_, double z_, double energyJ_, std::array<double, 3> const &thetaPhi);
     Particle(ParticleType type_, double x_, double y_, double z_, double vx_, double vy_, double vz_);
-    Particle(ParticleType type_, Point const &centre, double vx_, double vy_, double vz_);
-    Particle(ParticleType type_, Point &&centre, double vx_, double vy_, double vz_);
-    Particle(ParticleType type_, Point const &centre, double energyJ_, std::array<double, 3> const &thetaPhi);
-    Particle(ParticleType type_, Point &&centre, double energyJ_, std::array<double, 3> const &thetaPhi);
-    Particle(ParticleType type_, double x_, double y_, double z_, VelocityVector const &velvec);
-    Particle(ParticleType type_, double x_, double y_, double z_, VelocityVector &&velvec);
-    Particle(ParticleType type_, Point const &centre, VelocityVector const &velvec);
-    Particle(ParticleType type_, Point &&centre, VelocityVector &&velvec);
+    Particle(ParticleType type_, Point_cref centre, double vx_, double vy_, double vz_);
+    Particle(ParticleType type_, Point_rref centre, double vx_, double vy_, double vz_);
+    Particle(ParticleType type_, Point_cref centre, double energyJ_, std::array<double, 3> const &thetaPhi);
+    Particle(ParticleType type_, Point_rref centre, double energyJ_, std::array<double, 3> const &thetaPhi);
+    Particle(ParticleType type_, double x_, double y_, double z_, VelocityVector_cref velvec);
+    Particle(ParticleType type_, double x_, double y_, double z_, VelocityVector_rref velvec);
+    Particle(ParticleType type_, Point_cref centre, VelocityVector_cref velvec);
+    Particle(ParticleType type_, Point_rref centre, VelocityVector_rref velvec);
     ~Particle() {}
 
 #ifdef USE_CUDA
-    explicit Particle(ParticleDevice_t const &deviceParticle)
+    explicit Particle(ParticleDevice_cref deviceParticle)
         : m_id(deviceParticle.id),
           m_type(static_cast<ParticleType>(deviceParticle.type)),
           m_centre(deviceParticle.x, deviceParticle.y, deviceParticle.z),
@@ -53,7 +53,7 @@ public:
     {
     }
 
-    Particle &operator=(ParticleDevice_t const &deviceParticle)
+    Particle &operator=(ParticleDevice_cref deviceParticle)
     {
         m_id = deviceParticle.id;
         m_type = static_cast<ParticleType>(deviceParticle.type);
@@ -102,12 +102,15 @@ public:
     int getChargeInIons() const { return ParticlePropertiesManager::getChargeInIonsFromType(m_type); }
     /* === ---- ---- ---- ---- ---- --- === */
 
-    /* === Getters for particle params. === */
+    /* === Setters for particle params. === */
     void setEnergy_eV(double energy_eV) { m_energy = util::convert_energy_eV_to_energy_J(energy_eV); }
     void setEnergy_J(double energy_J) { m_energy = energy_J; }
 
     void setVelocity(VelocityVector const &velvec) { m_velocity = velvec; }
     void setVelocity(double vx, double vy, double vz) { m_velocity = VelocityVector(vx, vy, vz); }
+
+    void setCentre(Point const &centre) { m_centre = centre; }
+    void setCentre(double x, double y, double z) { m_centre = Point(x, y, z); }
     /* === ---- ---- ---- ---- ---- --- === */
 
     /**
@@ -147,7 +150,14 @@ public:
      */
     [[nodiscard("Check of Particle inequality should not be ignored to ensure correct logic flow")]] friend bool operator!=(Particle const &lhs, Particle const &rhs) { return !(lhs == rhs); }
 };
+
 std::ostream &operator<<(std::ostream &os, Particle const &particle);
+
+using Particle_ref = Particle &;
+using Particle_cref = Particle const &;
+
 using ParticleVector = std::vector<Particle>;
+using ParticleVector_ref = ParticleVector &;
+using ParticleVector_cref = ParticleVector const &;
 
 #endif // !PARTICLE_HPP

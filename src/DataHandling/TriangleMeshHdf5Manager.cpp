@@ -7,11 +7,13 @@
 #endif
 
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
+#include "DataHandling/TriangleMeshHdf5ManagerExceptions.hpp"
 
-void TriangleMeshHdf5Manager::_findMinTriangleId(TriangleCellMap const &triangleCells)
+void TriangleMeshHdf5Manager::_findMinTriangleId(TriangleCellMap_cref triangleCells)
 {
     if (triangleCells.empty())
-        throw std::invalid_argument("Input parameter 'triangleCells' is empty.");
+        START_THROW_EXCEPTION(TriangleMeshHdf5ManagerInputParameterEmptyException,
+                              "Input parameter 'triangleCells' is empty.");
 
 #if __cplusplus >= 202002L
     auto minId{std::ranges::min_element(
@@ -32,7 +34,8 @@ void TriangleMeshHdf5Manager::_findMinTriangleId(TriangleCellMap const &triangle
     if (minId != triangleCells.end())
         m_firstID = minId->first;
     else
-        throw std::runtime_error("Failed to find the minimum ID in 'triangleCells'.");
+        START_THROW_EXCEPTION(TriangleMeshHdf5ManagerFailedToFindMinimumIdException,
+                              "Failed to find the minimum ID in 'triangleCells'.");
 }
 
 TriangleMeshHdf5Manager::TriangleMeshHdf5Manager(std::string_view filename)
@@ -42,7 +45,8 @@ TriangleMeshHdf5Manager::TriangleMeshHdf5Manager(std::string_view filename)
 
     m_file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (m_file_id < 0)
-        throw std::runtime_error("Failed to create HDF5 file: " + std::string(filename));
+        START_THROW_EXCEPTION(TriangleMeshHdf5ManagerFailedToCreateHdf5FileException,
+                              "Failed to create HDF5 file: " + std::string(filename));
 }
 
 TriangleMeshHdf5Manager::~TriangleMeshHdf5Manager() { H5Fclose(m_file_id); }
@@ -51,7 +55,8 @@ void TriangleMeshHdf5Manager::_createGroup(std::string_view groupName)
 {
     hid_t grp_id{H5Gcreate2(m_file_id, groupName.data(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)};
     if (grp_id < 0)
-        throw std::runtime_error("Failed to create group: " + std::string(groupName));
+        START_THROW_EXCEPTION(TriangleMeshHdf5ManagerFailedToCreateGroupException,
+                              "Failed to create group: " + std::string(groupName));
     H5Gclose(grp_id);
 }
 
@@ -64,7 +69,8 @@ void TriangleMeshHdf5Manager::_writeDataset(std::string_view groupName, std::str
     if (dataspace < 0 || dataset < 0)
     {
         H5Gclose(grp_id);
-        throw std::runtime_error("Failed to create dataset " + std::string(datasetName) + " in group: " + std::string(groupName));
+        START_THROW_EXCEPTION(TriangleMeshHdf5ManagerFailedToCreateDatasetException,
+                              "Failed to create dataset " + std::string(datasetName) + " in group: " + std::string(groupName));
     }
     H5Dwrite(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     H5Dclose(dataset);
@@ -80,14 +86,15 @@ void TriangleMeshHdf5Manager::_readDataset(std::string_view groupName, std::stri
     if (dataset < 0)
     {
         H5Gclose(grp_id);
-        throw std::runtime_error("Failed to open dataset " + std::string(datasetName) + " in group: " + std::string(groupName));
+        START_THROW_EXCEPTION(TriangleMeshHdf5ManagerFailedToOpenDatasetException,
+                              "Failed to open dataset " + std::string(datasetName) + " in group: " + std::string(groupName));
     }
     H5Dread(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     H5Dclose(dataset);
     H5Gclose(grp_id);
 }
 
-void TriangleMeshHdf5Manager::saveMeshToHDF5(TriangleCellMap const &triangleCells)
+void TriangleMeshHdf5Manager::saveMeshToHDF5(TriangleCellMap_cref triangleCells)
 {
     if (triangleCells.empty())
         return;

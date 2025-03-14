@@ -2,7 +2,7 @@
 #define CHARGEDNSITYEQUATIONSOLVER_HPP
 
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
-#include "FiniteElementMethod/GSMAssembler.hpp"
+#include "FiniteElementMethod/Assemblers/GSMAssembler.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/VectorManager.hpp"
 #include "PICTypes.hpp"
 #include "Utilities/ConfigParser.hpp"

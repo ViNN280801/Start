@@ -1,8 +1,8 @@
-#ifndef CELLSELECTOR_HPP
-#define CELLSELECTOR_HPP
+#ifndef CELL_SELECTOR_HPP
+#define CELL_SELECTOR_HPP
 
-#include "CellSelectorException.hpp"
-#include "CellType.hpp"
+#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/Cell/CellType.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
 
 /**
@@ -25,4 +25,4 @@ public:
     static shards::CellTopology get(CellType cellType);
 };
 
-#endif // !CELLSELECTOR_HPP
+#endif // !CELL_SELECTOR_HPP

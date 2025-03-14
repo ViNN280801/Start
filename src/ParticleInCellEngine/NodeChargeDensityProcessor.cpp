@@ -2,9 +2,9 @@
 #include <omp.h>
 #endif
 
+#include "Geometry/Utils/Intersections/SegmentTriangleIntersection.hpp"
 #include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
 #include "Utilities/ThreadedProcessor.hpp"
-#include "Utilities/Utilities.hpp"
 
 #ifndef USE_OMP
 /**
@@ -50,8 +50,8 @@ static void _gather_stdver__helper(
                           auto meshParams{cubicGrid->getTetrahedronsByGridIndex(cubicGrid->getGridIndexByPosition(particle.getCentre()))};
                           for (auto const &meshParam : meshParams)
                           {
-                              if (Mesh::isPointInsideTetrahedron(particle.getCentre(), meshParam.tetrahedron))
-                                  particleTracker[meshParam.globalTetraId].emplace_back(particle);
+                              if (meshParam.isPointInside(particle.getCentre()))
+                                  particleTracker[meshParam.m_globalTetraId].emplace_back(particle);
                           }
                       });
 
@@ -155,7 +155,6 @@ static void _gather_stdver__(
  * @details This function uses OpenMP for parallelizing particle processing and charge density calculations.
  *          It divides the work across threads and combines results from per-thread data structures.
  * @param numThreads Number of threads to use for processing.
- * @param numParticles Total number of particles to process.
  * @param timeMoment The current simulation time step.
  * @param cubicGrid Shared pointer to a cubic grid instance for spatial indexing.
  * @param gsmAssembler Shared pointer to a GSMAssembler instance for mesh management and volume calculations.
@@ -166,7 +165,6 @@ static void _gather_stdver__(
  */
 static void _gather_ompver__(
     unsigned int numThreads,
-    size_t numParticles,
     double timeMoment,
     std::shared_ptr<CubicGrid> cubicGrid,
     std::shared_ptr<GSMAssembler> gsmAssembler,
@@ -194,7 +192,7 @@ static void _gather_ompver__(
             auto &local_nodeChargeDensityMap = nodeChargeDensityMap_per_thread[thread_id];
 
 #pragma omp for schedule(dynamic) nowait
-            for (size_t idx = 0ul; idx < numParticles; ++idx)
+            for (size_t idx = 0ul; idx < particles.size(); ++idx)
             {
                 auto const &particle = particles[idx];
 
@@ -206,14 +204,14 @@ static void _gather_ompver__(
                 }
 
                 auto gridIndex = cubicGrid->getGridIndexByPosition(particle.getCentre());
-                auto meshParams = cubicGrid->getTetrahedronsByGridIndex(gridIndex);
+                auto tetrahedronsData = cubicGrid->getTetrahedronsByGridIndex(gridIndex);
 
-                for (auto const &meshParam : meshParams)
+                for (auto const &tetrahedronData : tetrahedronsData)
                 {
-                    if (Mesh::isPointInsideTetrahedron(particle.getCentre(), meshParam.tetrahedron))
+                    if (tetrahedronData.isPointInside(particle.getCentre()))
                     {
                         // Access per-thread particleTracker.
-                        particleTracker[meshParam.globalTetraId].emplace_back(particle);
+                        particleTracker[tetrahedronData.m_globalTetraId].emplace_back(particle);
                     }
                 }
             } // end of particle loop.
@@ -339,8 +337,22 @@ void NodeChargeDensityProcessor::gather(double timeMoment,
     auto numThreads{configParser.getNumThreads_s()};
 
 #ifdef USE_OMP
-    _gather_ompver__(numThreads, particles.size(), timeMoment, cubicGrid, gsmAssembler, particles, settledParticleIDs, particleTrackerMap, nodeChargeDensityMap);
+    _gather_ompver__(numThreads,
+                     timeMoment,
+                     cubicGrid,
+                     gsmAssembler,
+                     particles,
+                     settledParticleIDs,
+                     particleTrackerMap,
+                     nodeChargeDensityMap);
 #else
-    _gather_stdver__(numThreads, timeMoment, cubicGrid, gsmAssembler, particles, settledParticleIDs, particleTrackerMap, nodeChargeDensityMap);
+    _gather_stdver__(numThreads,
+                     timeMoment,
+                     cubicGrid,
+                     gsmAssembler,
+                     particles,
+                     settledParticleIDs,
+                     particleTrackerMap,
+                     nodeChargeDensityMap);
 #endif // !USE_OMP
 }

@@ -6,7 +6,7 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "Geometry/Mesh.hpp"
+#include "Geometry/Mesh/Surface/SurfaceMesh.hpp"
 #include "Particle/Particle.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
@@ -29,10 +29,10 @@ private:
     void _initializeObservers();
     void _ginitialize();
     void _updateSurfaceMesh();
-    
+
     void _distributeSettledParticles();
     void _writeHistogramToFile();
-    
+
     void _gfinalize();
 
 public:
