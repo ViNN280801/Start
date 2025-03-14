@@ -1,44 +1,37 @@
 # src/Geometry/CMakeLists.txt
 
-set(GEOMETRY_SOURCES
-    CubicGrid.cpp
-    GeometryTypes.cpp
-    Mesh.cpp
-    RayTriangleIntersection.cpp
-)
-
-if(GPU_CUDA_ON)
-    set(CUDA_GEOMETRY_SOURCES
-        CUDA/AABBTreeDevice.cu
-        CUDA/GeometryDeviceMemoryConverter.cu
-        CUDA/GeometryKernels.cu
-    )
-    
-    # Set compilation flags for all CUDA files in the Geometry module
-    set_source_files_properties(
-        CUDA/AABBTreeDevice.cu
-        CUDA/GeometryDeviceMemoryConverter.cu
-        CUDA/GeometryKernels.cu
-        PROPERTIES COMPILE_FLAGS "-rdc=true -Wno-deprecated-gpu-targets ${CUDA_ARCH_FLAGS}"
-    )
-endif()
-
 set(LIB_GEOMETRY Geometry)
+
+set(GEOMETRY_BASICS_DIR Basics)
+set(GEOMETRY_BASICS_SOURCES
+    ${GEOMETRY_BASICS_DIR}/Edge.cpp
+)
+
+set(GEOMETRY_MESH_DIR Mesh)
+set(GEOMETRY_MESH_CUBIC_DIR ${GEOMETRY_MESH_DIR}/Cubic)
+set(GEOMETRY_MESH_SURFACE_DIR ${GEOMETRY_MESH_DIR}/Surface)
+set(GEOMETRY_MESH_VOLUMETRIC_DIR ${GEOMETRY_MESH_DIR}/Volumetric)
+set(GEOMETRY_MESH_SOURCES
+    ${GEOMETRY_MESH_CUBIC_DIR}/CubicGrid.cpp
+
+    ${GEOMETRY_MESH_SURFACE_DIR}/SurfaceMesh.cpp
+    ${GEOMETRY_MESH_SURFACE_DIR}/TriangleCell.cpp
+
+    ${GEOMETRY_MESH_VOLUMETRIC_DIR}/VolumetricMesh.cpp
+)
+
+set(GEOMETRY_UTILS_DIR Utils)
+set(GEOMETRY_UTILS_INTERSECTIONS_DIR ${GEOMETRY_UTILS_DIR}/Intersections)
+set(GEOMETRY_UTILS_OVERLAPS_DIR ${GEOMETRY_UTILS_DIR}/Overlaps)
+set(GEOMETRY_UTILS_SOURCES
+    ${GEOMETRY_UTILS_INTERSECTIONS_DIR}/SegmentTriangleIntersection.cpp
+    ${GEOMETRY_UTILS_OVERLAPS_DIR}/TriangleOverlapCalculator.cpp
+)
+
+set(GEOMETRY_SOURCES
+    ${GEOMETRY_BASICS_SOURCES}
+    ${GEOMETRY_MESH_SOURCES}
+    ${GEOMETRY_UTILS_SOURCES}
+)
+
 add_library(${LIB_GEOMETRY} ${GEOMETRY_SOURCES})
-
-target_link_libraries(${LIB_GEOMETRY} PRIVATE
-    ${GMSH_LIBRARIES}
-)
-
-target_include_directories(${LIB_GEOMETRY} PRIVATE
-    ${CGAL_INCLUDE_DIRS}
-    ${GMSH_INCLUDE_DIRS}
-)
-
-if(GPU_CUDA_ON)
-    target_sources(${LIB_GEOMETRY} PRIVATE ${CUDA_GEOMETRY_SOURCES})
-    set_target_properties(${LIB_GEOMETRY} PROPERTIES 
-        CUDA_SEPARABLE_COMPILATION ON
-    )
-    target_link_libraries(${LIB_GEOMETRY} PRIVATE cudadevrt)
-endif()

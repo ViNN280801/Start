@@ -1,4 +1,5 @@
 #include "FiniteElementMethod/BoundaryConditions/MatrixBoundaryConditionsManager.hpp"
+#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsExceptions.hpp"
 #include "Utilities/Utilities.hpp"
 
 void _setBoundaryConditionForNode(Teuchos::RCP<TpetraMatrixType> matrix, LocalOrdinal nodeID, Scalar value)
@@ -7,7 +8,8 @@ void _setBoundaryConditionForNode(Teuchos::RCP<TpetraMatrixType> matrix, LocalOr
     static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating point type.");
     if constexpr (std::is_signed_v<LocalOrdinal>)
         if (nodeID < 0)
-            throw std::logic_error(util::stringify("Node ID cannot be negative, got node ID = ", nodeID, "."));
+            START_THROW_EXCEPTION(MatrixBoundaryConditionsInputParameterOutOfRangeException,
+                                  util::stringify("Node ID cannot be negative, got node ID = ", nodeID, "."));
 
     if (!matrix->getRowMap()->isNodeGlobalElement(nodeID))
         return; // 0. Skip nodes not owned by this process.
@@ -25,7 +27,8 @@ void _setBoundaryConditionForNode(Teuchos::RCP<TpetraMatrixType> matrix, LocalOr
 
     // 4. Ensure we fetched the correct number of entries
     if (checkNumEntries != numEntries)
-        throw std::runtime_error("Mismatch in number of entries retrieved from the matrix.");
+        START_THROW_EXCEPTION(MatrixBoundaryConditionsInputParameterInvalidException,
+                              "Mismatch in number of entries retrieved from the matrix.");
 
     // 5. Modify the values array to set the diagonal to 'value' and others to 0
     for (size_t i{}; i < numEntries; i++)
@@ -45,7 +48,7 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
     // Check if matrix is valid and initialized.
     if (!matrix || matrix->getGlobalNumEntries() == 0)
     {
-        ERRMSG("Matrix is uninitialized or empty.");
+        WARNINGMSG("Matrix is uninitialized or empty, nothing to do.");
         return;
     }
 
@@ -98,7 +101,8 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
             }
         }
         if (exceptionOccurred)
-            throw std::out_of_range("Boundary condition out of range.");
+            START_THROW_EXCEPTION(MatrixBoundaryConditionsInputParameterOutOfRangeException,
+                                  "Boundary condition out of range.");
 #else
         // Fallback if OpenMP is not enabled.
         for (auto const &[nodeInGmsh, value] : boundary_conditions)
@@ -108,10 +112,11 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
                 GlobalOrdinal nodeID{(nodeInGmsh - 1) * polynom_order + j};
 
                 if (nodeID >= static_cast<GlobalOrdinal>(matrix->getGlobalNumRows()))
-                    throw std::out_of_range(util::stringify("Boundary condition refers to node index ",
-                                                            nodeID,
-                                                            ", which exceeds the maximum row index of ",
-                                                            matrix->getGlobalNumRows() - 1, "."));
+                    START_THROW_EXCEPTION(MatrixBoundaryConditionsInputParameterOutOfRangeException,
+                                          util::stringify("Boundary condition refers to node index ",
+                                                          nodeID,
+                                                          ", which exceeds the maximum row index of ",
+                                                          matrix->getGlobalNumRows() - 1, "."));
 
                 _setBoundaryConditionForNode(matrix, nodeID, 1);
             }
@@ -123,12 +128,14 @@ void MatrixBoundaryConditionsManager::set(Teuchos::RCP<TpetraMatrixType> matrix,
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(ex.what());
-        throw;
+        std::string errorMessage{util::stringify("Error was occured while trying to apply boundary conditions on global stiffness matrix: ", ex.what())};
+        ERRMSG(errorMessage);
+        START_THROW_EXCEPTION(MatrixBoundaryConditionsSettingException, errorMessage);
     }
     catch (...)
     {
-        ERRMSG("Unknown error was occured while trying to apply boundary conditions on global stiffness matrix");
-        throw;
+        std::string errorMessage{"Unknown error was occured while trying to apply boundary conditions on global stiffness matrix"};
+        ERRMSG(errorMessage);
+        START_THROW_EXCEPTION(MatrixBoundaryConditionsUnknownException, errorMessage);
     }
 }

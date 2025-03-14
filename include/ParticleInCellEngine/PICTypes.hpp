@@ -5,7 +5,7 @@
 #include <set>
 
 #include "FiniteElementMethod/FEMTypes.hpp"
-#include "Geometry/GeometryTypes.hpp"
+#include "Geometry/Basics/BaseTypes.hpp"
 #include "Particle/Particle.hpp"
 
 /**
@@ -16,6 +16,8 @@
  *          - Value: Charge density at the node (double)
  */
 using NodeChargeDensitiesMap = std::map<GlobalOrdinal, double>;
+using NodeChargeDensitiesMap_ref = NodeChargeDensitiesMap &;
+using NodeChargeDensitiesMap_cref = NodeChargeDensitiesMap const &;
 
 /**
  * @brief Tracker for particles inside tetrahedrons over time.
@@ -27,6 +29,8 @@ using NodeChargeDensitiesMap = std::map<GlobalOrdinal, double>;
  *            - Value: Vector of particles inside the tetrahedron (ParticleVector)
  */
 using ParticleTrackerMap = std::map<double, std::map<size_t, ParticleVector>>;
+using ParticleTrackerMap_ref = ParticleTrackerMap &;
+using ParticleTrackerMap_cref = ParticleTrackerMap const &;
 
 /**
  * @brief Set of particle IDs that have settled on a 2D mesh.
@@ -35,6 +39,8 @@ using ParticleTrackerMap = std::map<double, std::map<size_t, ParticleVector>>;
  *          - Element: Particle ID (size_t)
  */
 using ParticlesIDSet = std::set<size_t>;
+using ParticlesIDSet_ref = ParticlesIDSet &;
+using ParticlesIDSet_cref = ParticlesIDSet const &;
 
 /**
  * @brief Map of the boundary conditions.
@@ -44,6 +50,8 @@ using ParticlesIDSet = std::set<size_t>;
  *          - Value: Value of the boundary conditions (double)
  */
 using BoundaryConditionsMap = std::map<GlobalOrdinal, double>;
+using BoundaryConditionsMap_ref = BoundaryConditionsMap &;
+using BoundaryConditionsMap_cref = BoundaryConditionsMap const &;
 
 /**
  * @typedef ParticleMovementMap
@@ -55,6 +63,8 @@ using BoundaryConditionsMap = std::map<GlobalOrdinal, double>;
  * - Value: Vector of points representing the particle's trajectory (std::vector<Point>)
  */
 using ParticleMovementMap = std::map<size_t, std::vector<Point>>;
+using ParticleMovementMap_ref = ParticleMovementMap &;
+using ParticleMovementMap_cref = ParticleMovementMap const &;
 
 /**
  * @typedef SettledParticlesCounterMap
@@ -66,5 +76,7 @@ using ParticleMovementMap = std::map<size_t, std::vector<Point>>;
  * - Value: Count of settled particles (size_t)
  */
 using SettledParticlesCounterMap = std::map<size_t, size_t>;
+using SettledParticlesCounterMap_ref = SettledParticlesCounterMap &;
+using SettledParticlesCounterMap_cref = SettledParticlesCounterMap const &;
 
 #endif // !PICTYPES_HPP

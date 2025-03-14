@@ -1,30 +1,30 @@
 # src/Particle/CMakeLists.txt
 
-add_subdirectory(PhysicsCore)
-
 set(PARTICLES_SOURCES
     Particle.cpp
 )
 
-if(GPU_CUDA_ON)
+if(START_CUDA_ON)
     set(CUDA_PARTICLES_SOURCES
         CUDA/ParticleDevice.cu
         CUDA/ParticleDeviceMemoryConverter.cu
     )
 endif()
 
+set(COLLISION_MODEL_DIR PhysicsCore/CollisionModel)
+set(COLLISION_MODEL_SOURCES
+    ${COLLISION_MODEL_DIR}/CollisionModelFactory.cpp
+    ${COLLISION_MODEL_DIR}/HSModel.cpp
+    ${COLLISION_MODEL_DIR}/VHSModel.cpp
+    ${COLLISION_MODEL_DIR}/VSSModel.cpp
+)
+
 set(LIB_PARTICLE Particle)
-add_library(${LIB_PARTICLE} ${PARTICLES_SOURCES})
-
-target_link_libraries(${LIB_PARTICLE} PRIVATE
-    ${Boost_LIBRARIES}
-    Generators
+add_library(${LIB_PARTICLE} 
+    ${PARTICLES_SOURCES}
+    ${COLLISION_MODEL_SOURCES}
 )
 
-target_include_directories(${LIB_PARTICLE} PRIVATE
-    ${Boost_INCLUDE_DIRS}
-)
-
-if (GPU_CUDA_ON)
+if (START_CUDA_ON)
     target_sources(${LIB_PARTICLE} PRIVATE ${CUDA_PARTICLES_SOURCES})
 endif()

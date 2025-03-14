@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "FiniteElementMethod/GSMAssembler.hpp"
+#include "FiniteElementMethod/Assemblers/GSMAssembler.hpp"
 #include "Particle/Particle.hpp"
 #include "Utilities/Utilities.hpp"
 

@@ -5,11 +5,13 @@ void ParticlePhysicsUpdater::doElectroMagneticPush(Particle &particle, std::shar
 {
     if (auto tetrahedron{gsmAssembler->getMeshManager().getMeshDataByTetrahedronId(tetrahedronId)})
     {
-        if (tetrahedron->electricField.has_value())
+        if (tetrahedron->m_electricField.has_value())
         {
             particle.electroMagneticPush(
                 MagneticInduction{}, // Assuming zero magnetic field
-                ElectricField(tetrahedron->electricField->x(), tetrahedron->electricField->y(), tetrahedron->electricField->z()),
+                ElectricField(tetrahedron->m_electricField->x(),
+                              tetrahedron->m_electricField->y(),
+                              tetrahedron->m_electricField->z()),
                 timeStep);
         }
     }

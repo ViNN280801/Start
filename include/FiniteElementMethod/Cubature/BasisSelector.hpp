@@ -10,10 +10,10 @@
 
 #include <memory>
 
-#include "CellSelectorException.hpp"
-#include "CellType.hpp"
-#include "FEMCheckers.hpp"
-#include "FEMTypes.hpp"
+#include "FiniteElementMethod/Cell/CellType.hpp"
+#include "FiniteElementMethod/Cubature/CubatureExceptions.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
+#include "FiniteElementMethod/FEMTypes.hpp"
 
 /**
  * @class BasisSelector
@@ -40,7 +40,8 @@ public:
      * @param polynom_order The polynomial order to be used in the basis.
      * This value defines the degree of the basis functions.
      * @return The selected basis corresponding to the cell type and polynomial order.
-     * @throw CellSelectorException If the cell type is not supported.
+     * @throw BasisSelectorUnsupportedCellTypeException If the cell type is not supported.
+     * @throw BasisSelectorUnsupportedPolynomOrderException If the polynomial order is not supported.
      */
     static std::unique_ptr<Intrepid2::Basis<DeviceType>> get(CellType cellType, int polynom_order)
     {
@@ -54,7 +55,8 @@ public:
             return std::make_unique<Intrepid2::Basis_HGRAD_TET_Cn_FEM<DeviceType>>(polynom_order);
         case CellType::Pyramid:
             if (polynom_order != 1)
-                throw std::runtime_error("Pyramid cells only support 1st polynomial order.");
+                START_THROW_EXCEPTION(BasisSelectorUnsupportedPolynomOrderException,
+                                      "Pyramid cells only support 1st polynomial order.");
             return std::make_unique<Intrepid2::Basis_HGRAD_PYR_C1_FEM<DeviceType>>();
         case CellType::Wedge:
             WARNINGMSG("Wedge cells supports only 1st and 2nd polynom order, using 1st by default");
@@ -63,7 +65,7 @@ public:
             WARNINGMSG("Hexahedron cells supports only 1st and 2nd polynom order, using 1st by default");
             return std::make_unique<Intrepid2::Basis_HGRAD_HEX_C1_FEM<DeviceType>>();
         default:
-            THROW_CELL_SELECTOR_EXCEPTION();
+            START_THROW_EXCEPTION(BasisSelectorUnsupportedCellTypeException, "Unsupported cell type");
         }
     }
 };

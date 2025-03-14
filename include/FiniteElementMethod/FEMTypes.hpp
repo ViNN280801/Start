@@ -156,5 +156,4 @@ template <typename T>
 using DeviceTypeConcept = std::enable_if_t<DeviceTypeConcept_v<T>, bool>;
 
 #endif // __cplusplus check
-
 #endif // !FEM_TYPES_HPP

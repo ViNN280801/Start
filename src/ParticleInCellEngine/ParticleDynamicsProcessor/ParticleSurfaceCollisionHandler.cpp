@@ -1,16 +1,16 @@
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.hpp"
-#include "Geometry/RayTriangleIntersection.hpp"
+#include "Geometry/Utils/Intersections/SegmentTriangleIntersection.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
 
-std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &particle,
-                                                              Ray const &ray,
+std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle_cref particle,
+                                                              Segment_cref segment,
                                                               size_t totalParticles,
-                                                              SurfaceMesh &surfaceMesh,
+                                                              SurfaceMesh_ref surfaceMesh,
                                                               std::shared_mutex &sh_mutex_settledParticlesCounterMap,
                                                               std::mutex &mutex_particlesMovementMapMutex,
-                                                              ParticleMovementMap &particleMovementMap,
-                                                              ParticlesIDSet &settledParticlesIds,
+                                                              ParticleMovementMap_ref particleMovementMap,
+                                                              ParticlesIDSet_ref settledParticlesIds,
                                                               StopSubject &stopSubject)
 {
     // 0. If particle is already settled - skip it.
@@ -18,7 +18,7 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
         return std::nullopt;
 
     // 1. If there any intersection of the ray and current AABB tree of the surface mesh.
-    auto intersection{surfaceMesh.getAABBTree().any_intersection(ray)};
+    auto intersection{surfaceMesh.getAABBTree().any_intersection(segment)};
     if (!intersection)
         return std::nullopt;
 
@@ -58,7 +58,7 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle const &pa
 
     // 7. Recording particle movement.
     // 7.1. Calculating intersection point.
-    auto intersectionPoint{RayTriangleIntersection::getIntersectionPoint(ray, triangle)};
+    auto intersectionPoint{SegmentTriangleIntersection::getIntersectionPoint(segment, triangle)};
 
     // 7.2. If optional is not empty - add it to the particle movement map.
     if (intersectionPoint.has_value())

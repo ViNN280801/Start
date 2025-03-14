@@ -7,6 +7,39 @@
 #include "Utilities/CUDA/DeviceUtils.cuh"
 #include "Utilities/Utilities.hpp"
 
+START_CUDA_DEVICE double getMassFromType_device(int type)
+{
+    switch (type)
+    {
+    case 0:
+        return constants::physical_constants::O2_mass;
+    case 1:
+        return constants::physical_constants::Ar_mass;
+    case 2:
+        return constants::physical_constants::Ne_mass;
+    case 3:
+        return constants::physical_constants::He_mass;
+    case 4:
+        return constants::physical_constants::Ti_mass;
+    case 5:
+        return constants::physical_constants::Al_mass;
+    case 6:
+        return constants::physical_constants::Sn_mass;
+    case 7:
+        return constants::physical_constants::W_mass;
+    case 8:
+        return constants::physical_constants::Au_mass;
+    case 9:
+        return constants::physical_constants::Cu_mass;
+    case 10:
+        return constants::physical_constants::Ni_mass;
+    case 11:
+        return constants::physical_constants::Ag_mass;
+    default:
+        return 0.0;
+    }
+}
+
 /**
  * @brief GPU kernel to generate particles from a point source.
  * @param particles Pointer to the array of particles to initialize.
@@ -19,10 +52,10 @@
  * @param thetaCalculated Polar angle for particle direction.
  * @param seed Random seed for particle generation.
  */
-__global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
-                                                       double3 position, double energy_eV, int type,
-                                                       double expansionAngle, double phiCalculated, double thetaCalculated,
-                                                       unsigned long long seed)
+START_CUDA_GLOBAL void generateParticlesFromPointSourceKernel(ParticleDevice_t *particles, size_t count,
+                                                              double3 position, double energy_eV, int type,
+                                                              double expansionAngle, double phiCalculated, double thetaCalculated,
+                                                              unsigned long long seed)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)
@@ -38,8 +71,11 @@ __global__ void generateParticlesFromPointSourceKernel(ParticleDevice_t *particl
     particles[idx].y = position.y;
     particles[idx].z = position.z;
 
+    // Use the device-compatible function instead of ParticlePropertiesManager::getMassFromType
+    double mass = getMassFromType_device(type);
+
     VelocityVector velocity = ParticleDynamicUtils::calculateVelocityFromEnergy_eV(energy_eV, // This method inside converts eV to J
-                                                                                   ParticlePropertiesManager::getMassFromType(static_cast<ParticleType>(type)),
+                                                                                   mass,
                                                                                    {expansionAngle, phiCalculated, thetaCalculated}
 #ifdef __CUDA_ARCH__
                                                                                    ,
@@ -105,11 +141,11 @@ ParticleVector ParticleGeneratorDevice::fromPointSource(const std::vector<point_
  * @param type Particle type as an integer.
  * @param seed Random seed for particle generation.
  */
-__global__ void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *particles, size_t count,
-                                                         double3 *cellCenters, double3 *normals,
-                                                         double energy_eV, int type,
-                                                         unsigned long long seed,
-                                                         double expansionAngle)
+START_CUDA_GLOBAL void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t *particles, size_t count,
+                                                                double3 *cellCenters, double3 *normals,
+                                                                double energy_eV, int type,
+                                                                unsigned long long seed,
+                                                                double expansionAngle)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= count)

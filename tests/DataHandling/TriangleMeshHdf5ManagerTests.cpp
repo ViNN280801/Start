@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <gtest/gtest.h>
 
-#include "Geometry/GeometryTypes.hpp"
+#include "Geometry/Basics/BaseTypes.hpp"
 #include "TriangleMeshHdf5Manager.hpp"
 
 class TriangleMeshHdf5ManagerTest : public ::testing::Test

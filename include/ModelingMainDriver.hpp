@@ -6,9 +6,9 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "FiniteElementMethod/MatrixEquationSolver.hpp"
-#include "Geometry/CubicGrid.hpp"
-#include "Geometry/Mesh.hpp"
+#include "FiniteElementMethod/Solvers/MatrixEquationSolver.hpp"
+#include "Geometry/Mesh/Cubic/CubicGrid.hpp"
+#include "Geometry/Mesh/Surface/SurfaceMesh.hpp"
 #include "Particle/Particle.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 #include "SessionManagement/GmshSessionManager.hpp"

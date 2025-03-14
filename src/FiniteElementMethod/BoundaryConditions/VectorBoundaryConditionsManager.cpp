@@ -1,3 +1,4 @@
+#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsExceptions.hpp"
 #include "FiniteElementMethod/BoundaryConditions/VectorBoundaryConditionManager.hpp"
 #include "Utilities/Utilities.hpp"
 
@@ -32,22 +33,25 @@ void VectorBoundaryConditionsManager::set(Teuchos::RCP<TpetraVectorType> vector,
                 GlobalOrdinal nodeID{(nodeInGmsh - 1) * polynom_order + j};
 
                 if (nodeID >= static_cast<GlobalOrdinal>(vector->getGlobalLength()))
-                    throw std::out_of_range(util::stringify("Boundary condition refers to node index ",
-                                                            nodeID,
-                                                            ", which exceeds the maximum row index of ",
-                                                            vector->getGlobalLength() - 1, "."));
+                    START_THROW_EXCEPTION(VectorBoundaryConditionsNodeIDOutOfRangeException,
+                                          util::stringify("Boundary condition refers to node index ",
+                                                          nodeID,
+                                                          ", which exceeds the maximum row index of ",
+                                                          vector->getGlobalLength() - 1, "."));
 
                 vector->replaceGlobalValue(nodeID, value); // Modifying the RHS vector is necessary to solve the equation Ax=b.
             }
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(ex.what());
-        throw;
+        std::string errorMessage{util::stringify("Error was occured while trying to apply boundary conditions on vector (`b`) in equation Ax=b: ", ex.what())};
+        ERRMSG(errorMessage);
+        START_THROW_EXCEPTION(VectorBoundaryConditionsSettingException, errorMessage);
     }
     catch (...)
     {
-        ERRMSG("Unknown error was occured while trying to apply boundary conditions on vector (`b`) in equation Ax=b");
-        throw;
+        std::string errorMessage{"Unknown error was occured while trying to apply boundary conditions on vector (`b`) in equation Ax=b"};
+        ERRMSG(errorMessage);
+        START_THROW_EXCEPTION(VectorBoundaryConditionsUnknownException, errorMessage);
     }
 }

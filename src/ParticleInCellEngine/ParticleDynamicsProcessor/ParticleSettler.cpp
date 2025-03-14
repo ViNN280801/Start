@@ -1,15 +1,15 @@
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
 
 bool ParticleSettler::isSettled(size_t particleId,
-                                ParticlesIDSet const &settledParticlesIds,
+                                ParticlesIDSet_cref settledParticlesIds,
                                 std::shared_mutex &sh_mutex_settledParticlesCounterMap) { return settledParticlesIds.find(particleId) != settledParticlesIds.cend(); }
 
 void ParticleSettler::settle(size_t particleId,
                              size_t triangleId,
                              size_t totalParticles,
-                             SurfaceMesh &surfaceMesh,
+                             SurfaceMesh_ref surfaceMesh,
                              std::shared_mutex &sh_mutex_settledParticlesCounterMap,
-                             ParticlesIDSet &settledParticlesIds,
+                             ParticlesIDSet_ref settledParticlesIds,
                              StopSubject &stopSubject)
 {
     std::unique_lock<std::shared_mutex> lock(sh_mutex_settledParticlesCounterMap);

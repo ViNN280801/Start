@@ -3,8 +3,8 @@
 option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
+option(START_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(SHOW_LOGS_ON "Enable showing all the logs" ON)
-option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(START_RELEASE "Compile the project in Start Release mode" ON)
 
 # ══► Helper function to check, set, and print compiler information ◄══
@@ -38,7 +38,7 @@ function(set_compiler_if_not_defined env_var cmake_var default_value description
     endif()
 endfunction()
 
-if (GPU_CUDA_ON)
+if (START_CUDA_ON)
     message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
     add_compile_options(-DUSE_CUDA)
 
@@ -96,7 +96,7 @@ if (GPU_CUDA_ON)
     #               Setting CUDA Compiler Path (Optional)         #
     ###############################################################
 
-    # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
+    # Include CUDA as a language in the project only if START_CUDA_ON is enabled
     set(CUDA_ARCHITECTURES "52 61 75 86 89")
     set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
     message(STATUS "⚙️  CUDA support enabled with CUDA_ARCHITECTURES={${CUDA_ARCHITECTURES}}")
@@ -405,7 +405,6 @@ set(UTILITIES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Utilities)
 
 set(DATA_HANDLING_SOURCES
     ${DATA_HANDLING_SRC_PATH}/TriangleMeshHdf5Manager.cpp
-    ${DATA_HANDLING_SRC_PATH}/TetrahedronMeshManager.cpp
 )
 set(FINITE_ELEMENT_METHOD_SOURCES
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/BoundaryConditionsManager.cpp
@@ -430,8 +429,17 @@ set(GENERATORS_SOURCES
     ${GENERATORS_SRC_PATH}/Host/RealNumberGeneratorHost.cpp
 )
 set(GEOMETRY_SOURCES
-    ${GEOMETRY_SRC_PATH}/Mesh.cpp
-    ${GEOMETRY_SRC_PATH}/RayTriangleIntersection.cpp
+    ${GEOMETRY_SRC_PATH}/Basics/Edge.cpp
+
+    ${GEOMETRY_SRC_PATH}/Mesh/Cubic/CubicGrid.cpp
+
+    ${GEOMETRY_SRC_PATH}/Mesh/Surface/SurfaceMesh.cpp
+    ${GEOMETRY_SRC_PATH}/Mesh/Surface/TriangleCell.cpp
+
+    ${GEOMETRY_SRC_PATH}/Mesh/Volumetric/VolumetricMesh.cpp
+
+    ${GEOMETRY_SRC_PATH}/Utils/Intersections/SegmentTriangleIntersection.cpp
+    ${GEOMETRY_SRC_PATH}/Utils/Overlaps/TriangleOverlapCalculator.cpp
 )
 set(PARTICLES_SOURCES
     ${PARTICLES_SRC_PATH}/Particle.cpp
@@ -442,8 +450,12 @@ set(PARTICLES_SOURCES
     ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/VSSModel.cpp
 )
 set(UTILITIES_SOURCES
-    ${UTILITIES_SRC_PATH}/Utilities.cpp
+    ${UTILITIES_SRC_PATH}/GmshUtilities/GmshMesher.cpp
+    ${UTILITIES_SRC_PATH}/GmshUtilities/GmshUtils.cpp
+
     ${UTILITIES_SRC_PATH}/ConfigParser.cpp
+    ${UTILITIES_SRC_PATH}/Timer.cpp
+    ${UTILITIES_SRC_PATH}/Utilities.cpp
 )
 set(SOURCES
     ${DATA_HANDLING_SOURCES}
@@ -456,7 +468,6 @@ set(SOURCES
 
 set(DATA_HANDLING_TEST_SOURCES
     DataHandling/TriangleMeshHdf5ManagerTests.cpp
-    DataHandling/TetrahedronMeshManagerTests.cpp
 )
 set(FINITE_ELEMENT_METHOD_TEST_SOURCES
     FiniteElementMethod/BoundaryConditions/MatrixBoundaryConditionsTests.cpp
@@ -477,9 +488,8 @@ set(GENERATORS_TEST_SOURCES
     Generators/RealNumberGeneratorTests.cpp
 )
 set(GEOMETRY_TEST_SOURCES
-    Geometry/MathVectorTests.cpp
-    Geometry/MeshTests.cpp
-    Geometry/RayTriangleIntersectionTests.cpp
+    Geometry/GeometryVectorTests.cpp
+    Geometry/SegmentTriangleIntersectionTests.cpp
 )
 set(PARTICLES_TEST_SOURCES
     Particle/ParticleTests.cpp
@@ -577,7 +587,7 @@ target_include_directories(${TARGET_NAME} PRIVATE ${INCLUDE_DIRECTORIES})
 if (START_OPENMP_ON)
     target_link_libraries(${TARGET_NAME} PRIVATE ${OpenMP_LIBRARIES})
 endif()
-if (GPU_CUDA_ON)
+if (START_CUDA_ON)
     target_compile_options(${TARGET_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
     target_link_libraries(${TARGET_NAME} PRIVATE ${CUDA_LIBRARIES})
     set_target_properties(${TARGET_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

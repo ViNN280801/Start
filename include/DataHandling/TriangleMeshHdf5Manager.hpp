@@ -7,7 +7,7 @@
 
 #include <hdf5.h>
 
-#include "Geometry/Mesh.hpp"
+#include "Geometry/Mesh/Surface/TriangleCell.hpp"
 
 /**
  * @brief Handles operations related to HDF5 files for storing and managing mesh data.
@@ -31,7 +31,7 @@ private:
      * @param triangleCells A vector of unordered maps, where each map represents
      *                      a collection of triangle cells and their associated data.
      *
-     * @throws std::invalid_argument If the input `triangleCells` vector is empty.
+     * @throws TriangleMeshHdf5ManagerInputParameterEmptyException If the input `triangleCells` vector is empty.
      *
      * @note The method assumes that all maps in the input vector contain unique IDs as keys.
      *       If a map is empty, it is ignored during the comparison.
@@ -39,7 +39,7 @@ private:
      * @see TriangleMeshHdf5Manager::readMeshFromHDF5()
      * @see TriangleMeshHdf5Manager::saveMeshToHDF5()
      */
-    void _findMinTriangleId(TriangleCellMap const &triangleCells);
+    void _findMinTriangleId(TriangleCellMap_cref triangleCells);
 
     /**
      * @brief Creates a new group in the HDF5 file.
@@ -49,7 +49,7 @@ private:
      * @param groupName The name of the group to be created.
      *                  It is a std::string_view to avoid unnecessary string copies.
      *
-     * @throws `std::runtime_error` If the group creation fails.
+     * @throws TriangleMeshHdf5ManagerFailedToCreateGroupException If the group creation fails.
      */
     void _createGroup(std::string_view groupName);
 
@@ -66,7 +66,7 @@ private:
      * @param data A pointer to the data to be written.
      * @param dims The dimension size of the dataset.
      *
-     * @throws `std::runtime_error` If creating the dataspace or dataset fails.
+     * @throws TriangleMeshHdf5ManagerFailedToCreateDatasetException If creating the dataspace or dataset fails.
      */
     void _writeDataset(std::string_view groupName, std::string_view datasetName,
                        hid_t type, void const *data, hsize_t dims);
@@ -83,7 +83,7 @@ private:
      * @param type The HDF5 data type of the dataset.
      * @param data A pointer where the read data will be stored.
      *
-     * @throws `std::runtime_error` If the dataset opening fails.
+     * @throws TriangleMeshHdf5ManagerFailedToOpenDatasetException If the dataset opening fails.
      */
     void _readDataset(std::string_view groupName, std::string_view datasetName,
                       hid_t type, void *data);
@@ -105,10 +105,10 @@ public:
      * @details This method iterates through the given vector of triangles, creating a group for each
      *          triangle in the HDF5 file. Within each group, it stores datasets for the triangle's
      *          coordinates, area, and initializes the particle counter to zero.
-     * @throws `std::runtime_error` if it fails to create a group or dataset within the HDF5 file,
+     * @throws TriangleMeshHdf5ManagerFailedToCreateGroupException If it fails to create a group within the HDF5 file,
      *         or if writing to the dataset fails.
      */
-    void saveMeshToHDF5(TriangleCellMap const &triangleCells);
+    void saveMeshToHDF5(TriangleCellMap_cref triangleCells);
 
     /**
      * @brief Reads mesh data from the HDF5 file starting from a specified object ID.
@@ -117,7 +117,7 @@ public:
      * @details This method reads the HDF5 file and constructs a vector of tuples, each representing a
      *          triangle's data. It retrieves the triangle's ID, coordinates, area, and particle counter
      *          from the HDF5 file, starting from the triangle with ID `firstObjectID`.
-     * @throws `std::runtime_error` if it fails to open a group or dataset within the HDF5 file.
+     * @throws TriangleMeshHdf5ManagerFailedToOpenGroupException If it fails to open a group within the HDF5 file.
      */
     TriangleCellMap readMeshFromHDF5();
 };

@@ -31,7 +31,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -f Dockerfile.ubuntu.22.04.cpptesting -t cpptesting-image .
+          docker build -f docker/Dockerfile.ubuntu.22.04.cpptesting -t cpptesting-image .
 
       - name: Run tests in Docker container
         run: |

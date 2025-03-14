@@ -2,7 +2,7 @@
 #define PARTICLEDYNAMICUTILS_HPP
 
 #include "Generators/Host/RealNumberGeneratorHost.hpp"
-#include "Geometry/MathVector.hpp"
+#include "Geometry/Basics/GeometryVector.hpp"
 #include "Utilities/Utilities.hpp"
 
 #ifdef USE_CUDA

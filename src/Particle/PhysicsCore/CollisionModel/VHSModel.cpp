@@ -1,10 +1,9 @@
 #include "Particle/PhysicsCore/CollisionModel/VHSModel.hpp"
 #include "Generators/Host/RealNumberGeneratorHost.hpp"
-#include "Geometry/MathVector.hpp"
 #include "Particle/ParticlePropertiesManager.hpp"
 #include "Particle/PhysicsCore/ParticleDynamicUtils.hpp"
 
-bool VHSModel::collide(Particle &particle, ParticleType targetType, double n_concentration, double time_step)
+bool VHSModel::collide(Particle_ref particle, ParticleType targetType, double n_concentration, double time_step)
 {
     double p_radius{particle.getRadius()},
         p_mass{particle.getMass()},
