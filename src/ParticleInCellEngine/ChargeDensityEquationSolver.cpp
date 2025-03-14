@@ -1,6 +1,6 @@
 #include "ParticleInCellEngine/ChargeDensityEquationSolver.hpp"
-#include "FiniteElementMethod/FEMLimits.hpp"
-#include "FiniteElementMethod/MatrixEquationSolver.hpp"
+#include "FiniteElementMethod/Utils/FEMLimits.hpp"
+#include "FiniteElementMethod/Solvers/MatrixEquationSolver.hpp"
 
 void ChargeDensityEquationSolver::solve(double timeMoment,
                                         std::string_view configFilename,

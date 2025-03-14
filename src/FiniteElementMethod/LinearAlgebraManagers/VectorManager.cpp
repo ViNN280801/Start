@@ -1,5 +1,5 @@
 #include "FiniteElementMethod/LinearAlgebraManagers/VectorManager.hpp"
-#include "FiniteElementMethod/FEMCheckers.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
 
 VectorManager::VectorManager(size_t size)
     : m_map(new MapType(size, 0, Tpetra::getDefaultComm())), // 0 here is the index base.

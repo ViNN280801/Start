@@ -1,9 +1,10 @@
 #include "FiniteElementMethod/Cubature/CubatureManager.hpp"
 #include "FiniteElementMethod/Cell/CellSelector.hpp"
 #include "FiniteElementMethod/Cubature/BasisSelector.hpp"
-#include "FiniteElementMethod/FEMCheckers.hpp"
-#include "FiniteElementMethod/FEMLimits.hpp"
+#include "FiniteElementMethod/Cubature/CubatureExceptions.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
+#include "FiniteElementMethod/Utils/FEMLimits.hpp"
 #include "Utilities/Utilities.hpp"
 
 void CubatureManager::_initializeCubature(CellType cell_type, short desired_accuracy, short polynom_order)
@@ -29,11 +30,32 @@ void CubatureManager::_initializeCubature(CellType cell_type, short desired_accu
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(ex.what());
+        std::string errorMessage{util::stringify("Error while trying to initialize cubature. ",
+                                                 "Please check input parameters: ",
+                                                 "\ncell_type = ",
+                                                 static_cast<short>(cell_type),
+                                                 "\ndesired_accuracy = ",
+                                                 desired_accuracy,
+                                                 "\npolynom_order = ",
+                                                 polynom_order,
+                                                 "\n\n",
+                                                 ex.what())};
+        ERRMSG(errorMessage);
+        START_THROW_EXCEPTION(CubatureInitializingCubatureException, errorMessage);
     }
     catch (...)
     {
-        ERRMSG("Unknown error");
+        std::string errorMessage{util::stringify("Unknown error while trying to initialize cubature. ",
+                                                 "Please check input parameters: ",
+                                                 "\ncell_type = ",
+                                                 static_cast<short>(cell_type),
+                                                 "\ndesired_accuracy = ",
+                                                 desired_accuracy,
+                                                 "\npolynom_order = ",
+                                                 polynom_order,
+                                                 "\n\n")};
+        ERRMSG(errorMessage);
+        START_THROW_EXCEPTION(CubatureUnknownException, errorMessage);
     }
 }
 

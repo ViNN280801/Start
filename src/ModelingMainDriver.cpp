@@ -6,15 +6,16 @@ using json = nlohmann::json;
 
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
-#include "FiniteElementMethod/FEMCheckers.hpp"
-#include "FiniteElementMethod/FEMInitializer.hpp"
-#include "FiniteElementMethod/FEMLimits.hpp"
-#include "FiniteElementMethod/FEMPrinter.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
+#include "FiniteElementMethod/Utils/FEMInitializer.hpp"
+#include "FiniteElementMethod/Utils/FEMLimits.hpp"
+#include "FiniteElementMethod/Utils/FEMPrinter.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "ModelingMainDriver.hpp"
 #include "ParticleInCellEngine/ChargeDensityEquationSolver.hpp"
 #include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
+#include "Utilities/GmshUtilities/GmshUtils.hpp"
 
 std::mutex ModelingMainDriver::m_PICTrackerMutex;
 std::mutex ModelingMainDriver::m_nodeChargeDensityMapMutex;
@@ -138,7 +139,7 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
       m_surfaceMesh(m_config.getMeshFilename())
 {
     // Checking mesh filename on validity and assign it to the class member.
-    FEMCheckers::checkMeshFile(m_config.getMeshFilename());
+    GmshUtils::checkGmshMeshFile(m_config.getMeshFilename());
 
     // Calculating and checking gas concentration.
     m_gasConcentration = util::calculateConcentration_w(config_filename);

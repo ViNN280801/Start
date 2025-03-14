@@ -4,6 +4,9 @@
 #ifdef USE_CUDA
 
 #include <curand_kernel.h>
+#include <random>
+
+#include "Utilities/PreprocessorUtils.hpp"
 
 /**
  * @class RealNumberGeneratorDevice
@@ -23,7 +26,7 @@ public:
      *
      * @param state Reference to an initialized curand state.
      */
-    __device__ explicit RealNumberGeneratorDevice(curandState_t &state) : m_state(&state) {}
+    START_CUDA_DEVICE explicit RealNumberGeneratorDevice(curandState_t &state) : m_state(&state) {}
 
     /**
      * @brief Generates a random real number in the specified range [from, to].
@@ -32,7 +35,7 @@ public:
      * @param to Upper bound of the range.
      * @return A random double in the range [from, to].
      */
-    __device__ double generate(double from, double to)
+    START_CUDA_HOST_DEVICE double generate(double from, double to)
     {
         if (from == to)
             return from;
@@ -43,12 +46,19 @@ public:
             to = temp;
         }
 
+#ifdef __CUDA_ARCH__
         // Generate a random number in [0, 1) and scale to [from, to].
         double randomValue = curand_uniform_double(m_state);
         return from + randomValue * (to - from);
+#else
+        // Host implementation - use standard library random
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> distribution(from, to);
+        return distribution(gen);
+#endif
     }
 };
 
 #endif // !USE_CUDA
-
 #endif // !REALNUMBERGENERATORDEVICE_CUH

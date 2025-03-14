@@ -2,7 +2,6 @@
 
 set(DATA_HANDLING_SOURCES
     TriangleMeshHdf5Manager.cpp
-    TetrahedronMeshManager.cpp
 )
 
 set(LIB_DATA_HANDLING DataHandling)

@@ -171,18 +171,6 @@ void util::checkRestrictions(double time_step, size_t particles_count, std::stri
     }
 }
 
-void util::check_gmsh_mesh_file(std::string_view mesh_filename)
-{
-    if (!std::filesystem::exists(mesh_filename))
-        throw std::runtime_error("File does not exist: " + std::string(mesh_filename));
-    if (std::filesystem::is_directory(mesh_filename))
-        throw std::runtime_error("Provided path is a directory, not a file: " + std::string(mesh_filename));
-    if (std::filesystem::path(mesh_filename).extension() != ".msh")
-        throw std::runtime_error("File extension is not .msh: " + std::string(mesh_filename));
-    if (std::filesystem::file_size(mesh_filename) == 0)
-        throw std::runtime_error("File is empty: " + std::string(mesh_filename));
-}
-
 void util::check_json_validity(std::string_view json_filename)
 {
     // Verify JSON file content after saving.

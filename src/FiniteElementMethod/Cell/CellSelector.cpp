@@ -2,7 +2,7 @@
 
 shards::CellTopology CellSelector::get(CellType cellType)
 {
-    static_assert(std::is_enum_v<CellType>, CELLSELECTOR_INVALID_ENUM_TYPE_ERR);
+    static_assert(std::is_enum_v<CellType>, "Input is not an enum of type 'CellType'. Please check input");
 
     switch (cellType)
     {
@@ -21,8 +21,8 @@ shards::CellTopology CellSelector::get(CellType cellType)
     case CellType::Hexahedron:
         return shards::getCellTopologyData<shards::Hexahedron<8>>();
     default:
-        THROW_CELL_SELECTOR_EXCEPTION();
-
-        static_assert(std::is_same_v<decltype(cellType), CellType>, CELLSELECTOR_INVALID_ENUM_TYPE_ERR);
+        START_THROW_EXCEPTION(CellSelectorUnsupportedCellTypeException, "Unsupported cell type");
+        static_assert(std::is_same_v<decltype(cellType), CellType>,
+                      "Input is not an enum of type 'CellType'. Please check input");
     }
 }

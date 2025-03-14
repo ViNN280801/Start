@@ -3,7 +3,7 @@
 
 #include <shared_mutex>
 
-#include "Geometry/GeometryTypes.hpp"
+#include "Geometry/Mesh/Surface/SurfaceMesh.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/StopModelingObserver.hpp"
 
@@ -77,7 +77,7 @@ public:
      * @warning This method only checks for presence in `settledParticlesIds` and does not verify if the triangle itself is full.
      */
     static bool isSettled(size_t particleId,
-                          ParticlesIDSet const &settledParticlesIds,
+                          ParticlesIDSet_cref settledParticlesIds,
                           std::shared_mutex &sh_mutex_settledParticlesCounterMap);
 
     /**
@@ -114,9 +114,9 @@ public:
     static void settle(size_t particleId,
                        size_t triangleId,
                        size_t totalParticles,
-                       SurfaceMesh &surfaceMesh,
+                       SurfaceMesh_ref surfaceMesh,
                        std::shared_mutex &sh_mutex_settledParticlesCounterMap,
-                       ParticlesIDSet &settledParticlesIds,
+                       ParticlesIDSet_ref settledParticlesIds,
                        StopSubject &stopSubject);
 
     /**

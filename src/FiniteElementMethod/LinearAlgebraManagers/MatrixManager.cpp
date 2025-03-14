@@ -4,7 +4,8 @@
 #include <ranges>
 #endif
 
-#include "FiniteElementMethod/FEMCheckers.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
+#include "FiniteElementMethod/LinearAlgebraManagers/LinearAlgebraManagersExceptions.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
 
 #if __cplusplus >= 202002L
@@ -14,7 +15,8 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
 #endif
 {
     if (matrix_entries.empty())
-        throw std::invalid_argument("Matrix entries can't be empty");
+        START_THROW_EXCEPTION(MatrixManagerEntriesEmptyException,
+                              "Matrix entries can't be empty");
 
 #if __cplusplus >= 202002L
     if (std::ranges::any_of(matrix_entries, [](MatrixEntry const &entry)
@@ -23,7 +25,8 @@ MatrixManager::MatrixManager(std::vector<MatrixEntry> const &matrix_entries) : m
     if (std::any_of(matrix_entries.cbegin(), matrix_entries.cend(), [](MatrixEntry const &entry)
                     { return entry.row < 0 || entry.col < 0; }))
 #endif
-        throw std::out_of_range("Matrix entries cannot have negative row or column indices");
+        START_THROW_EXCEPTION(MatrixManagerEntriesNegativeIndicesException,
+                              "Matrix entries cannot have negative row or column indices");
 
     // 1. Collect global row indices
     std::set<GlobalOrdinal> globalRowIndices;
@@ -106,7 +109,8 @@ Scalar &MatrixManager::at(GlobalOrdinal row, GlobalOrdinal col)
     // Get the number of entries in specified row and check it.
     size_t numEntries{m_matrix->getNumEntriesInGlobalRow(row)};
     if (numEntries == 0)
-        throw std::out_of_range("Row has no entries");
+        START_THROW_EXCEPTION(MatrixManagerEntriesEmptyException,
+                              "Row has no entries");
 
     // Create views for indices and values
     TpetraMatrixType::nonconst_global_inds_host_view_type indices("indices", numEntries);
@@ -122,7 +126,8 @@ Scalar &MatrixManager::at(GlobalOrdinal row, GlobalOrdinal col)
         if (indices[i] == col)
             return values[i];
 
-    throw std::out_of_range("Column not found in row");
+    START_THROW_EXCEPTION(MatrixManagerEntriesNotFoundException,
+                          "Column not found in row");
 }
 
 Scalar const &MatrixManager::at(GlobalOrdinal row, GlobalOrdinal col) const
@@ -132,7 +137,8 @@ Scalar const &MatrixManager::at(GlobalOrdinal row, GlobalOrdinal col) const
 
     size_t numEntries{m_matrix->getNumEntriesInGlobalRow(row)};
     if (numEntries == 0)
-        throw std::out_of_range("Row has no entries");
+        START_THROW_EXCEPTION(MatrixManagerEntriesEmptyException,
+                              "Row has no entries");
 
     TpetraMatrixType::nonconst_global_inds_host_view_type indices("indices", numEntries);
     TpetraMatrixType::nonconst_values_host_view_type values("values", numEntries);
@@ -144,7 +150,8 @@ Scalar const &MatrixManager::at(GlobalOrdinal row, GlobalOrdinal col) const
         if (indices[i] == col)
             return values[i];
 
-    throw std::out_of_range("Column not found in row");
+    START_THROW_EXCEPTION(MatrixManagerEntriesNotFoundException,
+                          "Column not found in row");
 }
 
 Scalar &MatrixManager::operator()(GlobalOrdinal row, GlobalOrdinal col) { return at(row, col); }

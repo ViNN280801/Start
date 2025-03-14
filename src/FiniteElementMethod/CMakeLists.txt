@@ -1,19 +1,27 @@
 # src/FiniteElementMethod/CMakeLists.txt
 
 set(FEM_SOURCES
-    FEMCheckers.cpp
-    FEMInitializer.cpp
-    FEMPrinter.cpp
-    GSMAssembler.cpp
-    MatrixEquationSolver.cpp
+    Assemblers/GSMAssembler.cpp
+
+    BoundaryConditions/BoundaryConditionsManager.cpp
+    BoundaryConditions/MatrixBoundaryConditionsManager.cpp
+    BoundaryConditions/VectorBoundaryConditionsManager.cpp
+
+    Cell/CellSelector.cpp
+
+    Cubature/CubatureManager.cpp
+
+    LinearAlgebraManagers/MatrixManager.cpp
+    LinearAlgebraManagers/VectorManager.cpp
+    
+    Solvers/MatrixEquationSolver.cpp
+
+    Utils/FEMCheckers.cpp
+    Utils/FEMInitializer.cpp
+    Utils/FEMPrinter.cpp
 )
 
 add_compile_options("-flarge-source-files" "-Wmisleading-indentation")
-
-add_subdirectory(BoundaryConditions)
-add_subdirectory(Cell)
-add_subdirectory(Cubature)
-add_subdirectory(LinearAlgebraManagers)
 
 set(LIB_FEM FiniteElementMethod)
 add_library(${LIB_FEM} ${FEM_SOURCES})

@@ -2,13 +2,14 @@
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 # --------{---(@    Setting custom options with default values   @}}>-----
-option(GPU_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
-option(VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
+option(START_VECTORIZATION_ON "Enable vectorization and anti-aliasing flags" ON)
 option(START_OPENMP_ON "Enable OpenMP support for the project" ON)
 option(START_MPI_ON "Enable MPI support for the project" ON)
+option(START_CUDA_ON "Enable CUDA support for GPU acceleration" ON)
 option(SHOW_LOGS_ON "Enable showing all the logs" ON)
 option(START_DEBUG "Compile the project in Start Debug mode" OFF)
 option(START_RELEASE "Compile the project in Start Release mode" ON)
+option(COMPILE_SPUTTERING_MODEL "Compile the sputtering model simple test" OFF)
 # --------{---(@    Setting custom options with default values   @}}>-----
 
 # ##############################################################################
@@ -22,14 +23,7 @@ else()
   message(STATUS "🚫 Shared libraries are disabled.")
 endif()
 
-if(GPU_CUDA_ON)
-  message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
-  add_compile_options(-DUSE_CUDA)
-else()
-  message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
-endif()
-
-if(VECTORIZATION_ON)
+if(START_VECTORIZATION_ON)
   message(STATUS "✅ Vectorization and anti-aliasing flags are enabled.")
 else()
   message(STATUS "🚫 Vectorization and anti-aliasing flags are disabled.")
@@ -45,12 +39,17 @@ endif()
 
 if(START_MPI_ON)
   message(STATUS "✅ MPI is enabled for the project.")
-  set(DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG
-      "-Wno-cast-function-type")
-  add_compile_options(${DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG}
-                      -DUSE_MPI)
+  set(DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG "-Wno-cast-function-type")
+  add_compile_options(${DISABLE_CAST_BETWEEN_INCOMPATIBLE_FUNC_TYPES_FLAG} -DUSE_MPI)
 else()
   message(STATUS "🚫 MPI is disabled for the project.")
+endif()
+
+if(START_CUDA_ON)
+  message(STATUS "✅ CUDA support for GPU acceleration is enabled.")
+  add_compile_options(-DUSE_CUDA)
+else()
+  message(STATUS "🚫 CUDA support for GPU acceleration is disabled.")
 endif()
 
 if(SHOW_LOGS_ON)
@@ -59,6 +58,14 @@ if(SHOW_LOGS_ON)
 else()
   message(STATUS "🚫 Logging is disabled.")
 endif()
+
+if (COMPILE_SPUTTERING_MODEL)
+  message(STATUS "✅ Compiling the sputtering model simple test with 2 plates.")
+  add_compile_options(-DCOMPILE_SPUTTERING_MODEL)
+else()
+  message(STATUS "🚫 Compiling the sputtering model simple test with 2 plates is disabled.")
+endif()
+
 # ##############################################################################
 # °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸
 # ##############################################################################
@@ -68,8 +75,7 @@ endif()
 # ##############################################################################
 
 # ══► Helper function to check, set, and print compiler information ◄══
-function(set_compiler_if_not_defined env_var cmake_var default_value
-         description)
+function(set_compiler_if_not_defined env_var cmake_var default_value description)
   if(NOT ${cmake_var})
     if(NOT DEFINED ENV{${env_var}})
       set(ENV{${env_var}} ${default_value})
@@ -81,8 +87,7 @@ function(set_compiler_if_not_defined env_var cmake_var default_value
         $ENV{${env_var}}
         PARENT_SCOPE)
   else()
-    message(
-      STATUS "CMake ${description} set from command line: ${${cmake_var}}")
+    message(STATUS "CMake ${description} set from command line: ${${cmake_var}}")
   endif()
 
   # ✦ Print version information ✦
@@ -90,18 +95,16 @@ function(set_compiler_if_not_defined env_var cmake_var default_value
     COMMAND ${${cmake_var}} --version
     OUTPUT_VARIABLE COMPILER_VERSION
     ERROR_VARIABLE COMPILER_ERROR
-    RESULT_VARIABLE COMPILER_RESULT)
+    RESULT_VARIABLE COMPILER_RESULT
+  )
   if(COMPILER_RESULT EQUAL 0)
     message(STATUS "${description} version: ${COMPILER_VERSION}")
 
     # Extract the major version from the compiler output (assuming it's in a
     # format like "gcc (Ubuntu 14.0.0) ...")
-    string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION_MATCH
-                 ${COMPILER_VERSION})
+    string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION_MATCH ${COMPILER_VERSION})
     string(REGEX MATCH "[0-9]+" MAJOR_VERSION ${VERSION_MATCH})
-    set(MAJOR_VERSION
-        ${MAJOR_VERSION}
-        PARENT_SCOPE)
+    set(MAJOR_VERSION ${MAJOR_VERSION} PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -109,7 +112,7 @@ endfunction()
 set_compiler_if_not_defined(CC CMAKE_C_COMPILER "/usr/bin/gcc" "C compiler")
 set_compiler_if_not_defined(CXX CMAKE_CXX_COMPILER "/usr/bin/g++" "C++ compiler")
 
-if(GPU_CUDA_ON)
+if(START_CUDA_ON)
   set(CUDAHOSTCXX "/usr/bin/g++")
   message(STATUS "⚙️  Using ${CUDAHOSTCXX} as the CUDA host compiler.")
   set(CMAKE_CUDA_HOST_COMPILER ${CUDAHOSTCXX})
@@ -117,33 +120,33 @@ if(GPU_CUDA_ON)
   set(ENV{NVCC_WRAPPER_DEFAULT_COMPILER} ${CUDAHOSTCXX})
   message(STATUS "⚙️  Setting NVCC_WRAPPER_DEFAULT_COMPILER to ${CUDAHOSTCXX}")
 
-  set_compiler_if_not_defined(CMAKE_CUDA_COMPILER CMAKE_CUDA_COMPILER
-                              "/usr/local/cuda/bin/nvcc" "CUDA compiler")
+  set_compiler_if_not_defined(CMAKE_CUDA_COMPILER CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" "CUDA compiler")
 
   set(NVCC_WRAPPER_PATH "/usr/local/bin/nvcc_wrapper")
   if(EXISTS ${NVCC_WRAPPER_PATH})
-    message(
-      STATUS
-        "⚙️  Using nvcc_wrapper at ${NVCC_WRAPPER_PATH} as the C++ compiler for CUDA-enabled targets."
-    )
+    message(STATUS "⚙️  Using nvcc_wrapper at ${NVCC_WRAPPER_PATH} as the C++ compiler for CUDA-enabled targets.")
     set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-gpu-targets")
 
     set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
-        "--expt-extended-lambda --expt-relaxed-constexpr -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough"
+        "--expt-extended-lambda \
+        --expt-relaxed-constexpr \
+        -Wno-unused-parameter \
+        -Wno-dangling-reference \
+        -Wno-implicit-fallthrough"
     )
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
-    message(
-      STATUS
-        "⚙️  Added flags [${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}] to the C++ compile flags to suppress some warnings from Trilinos"
+    
+    set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
+        "${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA} \
+        -Wno-deprecated-gpu-targets"
     )
+    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
+    message(STATUS "⚙️  Added flags [${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}] to the C++ compile flags to suppress some warnings from Trilinos")
+    
+    set(ENV{NVCC_WRAPPER_DEFAULT_OPTIONS} "-Wno-deprecated-gpu-targets")
+    message(STATUS "⚙️  Setting NVCC_WRAPPER_DEFAULT_OPTIONS to -Wno-deprecated-gpu-targets")
   else()
-    message(
-      FATAL_ERROR
-        "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed.
-        You can download it from here: https://github.com/kokkos/kokkos in bin/ directory."
-    )
+    message(FATAL_ERROR "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed. You can download it from here: https://github.com/kokkos/kokkos in bin/ directory.")
   endif()
 endif()
 
@@ -158,12 +161,9 @@ set(gxx_major_version ${MAJOR_VERSION})
 # ✦ Check if GCC 14 is used, and add the appropriate CUDA flag ✦
 if(gcc_major_version STREQUAL "14" OR gxx_major_version STREQUAL "14")
   message(STATUS "⚙️  Using GCC-14")
-  if(GPU_CUDA_ON)
+  if(START_CUDA_ON)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
-    message(
-      WARNING
-        "⚠️  Using GCC ${gcc_major_version} with CUDA. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC ${gcc_major_version} is not guaranteed!"
-    )
+    message(WARNING "⚠️  Using GCC ${gcc_major_version} with CUDA. Adding '-allow-unsupported-compiler' flag to CMake CUDA flags. CUDA support for GCC ${gcc_major_version} is not guaranteed!")
   endif()
 endif()
 
@@ -171,19 +171,18 @@ endif()
 # End of setting compilers                  #
 # ##############################################################################
 
-if(GPU_CUDA_ON)
+if(START_CUDA_ON)
   # ############################################################################
   # CUDA Architecture Setup                     #
   # ############################################################################
   # Define all supported CUDA architectures for the project
-  set(CUDA_SUPPORTED_ARCHS "70;75;80;86;89;90")
+  set(CUDA_SUPPORTED_ARCHS "75;80;86;89;90")
   # Create a string for directly setting in CUDA compile flags
   set(CUDA_ARCH_FLAGS "")
   foreach(arch ${CUDA_SUPPORTED_ARCHS})
     set(CUDA_ARCH_FLAGS "${CUDA_ARCH_FLAGS} -arch=sm_${arch}")
   endforeach()
   # Flag for suppressing warnings about deprecated architectures
-  set(CUDA_ARCH_FLAGS "${CUDA_ARCH_FLAGS} -Wno-deprecated-gpu-targets")
   message(STATUS "🔧 CUDA architecture flags: ${CUDA_ARCH_FLAGS}")
   
   # ############################################################################
@@ -192,10 +191,7 @@ if(GPU_CUDA_ON)
   # ══► Function to check if a directory exists and handle errors ◄══
   function(check_directory_exists dir description)
     if(NOT EXISTS ${dir})
-      message(
-        FATAL_ERROR
-          "❌ ${description} not found at [${dir}]. Please make sure it's installed or correctly configured."
-      )
+      message(FATAL_ERROR "❌ ${description} not found at [${dir}]. Please make sure it's installed or correctly configured.")
     else()
       message(STATUS "✅ ${description} located at [${dir}]")
     endif()
@@ -210,14 +206,9 @@ if(GPU_CUDA_ON)
     set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
     set(CUDA_INCLUDE_DIR "${CUDA_TOOLKIT_ROOT_DIR}/include")
 
-    message(
-      STATUS
-        "⚙️  CUDA toolkit root directory not specified, setting default: [${CUDA_TOOLKIT_ROOT_DIR}]. Include directories: [${CUDA_INCLUDE_DIR}]"
-    )
+    message(STATUS "⚙️  CUDA toolkit root directory not specified, setting default: [${CUDA_TOOLKIT_ROOT_DIR}]. Include directories: [${CUDA_INCLUDE_DIR}]")
   else()
-    message(
-      STATUS
-        "⚙️  CUDA toolkit root directory specified: [${CUDA_TOOLKIT_ROOT_DIR}]")
+    message(STATUS "⚙️  CUDA toolkit root directory specified: [${CUDA_TOOLKIT_ROOT_DIR}]")
   endif()
 
   # ✦ Verify that the directory exists ✦
@@ -227,13 +218,10 @@ if(GPU_CUDA_ON)
   # Setting CUDA Compiler Path (Optional)         #
   # ############################################################################
 
-  # Include CUDA as a language in the project only if GPU_CUDA_ON is enabled
+  # Include CUDA as a language in the project only if START_CUDA_ON is enabled
   set(CMAKE_CUDA_ARCHITECTURES ${CUDA_SUPPORTED_ARCHS})
   set_property(GLOBAL PROPERTY CMAKE_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
-  message(
-    STATUS
-      "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}"
-  )
+  message(STATUS "⚙️  CUDA support enabled with CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
 
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda --expt-relaxed-constexpr")
   message(STATUS "⚙️  Compiling with CUDA flags: [${CMAKE_CUDA_FLAGS}]")
@@ -253,7 +241,7 @@ project(
         lack of algorithms for calculating non-standard grids of the electrostatic field generated \
         by plasma particles."
   LANGUAGES CXX)
-if(GPU_CUDA_ON)
+if(START_CUDA_ON)
   enable_language(CUDA)
 endif()
 
@@ -267,7 +255,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Global CUDA include directories if GPU support is enabled
-if(GPU_CUDA_ON)
+if(START_CUDA_ON)
   set(CMAKE_CUDA_STANDARD 20)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   message(STATUS "⚙️  Using C++${CMAKE_CUDA_STANDARD} standard for the CUDA.")
@@ -292,10 +280,7 @@ find_library(
 if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
   message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
 else()
-  message(
-    STATUS
-      "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]"
-  )
+  message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
 endif()
 include_directories(${GMSH_INC})
 # ##############################################################################
@@ -317,10 +302,7 @@ include_directories(${CGAL_INCLUDE_DIR})
 # ##############################################################################
 find_package(OpenMP REQUIRED)
 if(OpenMP_FOUND)
-  message(
-    STATUS
-      "✅ OpenMP found: Include directories at [${OpenMP_INCLUDE_PATH}], Libraries at [${OpenMP_LIBRARY_DIRS}]. Libraries: [${OpenMP_LIBRARIES}]"
-  )
+  message(STATUS "✅ OpenMP found: Include directories at [${OpenMP_INCLUDE_PATH}], Libraries at [${OpenMP_LIBRARY_DIRS}]. Libraries: [${OpenMP_LIBRARIES}]")
 else()
   message(
     FATAL_ERROR
@@ -351,14 +333,9 @@ include_directories(${JSON_INC})
 # ##############################################################################
 find_package(MPI REQUIRED)
 if(MPI_FOUND)
-  message(
-    STATUS
-      "✅ MPI found: Include directories at [${MPI_INCLUDE_PATH}], Libraries: [${MPI_LIBRARIES}]"
-  )
+  message(STATUS "✅ MPI found: Include directories at [${MPI_INCLUDE_PATH}], Libraries: [${MPI_LIBRARIES}]")
 else()
-  message(
-    FATAL_ERROR "❌ MPI not found. Please ensure MPI is installed and available."
-  )
+  message(FATAL_ERROR "❌ MPI not found. Please ensure MPI is installed and available.")
 endif()
 include_directories(${MPI_INCLUDE_PATH})
 link_directories(${MPI_LIBRARY_DIRS})
@@ -377,10 +354,7 @@ find_library(
 if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARY)
   message(FATAL_ERROR "❌ GMP not found. Please ensure GMP is installed.")
 else()
-  message(
-    STATUS
-      "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]"
-  )
+  message(STATUS "✅ GMP found: Include directories at [${GMP_INCLUDE_DIR}], Libraries: [${GMP_LIBRARY}]")
 endif()
 
 include_directories(${GMP_INCLUDE_DIR})
@@ -396,9 +370,7 @@ if(Boost_FOUND)
       "✅ Boost found: Include directories at [${Boost_INCLUDE_DIRS}], Libraries: [${Boost_LIBRARIES}]"
   )
 else()
-  message(
-    FATAL_ERROR
-      "❌ Boost not found. Please ensure Boost is installed and available.")
+  message(FATAL_ERROR "❌ Boost not found. Please ensure Boost is installed and available.")
 endif()
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -407,14 +379,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 # ##############################################################################
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 if(HDF5_FOUND)
-  message(
-    STATUS
-      "✅ HDF5 found: Include directories at [${HDF5_INCLUDE_DIRS}], Libraries: [${HDF5_LIBRARIES}]"
-  )
+  message(STATUS "✅ HDF5 found: Include directories at [${HDF5_INCLUDE_DIRS}], Libraries: [${HDF5_LIBRARIES}]")
 else()
-  message(
-    FATAL_ERROR
-      "❌ HDF5 not found. Please ensure HDF5 is installed and available.")
+  message(FATAL_ERROR "❌ HDF5 not found. Please ensure HDF5 is installed and available.")
 endif()
 include_directories(${HDF5_INCLUDE_DIRS})
 # ##############################################################################
@@ -444,10 +411,7 @@ if(NOT "$ENV{TRILINOS_DIR}" STREQUAL "")
     Tpetra
     PATHS
     "${TRILINOS_DIR}")
-  message(
-    STATUS
-      "✅ Trilinos directory set to custom environment variable: [${TRILINOS_DIR}]"
-  )
+  message(STATUS "✅ Trilinos directory set to custom environment variable: [${TRILINOS_DIR}]")
 else()
   set(TRILINOS_DIR "/usr/local/lib/cmake/Trilinos")
   find_package(
@@ -463,16 +427,14 @@ else()
     Tpetra
     PATHS
     "${TRILINOS_DIR}")
-  message(
-    STATUS "✅ Trilinos directory set to default location: [${TRILINOS_DIR}]")
+  message(STATUS "✅ Trilinos directory set to default location: [${TRILINOS_DIR}]")
 endif()
 
 if(Trilinos_FOUND)
   message(STATUS "✅ Trilinos libraries: [${Trilinos_LIBRARIES}]")
   message(STATUS "✅ Trilinos include directories: [${Trilinos_INCLUDE_DIRS}]")
 else()
-  message(
-    FATAL_ERROR "❌ Trilinos not found. Please ensure Trilinos is installed.")
+  message(FATAL_ERROR "❌ Trilinos not found. Please ensure Trilinos is installed.")
 endif()
 include_directories(${Trilinos_INCLUDE_DIRS})
 link_directories(${Trilinos_LIBRARY_DIRS})
@@ -502,28 +464,19 @@ include_directories(${TBB_INCLUDE_DIRS})
 # ║ Set compiler options for warning level and optimizations.                 ║
 # ║ Remove unnecessary flags in debug mode and optimize in release mode.      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
-set(SUPRESS_SOME_WARNINGS
-    "-Wno-deprecated-declarations -Wno-unused-parameter -Wno-implicit-fallthrough"
-)
-message(
-  STATUS
-    "⚙️  Setting flags [${SUPRESS_SOME_WARNINGS}] to suppress warnings like: 'template<class _Tp> struct std::is_pod' is deprecated: use 'is_standard_layout && is_trivial'"
-)
+set(SUPPRESS_DEPRECATED_DECLARATIONS "-Wno-deprecated-declarations")
+message(STATUS "⚙️  Setting flags [${SUPPRESS_DEPRECATED_DECLARATIONS}] to suppress warnings like: 'template<class _Tp> struct std::is_pod' is deprecated: use 'is_standard_layout && is_trivial'")
 set(ENABLE_SQRT_VECTORIZATION_FLAG "-fno-math-errno")
-message(
-  STATUS
-    "⚙️  Setting flag '${ENABLE_SQRT_VECTORIZATION_FLAG}' to enable vectorization of square root calculations without setting errno on errors"
-)
+message(STATUS "⚙️  Setting flag '${ENABLE_SQRT_VECTORIZATION_FLAG}' to enable vectorization of square root calculations without setting errno on errors")
 set(DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG "-fno-trapping-math")
-message(
-  STATUS
-    "⚙️  Setting flag '${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}' to avoid warnings about exceptions on divide operations"
-)
+message(STATUS "⚙️  Setting flag '${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}' to avoid warnings about exceptions on divide operations")
 
-set(COMMON_CPP_FLAGS
-    "-Wall -Wextra -Wpedantic -pthread -O3 -Wmisleading-indentation")
+set(COMMON_CPP_FLAGS "-Wall -Wextra -Wpedantic -pthread -O3 -Wmisleading-indentation")
 set(FINAL_CPP_FLAGS
-    "${COMMON_CPP_FLAGS} ${SUPRESS_SOME_WARNINGS} ${ENABLE_SQRT_VECTORIZATION_FLAG} ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}"
+    "${COMMON_CPP_FLAGS} \
+    ${SUPPRESS_DEPRECATED_DECLARATIONS} \
+    ${ENABLE_SQRT_VECTORIZATION_FLAG} \
+    ${DONT_WARN_ABOUT_EXCP_WHILE_DIVIDE_FLAG}"
 )
 
 # Initialize variables for optional flags
@@ -543,47 +496,33 @@ else()
   set(VECTOR_WIDTH 128)
 endif()
 
-# Check if vectorization is enabled
-if(VECTORIZATION_ON)
+if(START_VECTORIZATION_ON)
   # Check for Clang and set specific flags
   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
     set(VECTORIZATION_FLAGS "-fvectorize")
     set(CLANG_FLAGS "-Xclang" "-flarge-source-files")
-    add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS}
-                        ${ANTI_ALIASING_FLAG})
+    add_compile_options(${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
     add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
-    message(
-      STATUS
-        "⚙️  Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]"
-    )
+    message(STATUS "⚙️  Clang-specific vectorization flags added: [${CLANG_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
-    # Check for GCC and set specific flags
+  # Check for GCC and set specific flags
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(ANTI_ALIASING_FLAG "-fstrict-aliasing")
     set(VECTORIZATION_FLAGS "-ftree-vectorize")
     set(GCC_FLAGS "-flarge-source-files")
-    add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS}
-                        ${ANTI_ALIASING_FLAG})
+    add_compile_options(${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
     add_compile_options("-mprefer-vector-width=${VECTOR_WIDTH}")
-    message(
-      STATUS
-        "⚙️  GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]"
-    )
+    message(STATUS "⚙️  GCC-specific vectorization flags added: [${GCC_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
 
     # Check for Intel compiler and set specific flags
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     set(ANTI_ALIASING_FLAG "-ansi-alias")
-    set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget"
-                            "-qopt-zmm-usage=high")
+    set(VECTORIZATION_FLAGS "-restrict" "-xHost" "-vecabi=cmdtarget" "-qopt-zmm-usage=high")
     set(INTEL_COMPILER_FLAGS "-flarge-source-files")
 
-    add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS}
-                        ${ANTI_ALIASING_FLAG})
-    message(
-      STATUS
-        "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]"
-    )
+    add_compile_options(${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG})
+    message(STATUS "⚙️  Intel-specific vectorization flags added: [${INTEL_COMPILER_FLAGS} ${VECTORIZATION_FLAGS} ${ANTI_ALIASING_FLAG}]")
   endif()
   message(STATUS "⚙️  Vector width set to: ${VECTOR_WIDTH}")
 endif()
@@ -601,22 +540,13 @@ message(STATUS "⚙️  Compiling with C++ flags: [${CMAKE_CXX_FLAGS}]")
 # ╚══════════════════════════════════════════════════════════════════════════╝
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   add_compile_options(-fp-model strict)
-  message(
-    STATUS
-      "⚙️  Intel: Using strict floating-point rounding with flag: -fp-model strict"
-  )
+  message(STATUS "⚙️  Intel: Using strict floating-point rounding with flag: -fp-model strict")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options(-frounding-math)
-  message(
-    STATUS
-      "⚙️  GNU: Using strict floating-point rounding with flag: -frounding-math"
-  )
+  message(STATUS "⚙️  GNU: Using strict floating-point rounding with flag: -frounding-math")
 
 else()
-  message(
-    WARNING
-      "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding."
-  )
+  message(WARNING "⚠️ Unsupported compiler. You may need to manually set appropriate flags for strict floating-point rounding.")
 endif()
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
@@ -687,7 +617,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include/Utilities
 )
 
-if (GPU_CUDA_ON)
+if (START_CUDA_ON)
   include_directories(
     ${CMAKE_SOURCE_DIR}/include/Generators/CUDA
 
@@ -703,7 +633,7 @@ add_subdirectory(src)
 
 set(CPP_SOURCES src/main.cpp src/ModelingMainDriver.cpp)
 set(SOURCES ${CPP_SOURCES})
-if(GPU_CUDA_ON)
+if(START_CUDA_ON)
   set(CUDA_SOURCES
     # !!! TODO: DO NOT FORGET TO ADD CUDA SOURCES HERE !!!
   )
@@ -726,29 +656,24 @@ set(START_LINK_LIBRARIES
           
           DataHandling
           FiniteElementMethod
-          FiniteElementMethod_BoundaryConditions
-          FiniteElementMethod_Cell
-          FiniteElementMethod_Cubature
-          FiniteElementMethod_LinearAlgebraManagers
           Generators
           Geometry
           Particle
-          Particle_PhysicsCore_CollisionModel
           ParticleInCellEngine
-          ParticleInCellEngine_ParticleDynamicsProcessor
           SessionManagers
-          SputteringModel
           Utilities
-          GmshUtilities
 )
 
-set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                                    "${CMAKE_SOURCE_DIR}")
+# Adding the sputtering model library to the link libraries if we need to compile its executable
+if (COMPILE_SPUTTERING_MODEL)
+  list(APPEND START_LINK_LIBRARIES SputteringModel)
+endif()
+
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${START_LINK_LIBRARIES})
 
-if(GPU_CUDA_ON)
-  target_compile_options(
-    ${EXECUTABLE_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
+if(START_CUDA_ON)
+  target_compile_options(${EXECUTABLE_NAME} PRIVATE "-mno-amx-bf16" "-mno-amx-int8" "-mno-amx-tile")
   target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${CUDA_LIBRARIES} cudadevrt)
   set_target_properties(${EXECUTABLE_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
 endif()
@@ -756,13 +681,14 @@ if(START_OPENMP_ON)
   target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${OpenMP_LIBRARIES})
 endif()
 
-add_custom_target(
-  distclean COMMAND rm -rf MakeCache.txt CMakeFiles Makefile
-                    cmake_install.cmake CTestTestfile.cmake Testing)
+add_custom_target(distclean COMMAND rm -rf MakeCache.txt CMakeFiles Makefile
+                  cmake_install.cmake CTestTestfile.cmake Testing)
 
 #### ~~~ Compiling sputtering model from SputteringModel/SputteringModel.cpp ~~~ ####
-set(SPUTTERING_MODEL_EXECUTABLE_NAME sputtering_model)
-set(SPUTTERING_MODEL_SOURCES src/SputteringModel/SputteringModel.cpp)
-add_executable(${SPUTTERING_MODEL_EXECUTABLE_NAME} ${SPUTTERING_MODEL_SOURCES})
-target_link_libraries(${SPUTTERING_MODEL_EXECUTABLE_NAME} PRIVATE ${START_LINK_LIBRARIES})
+if (COMPILE_SPUTTERING_MODEL)
+  set(SPUTTERING_MODEL_EXECUTABLE_NAME sputtering_model)
+  set(SPUTTERING_MODEL_SOURCES src/SputteringModel/SputteringModel.cpp)
+  add_executable(${SPUTTERING_MODEL_EXECUTABLE_NAME} ${SPUTTERING_MODEL_SOURCES})
+  target_link_libraries(${SPUTTERING_MODEL_EXECUTABLE_NAME} PRIVATE ${START_LINK_LIBRARIES})
+endif()
 #### ~~~ End of sputtering model compilation ~~~ ####

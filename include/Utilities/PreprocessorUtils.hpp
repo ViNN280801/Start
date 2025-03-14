@@ -89,12 +89,13 @@
     #define START_CUDA_HOST_DEVICE __host__ __device__
     #define START_CUDA_HOST __host__
     #define START_CUDA_GLOBAL extern "C" __global__
-    #define START_CUDA_DEVICE_FUNCTION __device__
+    #define START_CUDA_GLOBAL_EXTERN_C extern "C" __global__
+    #define START_CUDA_DEVICE_EXTERN_C extern "C" __device__
 #else
     #define START_CUDA_HOST_DEVICE
     #define START_CUDA_HOST
     #define START_CUDA_GLOBAL
-    #define START_CUDA_DEVICE_FUNCTION
+    #define START_CUDA_DEVICE_EXTERN_C
 #endif
 
 #if defined(USE_CUDA) && defined(__CUDA_ARCH__)

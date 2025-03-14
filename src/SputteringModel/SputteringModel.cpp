@@ -4,6 +4,7 @@ using json = nlohmann::json;
 
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "Generators/ParticleGenerator.hpp"
+#include "Geometry/Utils/Overlaps/TriangleOverlapCalculator.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 #include "SputteringModel/SputteringModel.hpp"
@@ -177,57 +178,6 @@ void _saveParticleMovementsHdf5(ParticleMovementMap const &particlesMovement)
     }
 }
 
-#include <CGAL/Boolean_set_operations_2.h>
-#include <CGAL/Point_2.h>
-#include <CGAL/Polygon_2.h>
-#include <CGAL/Polygon_with_holes_2.h>
-#include <list>
-
-using Kernel2 = CGAL::Exact_predicates_inexact_constructions_kernel;
-using Point_2 = CGAL::Point_2<Kernel2>;
-using Polygon_2 = CGAL::Polygon_2<Kernel2>;
-using Polygon_with_holes_2 = CGAL::Polygon_with_holes_2<Kernel2>;
-
-double calculate_overlap_ratio(const CGAL::Triangle_3<Kernel2> &tri, double x_min, double x_max)
-{
-    // Creating a 2D triangle by projecting vertices onto the XY-plane.
-    Polygon_2 triangle_poly;
-    triangle_poly.push_back(Point_2(tri.vertex(0).x(), tri.vertex(0).y()));
-    triangle_poly.push_back(Point_2(tri.vertex(1).x(), tri.vertex(1).y()));
-    triangle_poly.push_back(Point_2(tri.vertex(2).x(), tri.vertex(2).y()));
-
-    // Define the band as a rectangle.
-    double y_min = std::min({tri.vertex(0).y(), tri.vertex(1).y(), tri.vertex(2).y()}) - 1.0;
-    double y_max = std::max({tri.vertex(0).y(), tri.vertex(1).y(), tri.vertex(2).y()}) + 1.0;
-
-    Polygon_2 band;
-    band.push_back(Point_2(x_min, y_min));
-    band.push_back(Point_2(x_max, y_min));
-    band.push_back(Point_2(x_max, y_max));
-    band.push_back(Point_2(x_min, y_max));
-
-    // Compute the intersection; note we store the result as polygons with holes.
-    std::list<Polygon_with_holes_2> intersection_polys;
-    CGAL::intersection(triangle_poly, band, std::back_inserter(intersection_polys));
-
-    double area_triangle = std::abs(triangle_poly.area());
-    double area_intersection = 0.0;
-
-    for (const auto &pwh : intersection_polys)
-    {
-        // Calculate the area of the outer boundary.
-        double pwh_area = std::abs(pwh.outer_boundary().area());
-
-        // Subtract the area of holes if any.
-        for (auto hit = pwh.holes_begin(); hit != pwh.holes_end(); ++hit)
-            pwh_area -= std::abs(hit->area());
-
-        area_intersection += pwh_area;
-    }
-
-    return (area_triangle > 0) ? (area_intersection / area_triangle) : 0.0;
-}
-
 void SputteringModel::_writeHistogramToFile()
 {
     // =============================================
@@ -254,7 +204,7 @@ void SputteringModel::_writeHistogramToFile()
             continue;
 
         // Calculate the ratio of the area in the band
-        double overlap_ratio{calculate_overlap_ratio(cell.triangle, x_min, x_max)};
+        double overlap_ratio{TriangleOverlapCalculator::calculateOverlapRatio(cell.triangle, x_min, x_max)};
 
         // Consider only if >75% of the area is in the band
         if (overlap_ratio >= 0.75)
@@ -287,7 +237,7 @@ void SputteringModel::_writeHistogramToFile()
     for (auto const &[id, cell] : m_surfaceMesh.getTriangleCellMap())
     {
         Point centroid{TriangleCell::compute_centroid(cell.triangle)};
-        double overlap{calculate_overlap_ratio(cell.triangle, x_min, x_max)};
+        double overlap{TriangleOverlapCalculator::calculateOverlapRatio(cell.triangle, x_min, x_max)};
 
         // Condition for output: 75% of the area of the triangle is in the band
         if (overlap > 0.75)

@@ -5,13 +5,30 @@
 void GmshUtils::gmshInitializeCheck()
 {
     if (!gmsh::isInitialized())
-        throw std::runtime_error("This method works only when Gmsh was initialized.");
+        START_THROW_EXCEPTION(GmshUtilsGmshNotInitializedException,
+                              "This method works only when Gmsh was initialized.");
+}
+
+void GmshUtils::checkGmshMeshFile(std::string_view mesh_filename)
+{
+    if (!std::filesystem::exists(mesh_filename))
+        START_THROW_EXCEPTION(GmshUtilsFileDoesNotExistException,
+                              "File does not exist: " + std::string(mesh_filename));
+    if (std::filesystem::is_directory(mesh_filename))
+        START_THROW_EXCEPTION(GmshUtilsFileIsDirectoryException,
+                              "Provided path is a directory, not a file: " + std::string(mesh_filename));
+    if (std::filesystem::path(mesh_filename).extension() != ".msh")
+        START_THROW_EXCEPTION(GmshUtilsFileExtensionIsNotMshException,
+                              "File extension is not .msh: " + std::string(mesh_filename));
+    if (std::filesystem::file_size(mesh_filename) == 0)
+        START_THROW_EXCEPTION(GmshUtilsFileIsEmptyException,
+                              "File is empty: " + std::string(mesh_filename));
 }
 
 void GmshUtils::checkAndOpenMesh(std::string_view meshFilename)
 {
     GmshUtils::gmshInitializeCheck();
-    util::check_gmsh_mesh_file(meshFilename);
+    GmshUtils::checkGmshMeshFile(meshFilename);
 
     gmsh::option::setNumber("General.Terminal", 0); // Turn off logging to the terminal.
     gmsh::open(meshFilename.data());
@@ -24,7 +41,7 @@ std::vector<int> GmshUtils::getAllBoundaryTags()
     gmsh::model::getEntities(volumes, 3);
 
     if (volumes.empty())
-        throw std::runtime_error("There is no volume entities.");
+        START_THROW_EXCEPTION(GmshUtilsNoVolumeEntitiesException, "There is no volume entities.");
 
     std::vector<int> allBoundaryTags;
     for (auto const &volume : volumes)
@@ -36,7 +53,7 @@ std::vector<int> GmshUtils::getAllBoundaryTags()
     }
 
     if (allBoundaryTags.empty())
-        throw std::runtime_error("There is no boundary tags.");
+        START_THROW_EXCEPTION(GmshUtilsNoBoundaryTagsException, "There is no boundary tags.");
 
     return allBoundaryTags;
 }
@@ -55,7 +72,7 @@ int GmshUtils::getPhysicalGroupTagByName(std::string_view physicalGroupName, std
     gmsh::model::getPhysicalGroups(physicalGroups, 2);
 
     if (physicalGroups.empty())
-        throw std::runtime_error("There is no physical groups");
+        START_THROW_EXCEPTION(GmshUtilsNoPhysicalGroupsException, "There is no physical groups.");
 
     int targetGroupTag{-1};
     for (const auto &[groupDim, groupTag] : physicalGroups)
@@ -70,9 +87,69 @@ int GmshUtils::getPhysicalGroupTagByName(std::string_view physicalGroupName, std
     }
 
     if (targetGroupTag == -1)
-        throw std::runtime_error(util::stringify("Error: Physical group '", physicalGroupName, "' not found."));
+        START_THROW_EXCEPTION(GmshUtilsPhysicalGroupNotFoundException,
+                              util::stringify("Error: Physical group '", physicalGroupName, "' not found."));
 
     return targetGroupTag;
+}
+
+TriangleCellMap GmshUtils::getTriangleCellsMap(std::string_view meshFilename)
+{
+    TriangleCellMap result;
+    try
+    {
+        GmshUtils::checkAndOpenMesh(meshFilename);
+
+        std::vector<size_t> nodeTags;
+        std::vector<double> coords, parametricCoords;
+        gmsh::model::mesh::getNodes(nodeTags, coords, parametricCoords, -1, -1);
+
+        std::vector<double> xyz;
+        for (size_t i{}; i < coords.size(); i += 3)
+        {
+            xyz.emplace_back(coords[i]);
+            xyz.emplace_back(coords[i + 1]);
+            xyz.emplace_back(coords[i + 2]);
+        }
+
+        std::vector<size_t> elTags, nodeTagsByEl;
+        gmsh::model::mesh::getElementsByType(2, elTags, nodeTagsByEl, -1);
+
+        std::vector<std::vector<size_t>> nodeTagsPerEl;
+        for (size_t i{}; i < nodeTagsByEl.size(); i += 3)
+            nodeTagsPerEl.push_back({nodeTagsByEl[i], nodeTagsByEl[i + 1], nodeTagsByEl[i + 2]});
+
+        for (size_t i{}; i < elTags.size(); ++i)
+        {
+            size_t triangleId{elTags[i]};
+            std::vector<size_t> nodes = nodeTagsPerEl[i];
+
+            std::vector<double> xyz1{{xyz[(nodes[0] - 1) * 3], xyz[(nodes[0] - 1) * 3 + 1], xyz[(nodes[0] - 1) * 3 + 2]}},
+                xyz2{{xyz[(nodes[1] - 1) * 3], xyz[(nodes[1] - 1) * 3 + 1], xyz[(nodes[1] - 1) * 3 + 2]}},
+                xyz3{{xyz[(nodes[2] - 1) * 3], xyz[(nodes[2] - 1) * 3 + 1], xyz[(nodes[2] - 1) * 3 + 2]}};
+
+            Point p1(xyz1[0], xyz1[1], xyz1[2]),
+                p2(xyz2[0], xyz2[1], xyz2[2]),
+                p3(xyz3[0], xyz3[1], xyz3[2]);
+            Triangle triangle(p1, p2, p3);
+            TriangleCell cell{triangle, TriangleCell::compute_area(triangle), 0}; // At the initial time moment 'counter' is 0.
+            result[triangleId] = TriangleCell(cell);
+        }
+    }
+    catch (std::exception const &e)
+    {
+        ERRMSG(e.what());
+    }
+    catch (...)
+    {
+        ERRMSG("Something went wrong");
+    }
+
+    if (result.empty())
+        START_THROW_EXCEPTION(GmshUtilsFailedToFillTriangleCellsMapException,
+                              "By some reason 'result' data ('TriangleCellMap') is empty, check the input...");
+
+    return result;
 }
 
 TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_view physicalGroupName, std::string_view meshFilename)
@@ -88,7 +165,8 @@ TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_
     gmsh::model::mesh::getNodesForPhysicalGroup(2, targetGroupTag, targetNodeTags, targetCoords);
 
     if (targetNodeTags.empty())
-        throw std::runtime_error(util::stringify("There is no node tags for physical group with name: ", physicalGroupName));
+        START_THROW_EXCEPTION(GmshUtilsNoNodeTagsException,
+                              util::stringify("There is no node tags for physical group with name: ", physicalGroupName));
 
     // Step 3: Identify triangles associated with the target surface.
     std::unordered_map<size_t, std::vector<size_t>> triangleNodeTagsMap;
@@ -96,7 +174,8 @@ TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_
     gmsh::model::mesh::getElementsByType(2, triangleTags, triangleNodeTags);
 
     if (triangleTags.empty() || triangleNodeTags.empty())
-        throw std::runtime_error(util::stringify("There is no triangle cells for physical group with name: ", physicalGroupName));
+        START_THROW_EXCEPTION(GmshUtilsNoTriangleCellsException,
+                              util::stringify("There is no triangle cells for physical group with name: ", physicalGroupName));
 
     // Store the target node tags in a set for quick lookup.
     std::set<size_t> targetNodeTagSet(targetNodeTags.cbegin(), targetNodeTags.cend());
@@ -122,10 +201,11 @@ TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_
     }
 
     if (triangleNodeTagsMap.empty())
-        throw std::runtime_error("Failed to fill 'triangleNodeTagsMap' variable.");
+        START_THROW_EXCEPTION(GmshUtilsFailedToFillTriangleNodeTagsMapException,
+                              "Failed to fill 'triangleNodeTagsMap' variable.");
 
     // Step 4: Calculate centroids of triangles.
-    std::unordered_map<size_t, std::array<double, 3ul>> triangleCentersMap;
+    TriangleCellCentersMap triangleCentersMap;
     for (const auto &[cellTag, cellNodeTags] : triangleNodeTagsMap)
     {
         if (cellNodeTags.size() != 3ul)
@@ -157,11 +237,12 @@ TriangleCellCentersMap GmshUtils::getCellCentersByPhysicalGroupName(std::string_
         centroid[1] /= 3.0;
         centroid[2] /= 3.0;
 
-        triangleCentersMap[cellTag] = centroid;
+        triangleCentersMap[cellTag] = Point(centroid[0], centroid[1], centroid[2]);
     }
 
     if (triangleCentersMap.empty())
-        throw std::runtime_error("Failed to fill 'triangleCentersMap' variable.");
+        START_THROW_EXCEPTION(GmshUtilsFailedToFillTriangleCentersMapException,
+                              "Failed to fill 'triangleCentersMap' variable.");
 
     return triangleCentersMap;
 }
@@ -179,7 +260,8 @@ TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physical
     gmsh::model::mesh::getNodesForPhysicalGroup(2, targetGroupTag, targetNodeTags, targetCoords);
 
     if (targetNodeTags.empty())
-        throw std::runtime_error(util::stringify("There is no node tags for physical group with name: ", physicalGroupName));
+        START_THROW_EXCEPTION(GmshUtilsNoNodeTagsException,
+                              util::stringify("There is no node tags for physical group with name: ", physicalGroupName));
 
     // Step 3: Identify triangles associated with the target surface.
     std::unordered_map<size_t, std::vector<size_t>> triangleNodeTagsMap;
@@ -187,7 +269,8 @@ TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physical
     gmsh::model::mesh::getElementsByType(2, triangleTags, triangleNodeTags);
 
     if (triangleTags.empty() || triangleNodeTags.empty())
-        throw std::runtime_error(util::stringify("There is no triangle cells for physical group with name: ", physicalGroupName));
+        START_THROW_EXCEPTION(GmshUtilsNoTriangleCellsException,
+                              util::stringify("There is no triangle cells for physical group with name: ", physicalGroupName));
 
     // Store the target node tags in a set for quick lookup.
     std::set<size_t> targetNodeTagSet(targetNodeTags.cbegin(), targetNodeTags.cend());
@@ -213,7 +296,8 @@ TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physical
     }
 
     if (triangleNodeTagsMap.empty())
-        throw std::runtime_error("Failed to fill 'triangleNodeTagsMap' variable.");
+        START_THROW_EXCEPTION(GmshUtilsFailedToFillTriangleNodeTagsMapException,
+                              "Failed to fill 'triangleNodeTagsMap' variable.");
 
     // Step 4: Calculate centroids of triangles.
     TriangleCellMap cellsMap;
@@ -256,16 +340,19 @@ TriangleCellMap GmshUtils::getCellsByPhysicalGroupName(std::string_view physical
         }
         catch (std::exception const &ex)
         {
-            throw std::runtime_error(util::stringify("Failed to create triangle for tag ", triangleTag, ": ", ex.what()));
+            START_THROW_EXCEPTION(GmshUtilsFailedToCreateTriangleException,
+                                  util::stringify("Failed to create triangle for tag ", triangleTag, ": ", ex.what()));
         }
         catch (...)
         {
-            throw std::runtime_error(util::stringify("Failed to create trignale for tag ", triangleTag, " by unknown reason."));
+            START_THROW_EXCEPTION(GmshUtilsFailedToCreateTriangleException,
+                                  util::stringify("Failed to create trignale for tag ", triangleTag, " by unknown reason."));
         }
     }
 
     if (cellsMap.empty())
-        throw std::runtime_error("Failed to fill 'cellsMap' variable.");
+        START_THROW_EXCEPTION(GmshUtilsFailedToFillCellsMapException,
+                              "Failed to fill 'cellsMap' variable.");
 
     return cellsMap;
 }
@@ -278,7 +365,8 @@ std::vector<std::tuple<int, int, std::string>> GmshUtils::getAllPhysicalGroups(s
     gmsh::model::getPhysicalGroups(physicalGroupsDimTags);
 
     if (physicalGroupsDimTags.empty())
-        throw std::runtime_error("No physical groups found in the Gmsh model.");
+        START_THROW_EXCEPTION(GmshUtilsNoPhysicalGroupsException,
+                              "No physical groups found in the Gmsh model.");
 
     std::vector<std::tuple<int, int, std::string>> result;
     for (auto const &[dim, tag] : physicalGroupsDimTags)
@@ -289,7 +377,8 @@ std::vector<std::tuple<int, int, std::string>> GmshUtils::getAllPhysicalGroups(s
     }
 
     if (result.empty())
-        throw std::runtime_error("Resulting vector of tuples 'std::vector<std::tuple<int, int, std::string>>' with physical groups is empty.");
+        START_THROW_EXCEPTION(GmshUtilsNoPhysicalGroupsException,
+                              "Resulting vector of tuples 'std::vector<std::tuple<int, int, std::string>>' with physical groups is empty.");
 
     return result;
 }
