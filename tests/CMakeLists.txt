@@ -231,22 +231,6 @@ else()
 endif()
 include_directories(${HDF5_INCLUDE_DIRS})
 
-###############################################################
-#                     GMSH Setup                              #
-###############################################################
-find_path(GMSH_INC NAMES gmsh.h
-    HINTS /usr/include /usr/local/include)
-
-find_library(GMSH_LIBRARIES NAMES gmsh
-    HINTS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
-
-if(NOT GMSH_INC OR NOT GMSH_LIBRARIES)
-    message(FATAL_ERROR "❌ GMSH not found on Linux/Unix.")
-else()
-    message(STATUS "✅ GMSH found: Include directories at [${GMSH_INC}], Libraries at [${GMSH_LIBRARIES}]")
-endif()
-
-include_directories(${GMSH_INC})
 
 # ##############################################################################
 # CGAL Setup                              #
@@ -483,9 +467,6 @@ set(PARTICLE_IN_CELL_SOURCES
     ${PARTICLE_IN_CELL_SRC_PATH}/ChargeDensityEquationSolver.cpp
     ${PARTICLE_IN_CELL_SRC_PATH}/NodeChargeDensityProcessor.cpp
 )
-set(SESSION_MANAGEMENT_SOURCES
-    ${SESSION_MANAGEMENT_SRC_PATH}/GmshSessionManager.cpp
-)
 set(UTILITIES_SOURCES
     ${UTILITIES_SRC_PATH}/ConfigParser.cpp
     ${UTILITIES_SRC_PATH}/Timer.cpp
@@ -606,7 +587,6 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     Threads::Threads
     ${CGAL_NAMESPACE}
     ${CGAL_LIBRARIES}
-    ${GMSH_LIBRARIES}
     ${Boost_LIBRARIES}
     ${GMP_LIBRARIES}
     ${HDF5_LIBRARIES}
