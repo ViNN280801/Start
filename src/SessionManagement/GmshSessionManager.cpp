@@ -20,17 +20,8 @@ GmshSessionManager::GmshSessionManager()
 
 GmshSessionManager::~GmshSessionManager()
 {
-    try
-    {
-        if (gmsh::isInitialized())
-            gmsh::finalize();
-    }
-    catch (std::exception const &e)
-    {
-        START_THROW_EXCEPTION(GmshSessionManagerGmshFinalizationException,
-                              util::stringify("Gmsh finalization failed: ", e.what(),
-                                              ". Resources will not be released properly."));
-    }
+    if (gmsh::isInitialized())
+        gmsh::finalize();
 }
 
 void GmshSessionManager::runGmsh(int argc, char *argv[])

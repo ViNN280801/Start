@@ -6,7 +6,6 @@
 #include "Geometry/Mesh/Surface/TriangleCell.hpp"
 #include "Geometry/Mesh/Volumetric/VolumetricMesh.hpp"
 #include "Utilities/ConfigParser.hpp"
-#include "Utilities/GmshUtilities/GmshUtilsExceptions.hpp"
 #include "Utilities/UtilitiesExceptions.hpp"
 
 class GmshUtils
