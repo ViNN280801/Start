@@ -8,21 +8,26 @@
 using json = nlohmann::json;
 
 #include "Utilities/ConfigParser.hpp"
+#include "Utilities/UtilitiesExceptions.hpp"
 
 void checkParameterExists(json const &j, std::string_view param)
 {
     if (!j.contains(param.data()))
-        throw std::runtime_error("Missing required parameter: " + std::string(param) + ". Example: \"" + std::string(param) + "\": <value>");
+        START_THROW_EXCEPTION(UtilsMissingRequiredParameterException,
+                              util::stringify("Missing required parameter: ",
+                                              param, ". Example: \"", param, "\": <value>"));
 }
 
 void ConfigParser::getConfigData(std::string_view config)
 {
     if (config.empty())
-        throw std::runtime_error("Configuration file path is empty.");
+        START_THROW_EXCEPTION(UtilsMissingRequiredParameterException,
+                              "Configuration file path is empty.");
 
     std::ifstream ifs(config.data());
     if (!ifs)
-        throw std::runtime_error("Failed to open configuration file: " + std::string(config));
+        START_THROW_EXCEPTION(UtilsFailedToOpenConfigurationFileException,
+                              util::stringify("Failed to open configuration file: ", config));
 
     json configJson;
     try
@@ -31,7 +36,8 @@ void ConfigParser::getConfigData(std::string_view config)
     }
     catch (json::exception const &e)
     {
-        throw std::runtime_error("Error parsing config JSON: " + std::string(e.what()));
+        START_THROW_EXCEPTION(UtilsFailedToParseConfigurationFileException,
+                              util::stringify("Error parsing config JSON: ", e.what()));
     }
 
     try
@@ -152,11 +158,13 @@ void ConfigParser::getConfigData(std::string_view config)
                     }
                     catch (std::invalid_argument const &e)
                     {
-                        throw std::runtime_error("Invalid node ID: " + token + ". Error: " + e.what());
+                        START_THROW_EXCEPTION(UtilsInvalidNodeIDException,
+                                              util::stringify("Invalid node ID: ", token, ". Error: ", e.what()));
                     }
                     catch (std::out_of_range const &e)
                     {
-                        throw std::runtime_error("Node ID out of range: " + token + ". Error: " + e.what());
+                        START_THROW_EXCEPTION(UtilsNodeIDOutOfRangeException,
+                                              util::stringify("Node ID out of range: ", token, ". Error: ", e.what()));
                     }
                     nodesStr.erase(0ul, pos + 1ul);
                 }
@@ -171,11 +179,13 @@ void ConfigParser::getConfigData(std::string_view config)
                     }
                     catch (std::invalid_argument const &e)
                     {
-                        throw std::runtime_error("Invalid node ID: " + nodesStr + ". Error: " + e.what());
+                        START_THROW_EXCEPTION(UtilsInvalidNodeIDException,
+                                              util::stringify("Invalid node ID: ", nodesStr, ". Error: ", e.what()));
                     }
                     catch (std::out_of_range const &e)
                     {
-                        throw std::runtime_error("Node ID out of range: " + nodesStr + ". Error: " + e.what());
+                        START_THROW_EXCEPTION(UtilsNodeIDOutOfRangeException,
+                                              util::stringify("Node ID out of range: ", nodesStr, ". Error: ", e.what()));
                     }
                 }
 
@@ -186,7 +196,8 @@ void ConfigParser::getConfigData(std::string_view config)
                 }
                 catch (json::type_error const &e)
                 {
-                    throw std::runtime_error("Invalid value for node IDs: " + key + ". Error: " + e.what());
+                    START_THROW_EXCEPTION(UtilsInvalidValueForNodeIDsException,
+                                          util::stringify("Invalid value for node IDs: ", key, ". Error: ", e.what()));
                 }
 
                 m_config.boundaryConditions.emplace_back(nodes, val);
@@ -203,31 +214,37 @@ void ConfigParser::getConfigData(std::string_view config)
                     std::cerr << std::endl;
 
                     ifs.close();
-                    throw std::runtime_error("Duplicate node values found. Temporary file with boundary conditions has been deleted.");
+                    START_THROW_EXCEPTION(UtilsDuplicateNodeValuesException,
+                                          "Duplicate node values found. Temporary file with boundary conditions has been deleted.");
                 }
             }
         }
     }
     catch (json::exception const &e)
     {
-        throw std::runtime_error("Error parsing config JSON: " + std::string(e.what()));
+        START_THROW_EXCEPTION(UtilsFailedToParseConfigurationFileException,
+                              util::stringify("Error parsing config JSON: ", e.what()));
     }
     catch (std::exception const &e)
     {
-        throw std::runtime_error("General error: " + std::string(e.what()));
+        START_THROW_EXCEPTION(UtilsGettingConfigDataException,
+                              util::stringify("General error: ", e.what()));
     }
     catch (...)
     {
-        throw std::runtime_error("Something went wrong when assigning data from the config.");
+        START_THROW_EXCEPTION(UtilsUnknownException,
+                              "Something went wrong when assigning data from the config.");
     }
 }
 
 unsigned int ConfigParser::getNumThreads_s()
 {
     if (auto curThreads{getNumThreads()}; curThreads < 1 || curThreads > std::thread::hardware_concurrency())
-        throw std::runtime_error("The number of threads requested (1) exceeds the number of hardware threads supported by the system (" +
-                                 std::to_string(curThreads) +
-                                 "). Please run on a system with more resources.");
+        START_THROW_EXCEPTION(UtilsNumThreadsOutOfRangeException,
+                              util::stringify("The number of threads requested (", curThreads,
+                                              ") exceeds the number of hardware threads supported by the system (",
+                                              std::thread::hardware_concurrency(),
+                                              "). Please run on a system with more resources."));
 
     unsigned int num_threads{getNumThreads()},
         hardware_threads{std::thread::hardware_concurrency()},

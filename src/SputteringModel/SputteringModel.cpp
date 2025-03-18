@@ -285,8 +285,11 @@ SputteringModel::~SputteringModel() { _gfinalize(); }
 void SputteringModel::startModeling(unsigned int numThreads)
 {
     [[maybe_unused]] std::string sputteringMaterialName("Ti"), gasName("Ar"), scatteringModel("VSS");
-    [[maybe_unused]] double targetMaterialDensity{4500.0}, targetMaterialMolarMass{0.048}, cellSize = 0.0, mm = 1.0;
-    [[maybe_unused]] int meshTypeInt;
+    [[maybe_unused]] double targetMaterialDensity{4500.0},
+        targetMaterialMolarMass{0.048},
+        cellSize{},
+        mm{1};
+    [[maybe_unused]] int meshTypeInt{};
 
     int choiceInt{};
     std::cout << "Manual input (1)/Automatic (2): ";
@@ -319,7 +322,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
     tpc.setSubstrateSurface();
 
     // 1.4. Generating mesh to the .msh file.
-    tpc.generateMeshfile();
+    tpc.generateMeshfile(3);
 
     // 1.5. Constructing AABB tree to the surface mesh (with triangle cells). It construct inside SputteringModel instance.
     m_surfaceMesh = SurfaceMesh(tpc.kdefault_mesh_filename, tpc.kdefault_substrate_name);
@@ -370,7 +373,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
     double J_model{N_model / (S * totalTime)};
     std::cout << "The flux of the simulated particles: " << J_model << " [N/(m2⋅c)]\n";
 
-    double energy_eV{10};
+    double energy_eV{3};
     if (inputMode == InputMode::Manual)
     {
         std::cout << "Enter the energy of the particles that leave the surface [eV]: ";
@@ -451,8 +454,8 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
                 // 4. Update position.
                 particle.updatePosition(timeStep);
-                Ray ray(prev, particle.getCentre());
-                if (ray.is_degenerate())
+                Segment segment(prev, particle.getCentre());
+                if (segment.is_degenerate())
                     continue;
 
                 // 5. Gas collision.
@@ -464,7 +467,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
                 // 7. Surface collision.
                 ParticleSurfaceCollisionHandler::handle(particle,
-                                                        ray,
+                                                        segment,
                                                         particles.size(),
                                                         m_surfaceMesh,
                                                         m_settledParticlesMutex,

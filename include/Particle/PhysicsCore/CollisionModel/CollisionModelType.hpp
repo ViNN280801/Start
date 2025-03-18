@@ -1,5 +1,5 @@
-#ifndef COLLISIONMODELTYPE_HPP
-#define COLLISIONMODELTYPE_HPP
+#ifndef COLLISION_MODEL_TYPE_HPP
+#define COLLISION_MODEL_TYPE_HPP
 
 /// @brief Enum class representing different collision models.
 enum class CollisionModelType
@@ -9,4 +9,4 @@ enum class CollisionModelType
     VSS  ///< Variable Soft Sphere model
 };
 
-#endif // !COLLISIONMODELTYPE_HPP
+#endif // !COLLISION_MODEL_TYPE_HPP

@@ -1,0 +1,23 @@
+#ifndef GEOMETRY_EXCEPTIONS_HPP
+#define GEOMETRY_EXCEPTIONS_HPP
+
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(GeometryBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(GeometryIndexOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(GeometryDivisionByZeroException, std::overflow_error)
+START_DEFINE_EXCEPTION(GeometryAngleCalculationException, GeometryBaseException)
+
+START_DEFINE_EXCEPTION(GeometryTimeMomentException, GeometryBaseException)
+START_DEFINE_EXCEPTION(GeometryParticleTrackerEmptyException, GeometryBaseException)
+
+START_DEFINE_EXCEPTION(GeometryTriangleCellMapEmptyException, GeometryBaseException)
+START_DEFINE_EXCEPTION(GeometryTrianglesVectorEmptyException, GeometryBaseException)
+START_DEFINE_EXCEPTION(GeometryAABBTreeEmptyException, GeometryBaseException)
+START_DEFINE_EXCEPTION(GeometryCellIdNotFoundException, std::out_of_range)
+START_DEFINE_EXCEPTION(GeometryPhysicalGroupNotFoundException, GeometryBaseException)
+
+START_DEFINE_EXCEPTION(GeometryReadingMeshException, GeometryBaseException)
+START_DEFINE_EXCEPTION(GeometryTetrahedronNodesEmptyException, GeometryBaseException)
+
+#endif // !GEOMETRY_EXCEPTIONS_HPP

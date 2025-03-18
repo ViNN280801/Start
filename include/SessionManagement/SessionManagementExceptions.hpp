@@ -1,0 +1,11 @@
+#ifndef SESSION_MANAGEMENT_EXCEPTIONS_HPP
+#define SESSION_MANAGEMENT_EXCEPTIONS_HPP
+
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(SessionManagerBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(GmshSessionManagerGmshInitializationException, SessionManagerBaseException)
+START_DEFINE_EXCEPTION(GmshSessionManagerGmshFinalizationException, SessionManagerBaseException)
+START_DEFINE_EXCEPTION(GmshSessionManagerGmshRunException, SessionManagerBaseException)
+
+#endif // !SESSION_MANAGEMENT_EXCEPTIONS_HPP

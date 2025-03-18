@@ -1,5 +1,5 @@
-#ifndef BASISSELECTOR_HPP
-#define BASISSELECTOR_HPP
+#ifndef BASIS_SELECTOR_HPP
+#define BASIS_SELECTOR_HPP
 
 #include <Intrepid2_CellTools.hpp>
 #include <Intrepid2_DefaultCubatureFactory.hpp>
@@ -70,4 +70,4 @@ public:
     }
 };
 
-#endif // !BASISSELECTOR_HPP
+#endif // !BASIS_SELECTOR_HPP

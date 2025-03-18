@@ -1,5 +1,5 @@
-#ifndef MATRIXMANAGER_HPP
-#define MATRIXMANAGER_HPP
+#ifndef MATRIX_MANAGER_HPP
+#define MATRIX_MANAGER_HPP
 
 #if __cplusplus >= 202002L
 #include <span>
@@ -172,4 +172,4 @@ public:
     Scalar const &operator()(GlobalOrdinal row, GlobalOrdinal col) const;
 };
 
-#endif // !MATRIXMANAGER_HPP
+#endif // !MATRIX_MANAGER_HPP

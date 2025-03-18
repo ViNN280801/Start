@@ -1,0 +1,13 @@
+#ifndef PARTICLE_EXCEPTIONS_HPP
+#define PARTICLE_EXCEPTIONS_HPP
+
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(ParticleBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(ParticleDeviceArrayIndexOutOfRangeException, std::out_of_range)
+
+START_DEFINE_EXCEPTION(ParticleDevicePointerNullException, ParticleBaseException)
+START_DEFINE_EXCEPTION(ParticleDeviceArrayPointerNullException, ParticleBaseException)
+START_DEFINE_EXCEPTION(ParticleDeviceMemoryConversionException, ParticleBaseException)
+
+#endif // !PARTICLE_EXCEPTIONS_HPP

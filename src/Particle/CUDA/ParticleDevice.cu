@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "Particle/CUDA/ParticleDevice.cuh"
+#include "Particle/ParticleExceptions.hpp"
 
 ParticleDeviceArray::ParticleDeviceArray(ParticleDevice_t *particles, size_t count)
     : d_particles(particles), count(count) {}
@@ -72,13 +73,15 @@ ParticleDevice_t const &ParticleDeviceArray::operator[](size_t index) const
 ParticleDevice_t &ParticleDeviceArray::at(size_t index)
 {
     if (index >= count)
-        throw std::out_of_range("ParticleDeviceArray::at: index out of range");
+        START_THROW_EXCEPTION(ParticleDeviceArrayIndexOutOfRangeException,
+                              util::stringify("ParticleDeviceArray::at: index out of range: ", index));
     return d_particles[index];
 }
 
 ParticleDevice_t const &ParticleDeviceArray::at(size_t index) const
 {
     if (index >= count)
-        throw std::out_of_range("ParticleDeviceArray::at: index out of range");
+        START_THROW_EXCEPTION(ParticleDeviceArrayIndexOutOfRangeException,
+                              util::stringify("ParticleDeviceArray::at: index out of range: ", index));
     return d_particles[index];
 }

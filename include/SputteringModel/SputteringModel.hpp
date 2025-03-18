@@ -1,5 +1,5 @@
-#ifndef SPUTTERINGMODEL_HPP
-#define SPUTTERINGMODEL_HPP
+#ifndef SPUTTERING_MODEL_HPP
+#define SPUTTERING_MODEL_HPP
 
 #include <barrier>
 #include <future>
@@ -44,4 +44,4 @@ public:
     TriangleCellMap const &getCellsWithSettledParticles() const { return m_surfaceMesh.getTriangleCellMap(); }
 };
 
-#endif // !SPUTTERINGMODEL_HPP
+#endif // !SPUTTERING_MODEL_HPP

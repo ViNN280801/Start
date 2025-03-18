@@ -1,5 +1,5 @@
-#ifndef PARTICLEDYNAMICSPROCESSOR_HPP
-#define PARTICLEDYNAMICSPROCESSOR_HPP
+#ifndef PARTICLE_DYNAMICS_PROCESSOR_HPP
+#define PARTICLE_DYNAMICS_PROCESSOR_HPP
 
 #include <shared_mutex>
 
@@ -170,4 +170,4 @@ public:
                         double gasConcentration);
 };
 
-#endif // !PARTICLEDYNAMICSPROCESSOR_HPP
+#endif // !PARTICLE_DYNAMICS_PROCESSOR_HPP

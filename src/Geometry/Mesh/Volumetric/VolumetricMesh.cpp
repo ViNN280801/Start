@@ -7,7 +7,8 @@
 Point VolumetricMesh::TetrahedronData::getTetrahedronCenter() const
 {
     if (m_nodes.empty())
-        throw std::runtime_error("Tetrahedron has no nodes, check the mesh file.");
+        START_THROW_EXCEPTION(GeometryTetrahedronNodesEmptyException,
+                              util::stringify("Tetrahedron has no nodes, check the mesh file."));
 
     double x{}, y{}, z{};
     for (auto const &node : m_nodes)
@@ -114,7 +115,8 @@ void VolumetricMesh::_readMesh(std::string_view mesh_filename)
     }
     catch (std::exception const &e)
     {
-        throw std::runtime_error(util::stringify("Error in _readMesh: ", e.what()));
+        START_THROW_EXCEPTION(GeometryReadingMeshException,
+                              util::stringify("Error in _readMesh: ", e.what()));
     }
 }
 

@@ -1,5 +1,5 @@
-#ifndef COLLISIONMODELFACTORY_HPP
-#define COLLISIONMODELFACTORY_HPP
+#ifndef COLLISION_MODEL_FACTORY_HPP
+#define COLLISION_MODEL_FACTORY_HPP
 
 #include <memory>
 #include <string_view>
@@ -26,4 +26,4 @@ public:
     static std::unique_ptr<CollisionModel> create(std::string_view model_name);
 };
 
-#endif // COLLISIONMODELFACTORY_HPP
+#endif // COLLISION_MODEL_FACTORY_HPP

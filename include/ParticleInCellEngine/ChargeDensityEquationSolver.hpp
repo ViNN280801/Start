@@ -1,5 +1,5 @@
-#ifndef CHARGEDNSITYEQUATIONSOLVER_HPP
-#define CHARGEDNSITYEQUATIONSOLVER_HPP
+#ifndef CHARGE_DENSITY_EQUATION_SOLVER_HPP
+#define CHARGE_DENSITY_EQUATION_SOLVER_HPP
 
 #include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsManager.hpp"
 #include "FiniteElementMethod/Assemblers/GSMAssembler.hpp"
@@ -42,4 +42,4 @@ public:
 					  BoundaryConditionsMap &boundaryConditions);
 };
 
-#endif // !CHARGEDNSITYEQUATIONSOLVER_HPP
+#endif // !CHARGE_DENSITY_EQUATION_SOLVER_HPP

@@ -1,5 +1,5 @@
-#ifndef TRIANGLEOVERLAPCALCULATOR_HPP
-#define TRIANGLEOVERLAPCALCULATOR_HPP
+#ifndef TRIANGLE_OVERLAP_CALCULATOR_HPP
+#define TRIANGLE_OVERLAP_CALCULATOR_HPP
 
 #include <CGAL/Boolean_set_operations_2.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -89,4 +89,4 @@ public:
     static double calculateOverlapRatio(triangle3d_projected_cref tri, double x_min, double x_max);
 };
 
-#endif // !TRIANGLEOVERLAPCALCULATOR_HPP
+#endif // !TRIANGLE_OVERLAP_CALCULATOR_HPP

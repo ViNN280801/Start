@@ -5,6 +5,7 @@
 
 #include "Utilities/ConfigParser.hpp"
 #include "Utilities/Utilities.hpp"
+#include "Utilities/UtilitiesExceptions.hpp"
 
 using json = nlohmann::json;
 
@@ -183,8 +184,10 @@ void util::check_json_validity(std::string_view json_filename)
 
         // Check if the file contains null or is incorrectly formatted.
         if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
-            throw std::runtime_error(util::stringify("Json file '", json_filename, "' is invalid. Check the formatting or content."));
+            START_THROW_EXCEPTION(UtilsInvalidJSONFileException,
+                                  util::stringify("Json file '", json_filename, "' is invalid. Check the formatting or content."));
     }
     else
-        throw std::ios_base::failure("Failed to open file for reading back and check its content.");
+        START_THROW_EXCEPTION(UtilsFailedToOpenFileException,
+                              util::stringify("Failed to open file for reading back and check its content."));
 }

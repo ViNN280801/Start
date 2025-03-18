@@ -1,5 +1,5 @@
-#ifndef MODELINGMAINDRIVER_HPP
-#define MODELINGMAINDRIVER_HPP
+#ifndef MODELING_MAIN_DRIVER_HPP
+#define MODELING_MAIN_DRIVER_HPP
 
 #include <barrier>
 #include <future>
@@ -128,4 +128,4 @@ public:
     void startModeling();
 };
 
-#endif // !MODELINGMAINDRIVER_HPP
+#endif // !MODELING_MAIN_DRIVER_HPP

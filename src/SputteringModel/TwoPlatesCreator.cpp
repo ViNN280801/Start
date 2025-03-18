@@ -14,7 +14,7 @@ TwoPlatesCreator::TwoPlatesCreator(MeshType mesh_type, double cell_size, double 
 
 void TwoPlatesCreator::addPlates()
 {
-    m_volume_tags[0] = gmsh::model::occ::addBox(0, 0, 0, 100 * m_unit, 20 * m_unit, 1 * m_unit);
+    m_volume_tags[0] = gmsh::model::occ::addBox(0, 0, 75 * m_unit, 100 * m_unit, 20 * m_unit, 1 * m_unit);
     m_volume_tags[1] = gmsh::model::occ::addBox(20, 5, 100 * m_unit, 60 * m_unit, 10 * m_unit, 1 * m_unit);
     gmsh::model::occ::synchronize();
 }

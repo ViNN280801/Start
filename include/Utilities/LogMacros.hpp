@@ -1,5 +1,5 @@
-#ifndef LOGMACROS_HPP
-#define LOGMACROS_HPP
+#ifndef LOG_MACROS_HPP
+#define LOG_MACROS_HPP
 
 #include <chrono>
 #include <filesystem>
@@ -9,96 +9,97 @@
 #include <string_view>
 
 #if __cplusplus >= 202002L
-    #include <source_location>
-    using SourceLocation = std::source_location;
+#include <source_location>
+using SourceLocation = std::source_location;
 #else
-    struct SourceLocation {
-        static constexpr SourceLocation current() noexcept { return {}; }
-        constexpr const char* file_name() const noexcept { return "NOT FOR THE RELEASE!!! unknown file"; }
-        constexpr int line() const noexcept { return -1; }
-    };
+struct SourceLocation
+{
+    static constexpr SourceLocation current() noexcept { return {}; }
+    constexpr const char *file_name() const noexcept { return "NOT FOR THE RELEASE!!! unknown file"; }
+    constexpr int line() const noexcept { return -1; }
+};
 #endif
 
 #include "Utilities/PreprocessorUtils.hpp"
 
 #ifdef SHOW_LOGS
-    #define ERRMSG_ABS_PATH(desc) std::cerr << util::stringify("\033[1;31mError:\033[0m\033[1m ",              \
-                                                            util::getCurTime(),                                \
-                                                            ": ",                                              \
-                                                            SourceLocation::current().file_name(),             \
-                                                            "(", SourceLocation::current().line(), " line): ", \
-                                                            COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
-    #define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ",              \
-                                                            SourceLocation::current().file_name(),             \
-                                                            "(", SourceLocation::current().line(), " line): ", \
-                                                            COMMON_PRETTY_FUNC, ": ", desc, "\n");
-    #define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
+#define ERRMSG_ABS_PATH(desc) std::cerr << util::stringify("\033[1;31mError:\033[0m\033[1m ",                 \
+                                                           util::getCurTime(),                                \
+                                                           ": ",                                              \
+                                                           SourceLocation::current().file_name(),             \
+                                                           "(", SourceLocation::current().line(), " line): ", \
+                                                           COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
+#define LOGMSG_ABS_PATH(desc) std::clog << util::stringify("Log: ", util::getCurTime(), ": ",                 \
+                                                           SourceLocation::current().file_name(),             \
+                                                           "(", SourceLocation::current().line(), " line): ", \
+                                                           COMMON_PRETTY_FUNC, ": ", desc, "\n");
+#define EXTRACT_FILE_NAME(filepath) std::filesystem::path(std::string(filepath).c_str()).filename().string()
 #endif
 
 #ifdef SHOW_LOGS
-    #ifdef START_RELEASE
-        #define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(), \
-                                                        ": ", desc, "\n");
-        #define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
-    #else
-        #define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(),      \
+#ifdef START_RELEASE
+#define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(), \
+                                        ": ", desc, "\n");
+#define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
+#else
+#define ERRMSGSTR(desc) util::stringify("\033[1;31mError:\033[0m\033[1m ", util::getCurTime(),          \
+                                        ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
+                                        "(", SourceLocation::current().line(), " line): ",              \
+                                        COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
+#define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
+#endif
+#else
+#define ERRMSG(desc)
+#endif
+
+#ifdef SHOW_LOGS
+#ifdef START_RELEASE
+#define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), \
+                                        ": ", desc, "\n");
+#define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
+#else
+#define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), ": ",                        \
+                                        EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
+                                        "(", SourceLocation::current().line(), " line): ",        \
+                                        COMMON_PRETTY_FUNC, ": ", desc, "\n");
+#define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
+#endif
+#else
+#define LOGMSG(desc)
+#endif
+
+#ifdef SHOW_LOGS
+#ifdef START_RELEASE
+#define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(), \
+                                            ": ", desc, "\n");
+#define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
+#else
+#define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(),        \
                                             ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
                                             "(", SourceLocation::current().line(), " line): ",              \
-                                            COMMON_PRETTY_FUNC, ": \033[1;31m", desc, "\033[0m\033[1m\n");
-        #define ERRMSG(desc) std::cerr << ERRMSGSTR(desc);
-    #endif
-#else
-    #define ERRMSG(desc)
-#endif
-
-#ifdef SHOW_LOGS    
-    #ifdef START_RELEASE
-        #define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), \
-                                                        ": ", desc, "\n");
-        #define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
-    #else
-        #define LOGMSGSTR(desc) util::stringify("Log: ", util::getCurTime(), ": ",                    \
-                                            EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
-                                            "(", SourceLocation::current().line(), " line): ",        \
                                             COMMON_PRETTY_FUNC, ": ", desc, "\n");
-        #define LOGMSG(desc) std::clog << LOGMSGSTR(desc);
-    #endif
+#define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
+#endif
 #else
-    #define LOGMSG(desc)
+#define WARNINGMSG(desc)
 #endif
 
 #ifdef SHOW_LOGS
-    #ifdef START_RELEASE
-        #define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(), \
-                                                        ": ", desc, "\n");
-        #define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
-    #else
-        #define WARNINGMSGSTR(desc) util::stringify("\033[1;33mWarning:\033[0m\033[1m ", util::getCurTime(),    \
-                                                ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()), \
-                                                "(", SourceLocation::current().line(), " line): ",              \
-                                                COMMON_PRETTY_FUNC, ": ", desc, "\n");
-        #define WARNINGMSG(desc) std::cerr << WARNINGMSGSTR(desc);
-    #endif
+#ifdef START_RELEASE
+#define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(), \
+                                            ": ", desc, "\n");
+#define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
 #else
-    #define WARNINGMSG(desc)
+#define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(),              \
+                                            ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()),       \
+                                            "(", SourceLocation::current().line(), " line): ",                    \
+                                            ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
+                                            "(", std::source_location::current().line(), " line): ",              \
+                                            COMMON_PRETTY_FUNC, ": ", desc, "\n");
+#define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
 #endif
-
-#ifdef SHOW_LOGS
-    #ifdef START_RELEASE
-        #define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(), \
-                                                        ": ", desc, "\n");
-        #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
-    #else
-        #define SUCCESSMSGSTR(desc) util::stringify("\033[1;32mSuccess:\033[0m\033[1m ", util::getCurTime(),          \
-                                                ": ", EXTRACT_FILE_NAME(SourceLocation::current().file_name()),       \
-                                                "(", SourceLocation::current().line(), " line): ",                    \
-                                                ": ", EXTRACT_FILE_NAME(std::source_location::current().file_name()), \
-                                                "(", std::source_location::current().line(), " line): ",              \
-                                                COMMON_PRETTY_FUNC, ": ", desc, "\n");
-        #define SUCCESSMSG(desc) std::cerr << SUCCESSMSGSTR(desc);
-    #endif
 #else
-    #define SUCCESSMSG(desc)
+#define SUCCESSMSG(desc)
 #endif
 
 namespace util
@@ -129,7 +130,7 @@ namespace util
     using StringConvertible = std::enable_if_t<std::is_convertible_v<T, std::string_view>>;
 
     template <typename T>
-    using Printable = std::enable_if_t<std::is_same_v<decltype(std::declval<std::ostream&>() << std::declval<T>()), std::ostream&>>;
+    using Printable = std::enable_if_t<std::is_same_v<decltype(std::declval<std::ostream &>() << std::declval<T>()), std::ostream &>>;
 #endif
 
     /**
@@ -165,4 +166,4 @@ namespace util
 #endif
 }
 
-#endif // !LOGMACROS_HPP
+#endif // !LOG_MACROS_HPP

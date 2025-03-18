@@ -1,5 +1,5 @@
-#ifndef FEMLIMITS_HPP
-#define FEMLIMITS_HPP
+#ifndef FEM_LIMITS_HPP
+#define FEM_LIMITS_HPP
 
 #include "Utilities/PreprocessorUtils.hpp"
 
@@ -28,4 +28,4 @@ static STARTCONSTINIT const unsigned short FEM_LIMITS_DEFAULT_HEXAHEDRON_VERTICE
 
 static STARTCONSTINIT const unsigned short FEM_LIMITS_DEFAULT_SPACE_DIMENSION{3U};
 
-#endif // !FEMLIMITS_HPP
+#endif // !FEM_LIMITS_HPP

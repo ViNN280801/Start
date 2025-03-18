@@ -1,5 +1,5 @@
-#ifndef GMSHSESSIONMANAGER_HPP
-#define GMSHSESSIONMANAGER_HPP
+#ifndef GMSH_SESSION_MANAGER_HPP
+#define GMSH_SESSION_MANAGER_HPP
 
 /**
  * @brief GmshSessionManager is a RAII (Resource Acquisition Is Initialization) class for managing
@@ -51,4 +51,4 @@ public:
     void runGmsh(int argc, char *argv[]);
 };
 
-#endif // GMSHSESSIONMANAGER_HPP
+#endif // !GMSH_SESSION_MANAGER_HPP

@@ -4,6 +4,7 @@
 #include <omp.h>
 #endif
 
+#include "ParticleInCellEngine/PICExceptions.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
@@ -74,7 +75,8 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
     }
     catch (std::exception const &e)
     {
-        throw std::runtime_error{std::string{"[process_stdver__helper] "} + e.what()};
+        START_THROW_EXCEPTION(PICParticleDynamicsProcessorStdVersionHelperException,
+                              util::stringify("[process_stdver__helper] ", e.what()));
     }
 }
 
@@ -196,11 +198,13 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
+        START_THROW_EXCEPTION(PICParticleDynamicsProcessorOmpVersionHelperException,
+                              util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
     }
     catch (...)
     {
-        ERRMSG("Some error occured while detecting particles collisions with surfaces (OMP)");
+        START_THROW_EXCEPTION(PICParticleDynamicsProcessorOmpVersionHelperUnknownException,
+                              util::stringify("Some error occured while detecting particles collisions with surfaces (OMP)"));
     }
 }
 #endif // !USE_OMP
@@ -225,6 +229,7 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
 {
     // Implement a fallback mechanism: first OpenMP, then standard multi-threading
     bool processing_success = false;
+    WARNINGMSG("Processing particles with CUDA is not supported yet");
 
 #ifdef USE_OMP
     // Try OpenMP if CUDA failed
@@ -243,7 +248,8 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
         catch (std::exception const &e)
         {
             processing_success = false;
-            ERRMSG(util::stringify("OpenMP processing failed: ", e.what()));
+            START_THROW_EXCEPTION(PICParticleDynamicsProcessorOmpVersionProcessingException,
+                                  util::stringify("OpenMP processing failed: ", e.what()));
         }
     }
 #endif
@@ -263,10 +269,12 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
         catch (std::exception const &e)
         {
             processing_success = false;
-            ERRMSG(util::stringify("Standard C++ parallel execution failed: ", e.what()));
+            START_THROW_EXCEPTION(PICParticleDynamicsProcessorStdVersionProcessingException,
+                                  util::stringify("Standard C++ parallel execution failed: ", e.what()));
         }
     }
 
     if (!processing_success)
-        ERRMSG("Resume: Failed to process particles");
+        START_THROW_EXCEPTION(PICParticleDynamicsProcessorProcessingException,
+                              util::stringify("Failed to process particles, tried OpenMP and standard C++ parallel execution"));
 }

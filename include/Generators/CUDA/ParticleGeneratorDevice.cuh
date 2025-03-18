@@ -1,8 +1,7 @@
-#ifndef PARTICLEGENERATORDEVICE_CUH
-#define PARTICLEGENERATORDEVICE_CUH
+#ifndef PARTICLE_GENERATOR_DEVICE_CUH
+#define PARTICLE_GENERATOR_DEVICE_CUH
 
 #ifdef USE_CUDA
-
 #include <cuda_runtime.h>
 #include <curand.h>
 #include <curand_kernel.h>
@@ -66,5 +65,4 @@ public:
 };
 
 #endif // !USE_CUDA
-
-#endif // !PARTICLEGENERATORDEVICE_CUH
+#endif // !PARTICLE_GENERATOR_DEVICE_CUH

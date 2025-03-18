@@ -1,5 +1,5 @@
-#ifndef VHSMODEL_HPP
-#define VHSMODEL_HPP
+#ifndef VHS_MODEL_HPP
+#define VHS_MODEL_HPP
 
 #include "CollisionModel.hpp"
 
@@ -18,4 +18,4 @@ public:
     virtual bool collide(Particle_ref particle, ParticleType targetType, double n_concentration, double time_step) override;
 };
 
-#endif // VHSMODEL_HPP
+#endif // !VHS_MODEL_HPP

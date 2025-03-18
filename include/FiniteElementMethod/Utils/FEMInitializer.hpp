@@ -1,5 +1,5 @@
-#ifndef FEMINITIALIZER_HPP
-#define FEMINITIALIZER_HPP
+#ifndef FEM_INITIALIZER_HPP
+#define FEM_INITIALIZER_HPP
 
 #include "FiniteElementMethod/FEMTypes.hpp"
 #include "FiniteElementMethod/Assemblers/GSMAssembler.hpp"
@@ -60,4 +60,4 @@ public:
     auto getBoundaryConditions() const { return m_boundaryConditions; }
 };
 
-#endif // !FEMINITIALIZER_HPP
+#endif // !FEM_INITIALIZER_HPP

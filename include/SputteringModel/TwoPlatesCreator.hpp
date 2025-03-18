@@ -1,5 +1,5 @@
-#ifndef TWOPLATESCREATOR_HPP
-#define TWOPLATESCREATOR_HPP
+#ifndef TWO_PLATES_CREATOR_HPP
+#define TWO_PLATES_CREATOR_HPP
 
 #include <array>
 #include <iostream>
@@ -148,4 +148,4 @@ public:
     constexpr std::string const &getMeshFilename() const { return kdefault_mesh_filename; }
 };
 
-#endif // !TWOPLATESCREATOR_HPP
+#endif // !TWO_PLATES_CREATOR_HPP

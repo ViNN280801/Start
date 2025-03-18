@@ -1,5 +1,5 @@
-#ifndef VECTORMANAGER_HPP
-#define VECTORMANAGER_HPP
+#ifndef VECTOR_MANAGER_HPP
+#define VECTOR_MANAGER_HPP
 
 #include "FiniteElementMethod/FEMTypes.hpp"
 
@@ -90,4 +90,4 @@ public:
     Scalar const &operator[](GlobalOrdinal i) const;
 };
 
-#endif // !VECTORMANAGER_HPP
+#endif // !VECTOR_MANAGER_HPP

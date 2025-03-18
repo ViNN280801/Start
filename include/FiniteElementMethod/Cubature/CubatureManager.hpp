@@ -1,5 +1,5 @@
-#ifndef CUBATUREMANAGER_HPP
-#define CUBATUREMANAGER_HPP
+#ifndef CUBATURE_MANAGER_HPP
+#define CUBATURE_MANAGER_HPP
 
 #include "FiniteElementMethod/Cell/CellType.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
@@ -73,4 +73,4 @@ public:
     constexpr unsigned short getCountBasisFunctions() const { return m_count_basis_functions; }
 };
 
-#endif // !CUBATUREMANAGER_HPP
+#endif // !CUBATURE_MANAGER_HPP

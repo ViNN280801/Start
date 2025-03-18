@@ -1,5 +1,5 @@
-#ifndef PICTYPES_HPP
-#define PICTYPES_HPP
+#ifndef PIC_TYPES_HPP
+#define PIC_TYPES_HPP
 
 #include <map>
 #include <set>
@@ -79,4 +79,4 @@ using SettledParticlesCounterMap = std::map<size_t, size_t>;
 using SettledParticlesCounterMap_ref = SettledParticlesCounterMap &;
 using SettledParticlesCounterMap_cref = SettledParticlesCounterMap const &;
 
-#endif // !PICTYPES_HPP
+#endif // !PIC_TYPES_HPP

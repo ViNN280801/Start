@@ -1,5 +1,5 @@
-#ifndef FEMPRINTER_HPP
-#define FEMPRINTER_HPP
+#ifndef FEM_PRINTER_HPP
+#define FEM_PRINTER_HPP
 
 #include "FiniteElementMethod/FEMTypes.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
@@ -78,4 +78,4 @@ public:
     static void printMatrix(MatrixManager const &matrix) { printMatrix(matrix.get()); }
 };
 
-#endif // !FEMPRINTER_HPP
+#endif // !FEM_PRINTER_HPP

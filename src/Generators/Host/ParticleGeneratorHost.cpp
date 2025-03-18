@@ -14,13 +14,17 @@ std::vector<double> parseCoordinates(const std::string &cell_centre_str)
         }
         catch (const std::invalid_argument &)
         {
-            throw std::invalid_argument("Invalid coordinate value in cell center: " + cell_centre_str);
+            START_THROW_EXCEPTION(ParticleGeneratorsInvalidCoordinateException,
+                                  util::stringify("Invalid coordinate value in cell center: ", 
+                                  cell_centre_str));
         }
     }
 
     if (cell_centre.size() != 3)
     {
-        throw std::invalid_argument("Invalid number of coordinates in cell center: " + cell_centre_str);
+        START_THROW_EXCEPTION(ParticleGeneratorsInvalidNumberOfCoordinatesException, 
+                              util::stringify("Invalid number of coordinates in cell center: ", 
+                              cell_centre_str));
     }
 
     return cell_centre;
@@ -33,15 +37,25 @@ ParticleVector ParticleGeneratorHost::fromPointSource(std::vector<point_source_t
     {
         ParticleType type{util::getParticleTypeFromStrRepresentation(sourceData.type)};
         if (type == ParticleType::Unknown)
-            throw std::invalid_argument("Unknown particle type received");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsUnknownParticleTypeException,
+                                  util::stringify("Unknown particle type received: ", 
+                                  sourceData.type));
+        }
 
         std::array<double, 3> thetaPhi = {sourceData.expansionAngle, sourceData.phi, sourceData.theta};
 
         if (sourceData.count == 0)
-            throw std::logic_error("There is no need to generate 0 objects");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsZeroCountException,
+                                  "There is no need to generate 0 objects");
+        }
+
         if (sourceData.energy == 0)
         {
-            WARNINGMSG("Be careful! Point source with zero energy is used.");
+            START_THROW_EXCEPTION(ParticleGeneratorsZeroEnergyException,
+                                  util::stringify("Point source with zero energy is used: ", 
+                                  sourceData.energy, " eV"));
         }
 
         for (size_t i{}; i < sourceData.count; ++i)
@@ -65,14 +79,26 @@ ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_sour
     {
         ParticleType type{util::getParticleTypeFromStrRepresentation(sourceData.type)};
         if (type == ParticleType::Unknown)
-            throw std::invalid_argument("Unknown particle type received");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsUnknownParticleTypeException,
+                                  util::stringify("Unknown particle type received: ", 
+                                  sourceData.type));
+        }
         if (sourceData.count == 0)
-            throw std::logic_error("There is no need to generate 0 objects");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsZeroCountException,
+                                  "There is no need to generate 0 objects");
+        }
         if (sourceData.baseCoordinates.empty())
-            throw std::invalid_argument("Base coordinates for surface source are empty.");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsEmptyBaseCoordinatesException,
+                                  "Base coordinates for surface source are empty.");
+        }
         if (sourceData.energy == 0)
         {
-            WARNINGMSG("Be careful! Surface source with zero energy is used.");
+            START_THROW_EXCEPTION(ParticleGeneratorsZeroEnergyException,
+                                  util::stringify("Surface source with zero energy is used: ", 
+                                  sourceData.energy, " eV"));
         }
 
         size_t num_cells{sourceData.baseCoordinates.size()},
@@ -98,12 +124,14 @@ ParticleVector ParticleGeneratorHost::fromSurfaceSource(std::vector<surface_sour
             // Validate and normalize the normal vector.
             if (normal.size() != 3)
             {
-                throw std::invalid_argument("Invalid normal vector size. Expected 3 components.");
+                START_THROW_EXCEPTION(ParticleGeneratorsInvalidNormalVectorSizeException,
+                                      "Invalid normal vector size. Expected 3 components.");
             }
             double magnitude = std::sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
             if (magnitude == 0.0)
             {
-                throw std::invalid_argument("Normal vector magnitude is zero, cannot calculate angles.");
+                START_THROW_EXCEPTION(ParticleGeneratorsZeroNormalVectorMagnitudeException,
+                                      "Normal vector magnitude is zero, cannot calculate angles.");
             }
 
             double nx = normal[0] / magnitude;

@@ -1,5 +1,5 @@
-#ifndef CONFIGPARSER_HPP
-#define CONFIGPARSER_HPP
+#ifndef CONFIG_PARSER_HPP
+#define CONFIG_PARSER_HPP
 
 #include <array>
 #include <string>
@@ -150,4 +150,4 @@ public:
     unsigned int getNumThreads_s();
 };
 
-#endif // !CONFIGPARSER_HPP
+#endif // !CONFIG_PARSER_HPP

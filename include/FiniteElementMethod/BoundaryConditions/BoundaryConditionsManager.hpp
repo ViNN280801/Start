@@ -1,5 +1,5 @@
-#ifndef BOUNDARYCONDITIONSMANAGER_HPP
-#define BOUNDARYCONDITIONSMANAGER_HPP
+#ifndef BOUNDARY_CONDITIONS_MANAGER_HPP
+#define BOUNDARY_CONDITIONS_MANAGER_HPP
 
 #include "FiniteElementMethod/FEMTypes.hpp"
 
@@ -82,4 +82,4 @@ public:
     static void set(Teuchos::RCP<TpetraMatrixType> matrix, short polynom_order, std::map<GlobalOrdinal, Scalar> const &boundary_conditions);
 };
 
-#endif // !BOUNDARYCONDITIONSMANAGER_HPP
+#endif // !BOUNDARY_CONDITIONS_MANAGER_HPP

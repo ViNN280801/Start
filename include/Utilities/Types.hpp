@@ -1,3 +1,6 @@
+#ifndef TYPES_HPP
+#define TYPES_HPP
+
 #if __cplusplus >= 202002L
 #include <concepts>
 #include <ranges>
@@ -133,4 +136,5 @@ struct is_matrix<
 /// @brief Convenience variable template for is_matrix
 template <typename MatrixType, typename ValueType>
 constexpr bool is_matrix_v = is_matrix<MatrixType, ValueType>::value;
-#endif
+#endif // __cplusplus >= 202002L
+#endif // !TYPES_HPP

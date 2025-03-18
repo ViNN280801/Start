@@ -1,5 +1,5 @@
-#ifndef TRIANGLEMESHHDF5MANAGER_HPP
-#define TRIANGLEMESHHDF5MANAGER_HPP
+#ifndef TRIANGLE_MESH_HDF5_MANAGER_HPP
+#define TRIANGLE_MESH_HDF5_MANAGER_HPP
 
 #include <limits>
 #include <string_view>
@@ -122,4 +122,4 @@ public:
     TriangleCellMap readMeshFromHDF5();
 };
 
-#endif // !TRIANGLEMESHHDF5MANAGER_HPP
+#endif // !TRIANGLE_MESH_HDF5_MANAGER_HPP

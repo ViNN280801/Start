@@ -1,5 +1,5 @@
-#ifndef PARTICLEMOVEMENTTRACKER_HPP
-#define PARTICLEMOVEMENTTRACKER_HPP
+#ifndef PARTICLE_MOVEMENT_TRACKER_HPP
+#define PARTICLE_MOVEMENT_TRACKER_HPP
 
 #include "Particle/Particle.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
@@ -93,4 +93,4 @@ public:
                                size_t maxParticles = kdefault_max_particles_to_record) noexcept;
 };
 
-#endif // PARTICLEMOVEMENTTRACKER_HPP
+#endif // !PARTICLE_MOVEMENT_TRACKER_HPP

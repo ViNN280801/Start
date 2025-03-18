@@ -1,9 +1,24 @@
-#ifndef GMSH_UTILS_EXCEPTIONS_HPP
-#define GMSH_UTILS_EXCEPTIONS_HPP
+#ifndef UTILS_EXCEPTIONS_HPP
+#define UTILS_EXCEPTIONS_HPP
 
 #include "Utilities/ExceptionMacros.hpp"
 
-START_DEFINE_EXCEPTION(GmshUtilsBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(UtilsBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(UtilsMissingRequiredParameterException, std::invalid_argument)
+START_DEFINE_EXCEPTION(UtilsFailedToOpenConfigurationFileException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsFailedToParseConfigurationFileException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsNumThreadsOutOfRangeException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsGettingConfigDataException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsUnknownException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsDuplicateNodeValuesException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsNodeIDOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(UtilsInvalidNodeIDException, std::invalid_argument)
+START_DEFINE_EXCEPTION(UtilsInvalidValueForNodeIDsException, std::invalid_argument)
+
+START_DEFINE_EXCEPTION(UtilsFailedToOpenFileException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsInvalidJSONFileException, UtilsBaseException)
+
+START_DEFINE_EXCEPTION(GmshUtilsBaseException, UtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsGmshNotInitializedException, GmshUtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsFileDoesNotExistException, GmshUtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsFileIsDirectoryException, GmshUtilsBaseException)
@@ -23,4 +38,4 @@ START_DEFINE_EXCEPTION(GmshUtilsInvalidSurfaceCoordsException, GmshUtilsBaseExce
 START_DEFINE_EXCEPTION(GmshUtilsFailedToFillTriangleCellsMapException, GmshUtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsFailedToCreateTriangleException, GmshUtilsBaseException)
 
-#endif // !GMSH_UTILS_EXCEPTIONS_HPP
+#endif // !UTILS_EXCEPTIONS_HPP

@@ -5,6 +5,7 @@
 #include <random>
 #include <stdexcept>
 
+#include "Geometry/GeometryExceptions.hpp"
 #include "Utilities/Utilities.hpp"
 
 #if __cplusplus >= 202002L
@@ -277,7 +278,8 @@ public:
         case 2:
             return z;
         default:
-            throw std::out_of_range("Requested index " + std::to_string(k) + " for GeometryVector is out of range");
+            START_THROW_EXCEPTION(GeometryIndexOutOfRangeException,
+                                  util::stringify("Requested index ", k, " for GeometryVector is out of range"));
         }
     }
 
@@ -292,21 +294,27 @@ public:
         case 2:
             return z;
         default:
-            throw std::out_of_range("Requested index " + std::to_string(k) + " for GeometryVector is out of range");
+            START_THROW_EXCEPTION(GeometryIndexOutOfRangeException,
+                                  util::stringify("Requested index ",
+                                                  k, " for GeometryVector is out of range. Vector is 3D."));
         }
     }
 
     T &operator()(int k)
     {
         if (k < 0 || k > 2)
-            throw std::out_of_range("Requested index " + std::to_string(k) + " for GeometryVector is out of range");
+            START_THROW_EXCEPTION(GeometryIndexOutOfRangeException,
+                                  util::stringify("Requested index ",
+                                                  k, " for GeometryVector is out of range. Vector is 3D."));
         return (*this)[k];
     }
 
     T const &operator()(int k) const
     {
         if (k < 0 || k > 2)
-            throw std::out_of_range("Requested index " + std::to_string(k) + " for GeometryVector is out of range");
+            START_THROW_EXCEPTION(GeometryIndexOutOfRangeException,
+                                  util::stringify("Requested index ",
+                                                  k, " for GeometryVector is out of range. Vector is 3D."));
         return (*this)[k];
     }
 
@@ -389,7 +397,10 @@ public:
     GeometryVector operator/(T value) const
     {
         if (value == 0)
-            throw std::overflow_error("Division by null: Elements of vector can't be divided by 0");
+            START_THROW_EXCEPTION(GeometryDivisionByZeroException,
+                                  util::stringify("Division by null: Elements of vector can't be divided by 0",
+                                                  "\nVector: ", getX(), " ", getY(), " ", getZ(),
+                                                  "\nValue: ", value));
         return GeometryVector(x / value, y / value, z / value);
     }
 
@@ -437,7 +448,9 @@ public:
     {
         T magnitude{module()};
         if (magnitude == 0)
-            throw std::runtime_error("Cannot calculate angles for a zero vector.");
+            START_THROW_EXCEPTION(GeometryDivisionByZeroException,
+                                  util::stringify("Cannot calculate angles for a zero vector, magnitude = ",
+                                                  magnitude, "\nVector: ", getX(), " ", getY(), " ", getZ()));
 
         // Calculating rotation angles
         T beta{acos(getZ() / magnitude)},
