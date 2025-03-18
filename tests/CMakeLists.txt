@@ -487,9 +487,6 @@ set(SESSION_MANAGEMENT_SOURCES
     ${SESSION_MANAGEMENT_SRC_PATH}/GmshSessionManager.cpp
 )
 set(UTILITIES_SOURCES
-    ${UTILITIES_SRC_PATH}/GmshUtilities/GmshMesher.cpp
-    ${UTILITIES_SRC_PATH}/GmshUtilities/GmshUtils.cpp
-
     ${UTILITIES_SRC_PATH}/ConfigParser.cpp
     ${UTILITIES_SRC_PATH}/Timer.cpp
     ${UTILITIES_SRC_PATH}/Utilities.cpp
