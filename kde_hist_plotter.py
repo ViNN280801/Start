@@ -8,9 +8,10 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from scipy.stats import gaussian_kde
 
+
 class DataValidator:
     """Utility class for data validation"""
-    
+
     @staticmethod
     def validate_file_exists(file_path: Union[str, Path]) -> Path:
         path = Path(file_path)
@@ -21,11 +22,14 @@ class DataValidator:
     @staticmethod
     def validate_array_shape(data: np.ndarray) -> None:
         if data.ndim != 2 or data.shape[1] not in (2, 3):
-            raise ValueError(f"Invalid data shape: {data.shape}. Expected 2 or 3 columns")
+            raise ValueError(
+                f"Invalid data shape: {data.shape}. Expected 2 or 3 columns"
+            )
+
 
 class DepositionDataLoader:
     """Class for loading and processing deposition data"""
-    
+
     TI_RADIUS_NM: float = 140e-12 * 1e9  # 0.14 nm
 
     def __init__(self, file_path: Union[str, Path]) -> None:
@@ -50,9 +54,10 @@ class DepositionDataLoader:
             raise RuntimeError("Data not loaded. Call load() first")
         return self._data
 
+
 class DepositionVisualizer:
     """Base class for deposition visualization"""
-    
+
     def __init__(self, data_loader: DepositionDataLoader) -> None:
         self.data_loader = data_loader
         self.figure: Optional[Figure] = None
@@ -68,7 +73,7 @@ class DepositionVisualizer:
         """Common plot setup"""
         if self.axes is None:
             raise RuntimeError("Axes not initialized")
-            
+
         self.axes.set_title(title)
         self.axes.set_xlabel(xlabel)
         self.axes.set_ylabel(ylabel)
@@ -78,9 +83,10 @@ class DepositionVisualizer:
         """Main plotting method to be implemented by subclasses"""
         raise NotImplementedError
 
+
 class HistogramVisualizer(DepositionVisualizer):
     """Visualizes deposition thickness histogram"""
-    
+
     def __init__(self, data_loader: DepositionDataLoader, window_size: int = 5) -> None:
         super().__init__(data_loader)
         self.window_size = window_size
@@ -89,7 +95,7 @@ class HistogramVisualizer(DepositionVisualizer):
         """Calculate signal envelope using sliding window max"""
         envelope = np.zeros_like(signal)
         half_win = self.window_size // 2
-        
+
         for i in range(len(signal)):
             start = max(i - half_win, 0)
             end = min(i + half_win + 1, len(signal))
@@ -99,7 +105,7 @@ class HistogramVisualizer(DepositionVisualizer):
     def _smooth_data(self, data: np.ndarray) -> np.ndarray:
         """Apply moving average smoothing"""
         window = np.ones(self.window_size) / self.window_size
-        return np.convolve(data, window, mode='same')
+        return np.convolve(data, window, mode="same")
 
     def plot(self) -> None:
         """Create histogram plot"""
@@ -112,7 +118,7 @@ class HistogramVisualizer(DepositionVisualizer):
             else:
                 y_bins = data[:, 0]
                 counts = data[:, 1]
-            thickness = counts * self.data_loader.TI_RADIUS_NM
+            thickness = counts  # * self.data_loader.TI_RADIUS_NM
             envelope = self._calculate_envelope(thickness)
             smooth_envelope = self._smooth_data(envelope)
 
@@ -120,31 +126,55 @@ class HistogramVisualizer(DepositionVisualizer):
                 raise ValueError("Lengths of y_bins and smooth_envelope do not match")
 
             if self.axes is None:
-                raise RuntimeError("Axes not initialized in method HistogramVisualizer.plot()")
+                raise RuntimeError(
+                    "Axes not initialized in method HistogramVisualizer.plot()"
+                )
 
-            self.axes.bar(y_bins, thickness, width=0.8, 
-                        color="#1e90ff", label="Average Thickness (nm)")
-            self.axes.plot(y_bins, smooth_envelope, color="red", marker="o",
-                        linestyle="--", label="Smooth Envelope (nm)")
+            self.axes.bar(
+                y_bins,
+                thickness,
+                width=0.8,
+                color="#1e90ff",
+                # label="Average Thickness (nm)"
+                label=f"Count of titanium atoms = {counts.sum()}",
+            )
+            self.axes.plot(
+                y_bins,
+                smooth_envelope,
+                color="red",
+                marker="o",
+                linestyle="--",
+                label="Smooth Envelope (nm)",
+            )
 
             self._setup_plot(
-                title=f"Deposition Thickness along Y-axis\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
+                # title=f"Deposition Thickness along Y-axis\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
+                title=f"Deposition Thickness along Y-axis\nCount of titanium atoms = {counts.sum()}",
                 xlabel="Y-coordinate (cm)",
-                ylabel="Thickness (nm)"
+                # ylabel="Thickness (nm)",
+                ylabel="Count of titanium atoms",
             )
             self.axes.legend()
         except IndexError as exc:
             raise ValueError("Invalid data format for histogram") from exc
 
+
 class KDEXYVisualizer(DepositionVisualizer):
     """Visualizes 2D KDE for X-Y deposition"""
-    
-    def __init__(self, data_loader: DepositionDataLoader, grid_points: int = 100, levels: int = 100) -> None:
+
+    def __init__(
+        self,
+        data_loader: DepositionDataLoader,
+        grid_points: int = 100,
+        levels: int = 100,
+    ) -> None:
         super().__init__(data_loader)
         self.grid_points = grid_points
         self.levels = levels
 
-    def _create_grid(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _create_grid(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Create evaluation grid for KDE"""
         x_lin = np.linspace(x.min() - 0.5, x.max() + 0.5, self.grid_points)
         y_lin = np.linspace(y.min() - 0.5, y.max() + 0.5, self.grid_points)
@@ -158,38 +188,49 @@ class KDEXYVisualizer(DepositionVisualizer):
         try:
             x = data[:, 0]
             y = data[:, 1]
-            thickness = data[:, 2] * self.data_loader.TI_RADIUS_NM
+            thickness = data[:, 2]  # * self.data_loader.TI_RADIUS_NM
 
             X, Y = self._create_grid(x, y)
             grid_coords = np.vstack([X.ravel(), Y.ravel()])
-            
+
             kde = gaussian_kde(np.vstack([x, y]), weights=thickness)
             Z = kde(grid_coords).reshape(X.shape)
 
             if self.axes is None:
-                raise RuntimeError("Axes not initialized in method KDEXYVisualizer.plot()")
+                raise RuntimeError(
+                    "Axes not initialized in method KDEXYVisualizer.plot()"
+                )
 
             contour = self.axes.contourf(X, Y, Z, self.levels, cmap="inferno")
-            plt.colorbar(contour, ax=self.axes, label='Density')
-            
+            plt.colorbar(contour, ax=self.axes, label="Density")
+
             self._setup_plot(
-                title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
+                # title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
+                title=f"Gaussian KDE of Deposition Thickness\nCount of titanium atoms = {thickness.sum()}",
                 xlabel="X-coordinate (cm)",
-                ylabel="Y-coordinate (cm)"
+                ylabel="Y-coordinate (cm)",
             )
 
         except IndexError as exc:
             raise ValueError("Invalid data format for XY KDE") from exc
 
+
 class KDEYTVisualizer(DepositionVisualizer):
     """Visualizes 2D KDE for Y-Thickness deposition"""
-    
-    def __init__(self, data_loader: DepositionDataLoader, grid_points: int = 100, levels: int = 100) -> None:
+
+    def __init__(
+        self,
+        data_loader: DepositionDataLoader,
+        grid_points: int = 100,
+        levels: int = 100,
+    ) -> None:
         super().__init__(data_loader)
         self.grid_points = grid_points
         self.levels = levels
 
-    def _create_grid(self, y: np.ndarray, t: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _create_grid(
+        self, y: np.ndarray, t: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Create evaluation grid for KDE"""
         y_lin = np.linspace(y.min() - 0.5, y.max() + 0.5, self.grid_points)
         t_lin = np.linspace(t.min() - 0.5, t.max() + 0.5, self.grid_points)
@@ -212,20 +253,22 @@ class KDEYTVisualizer(DepositionVisualizer):
 
             Y, T = self._create_grid(y_coords, thickness)
             grid_coords = np.vstack([Y.ravel(), T.ravel()])
-            
+
             kde = gaussian_kde(np.vstack([y_coords, thickness]))
             Z = kde(grid_coords).reshape(Y.shape)
 
             if self.axes is None:
-                raise RuntimeError("Axes not initialized in method KDEYTVisualizer.plot()")
+                raise RuntimeError(
+                    "Axes not initialized in method KDEYTVisualizer.plot()"
+                )
 
             contour = self.axes.contourf(Y, T, Z, self.levels, cmap="inferno")
-            plt.colorbar(contour, ax=self.axes, label='Density')
-            
+            plt.colorbar(contour, ax=self.axes, label="Density")
+
             self._setup_plot(
                 title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
                 xlabel="Y-coordinate (cm)",
-                ylabel="Thickness (nm)"
+                ylabel="Thickness (nm)",
             )
 
         except IndexError as exc:
@@ -238,7 +281,7 @@ def main() -> None:
         hist_data_loader.load()
         histogram = HistogramVisualizer(hist_data_loader)
         histogram.plot()
-    
+
         kde_data_loader = DepositionDataLoader("results/kde.dat")
         kde_data_loader.load()
         kde_xy = KDEXYVisualizer(kde_data_loader)

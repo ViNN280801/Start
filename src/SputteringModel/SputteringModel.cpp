@@ -38,7 +38,7 @@ void SputteringModel::_updateSurfaceMesh()
     hdf5handler.saveMeshToHDF5(m_surfaceMesh.getTriangleCellMap());
 }
 
-void _readParticlePositionsHdf5(const std::string &filepath = "results/particles_movements.hdf5", int particleID = -1)
+void _readParticlePositionsHdf5(std::string const &filepath = "results/particles_movements.hdf5", int particleID = -1)
 {
     try
     {
@@ -255,7 +255,8 @@ void SputteringModel::_gfinalize()
 {
     _updateSurfaceMesh();
     _saveParticleMovementsHdf5(m_particlesMovement);
-    _distributeSettledParticles();
+    if (m_particleWeight != 1)
+        _distributeSettledParticles();
     _writeHistogramToFile();
 
     std::ofstream hist("results/kde.dat");
@@ -348,16 +349,24 @@ void SputteringModel::startModeling(unsigned int numThreads)
     double N{tpc.calculateCountOfParticlesOnTargetSurface(targetMaterialDensity, targetMaterialMolarMass)};
     std::cout << "The number of atoms on the target surface: " << N << '\n';
 
+    std::cout << "Do you want to change particle weight? (1 - yes, 0 - no): ";
+    std::cin >> choiceInt;
+    if (choiceInt == 1)
+    {
+        std::cout << "Enter the new particle count: ";
+        std::cin >> N;
+        std::cout << "Now particle count is " << N << '\n';
+    }
+
     std::cout << "Enter the weight of the 1st simulated particle: ";
     std::cin >> m_particleWeight;
-    if (m_particleWeight <= 1)
+    if (m_particleWeight < 1)
     {
         ERRMSG("The weight of the particle cannot be less than 1");
         return;
     }
 
     // 2.4. Calculating model count of particles on this surface.
-    N = 100'000'000;
     double N_model{std::ceil(N / std::pow(10, m_particleWeight))};
     std::cout << "Thus, " << N << " real particles = " << N_model << " simulated particles\n";
 
@@ -495,7 +504,9 @@ void SputteringModel::startModeling(unsigned int numThreads)
             SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
         }
-        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", m_settledParticlesIds.size(), "/", particles.size(), " particles."));
+        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ",
+                                   m_settledParticlesIds.size(), "/",
+                                   particles.size(), " particles."));
     }
 }
 
@@ -515,7 +526,9 @@ void SputteringModel::_distributeSettledParticles()
             // to avoid generating the same random numbers.
             std::random_device rd;
             std::mt19937 gen(rd() + omp_get_thread_num());
-            std::normal_distribution<> dist(0.0, 0.1);
+
+            // Using smaller sigma for better local distribution
+            std::normal_distribution<> dist(0.0, 0.05);
 
             std::vector<std::array<double, 3>> local_particles;
             std::unordered_map<size_t, size_t> localCounts;
@@ -529,7 +542,7 @@ void SputteringModel::_distributeSettledParticles()
                 if (cell.count == 0)
                     continue;
 
-                // Get related cells
+                // Get related cells - limit to immediate neighbors only
                 std::vector<size_t> target_cells{id};
                 auto neighbors = m_surfaceMesh.getNeighborCells(id);
                 target_cells.insert(target_cells.end(), neighbors.begin(), neighbors.end());
@@ -544,7 +557,11 @@ void SputteringModel::_distributeSettledParticles()
                 {
                     auto const &target_cell = triangleMap.at(cell_id);
                     double ratio = target_cell.area / total_area;
-                    size_t num_particles = static_cast<size_t>(cell.count * weight * ratio);
+
+                    // Use weighted distribution and ensure we get reasonable particle counts
+                    // with a minimum threshold to prevent very small counts
+                    size_t num_particles = std::max(size_t(1),
+                                                    static_cast<size_t>(std::round(cell.count * weight * ratio)));
 
 #pragma omp critical
                     {
@@ -553,14 +570,38 @@ void SputteringModel::_distributeSettledParticles()
 
                     Point centroid{TriangleCell::compute_centroid(target_cell.triangle)};
 
+                    // Get triangle vertices for barycentric distribution
+                    Point v0 = target_cell.triangle.vertex(0);
+                    Point v1 = target_cell.triangle.vertex(1);
+                    Point v2 = target_cell.triangle.vertex(2);
+
+                    // Generate particles using barycentric coordinates for better distribution
                     for (size_t i = 0; i < num_particles; ++i)
                     {
-                        double dx{dist(gen) * target_cell.area};
-                        double dy{dist(gen) * target_cell.area};
+                        // Generate barycentric coordinates
+                        double u = std::sqrt(std::abs(dist(gen)));
+                        double v = std::sqrt(std::abs(dist(gen)));
 
-                        local_particles.push_back({centroid.x() + dx,
-                                                   centroid.y() + dy,
-                                                   centroid.z()});
+                        // Ensure they sum to <= 1
+                        if (u + v > 1.0)
+                        {
+                            u = 1.0 - u;
+                            v = 1.0 - v;
+                        }
+                        double w = 1.0 - u - v;
+
+                        // Compute point using barycentric coordinates
+                        double x = u * v0.x() + v * v1.x() + w * v2.x();
+                        double y = u * v0.y() + v * v1.y() + w * v2.y();
+                        double z = u * v0.z() + v * v1.z() + w * v2.z();
+
+                        // Add small noise to avoid grid-like patterns
+                        double noise_scale = std::sqrt(target_cell.area) * 0.01;
+                        x += dist(gen) * noise_scale;
+                        y += dist(gen) * noise_scale;
+                        z += dist(gen) * noise_scale;
+
+                        local_particles.push_back({x, y, z});
                     }
                 }
             }
@@ -573,7 +614,33 @@ void SputteringModel::_distributeSettledParticles()
             }
         }
 
-// Updaing counters in surfaceMesh
+        // Updaing counters in surfaceMesh - make sure the total count is consistent
+        size_t total_model_particles = 0;
+        size_t total_real_particles = 0;
+
+        for (auto const &[id, cell] : triangleMap)
+        {
+            total_model_particles += cell.count;
+        }
+
+        for (auto const &[id, count] : realCounts)
+        {
+            total_real_particles += count;
+        }
+
+        // Apply normalization if needed
+        double normalization_factor = 1.0;
+        if (total_real_particles > 0)
+        {
+            double total_expected = total_model_particles * weight;
+            normalization_factor = total_expected / total_real_particles;
+
+            LOGMSG(util::stringify("Normalization factor for particle distribution: ",
+                                   normalization_factor, " (expected: ", total_expected,
+                                   ", generated: ", total_real_particles, ")"));
+        }
+
+// Update particle counts with normalization
 #pragma omp parallel for
         for (size_t idx = 0; idx < triangleMap.size(); ++idx)
         {
@@ -581,7 +648,11 @@ void SputteringModel::_distributeSettledParticles()
             auto const &[id, cell] = *it;
 
             if (realCounts.count(id))
-                const_cast<TriangleCell &>(cell).count = realCounts[id];
+            {
+                // Apply normalization to maintain correct total count
+                const_cast<TriangleCell &>(cell).count =
+                    static_cast<size_t>(realCounts[id] * normalization_factor);
+            }
         }
 
         // 2. Check if it's directory and has write permissions
