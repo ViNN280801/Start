@@ -48,7 +48,6 @@ all_tests
 *.msh
 *.msh.opt
 *.geo
-!meshes/*.msh
 
 # HDF5 format
 *.hdf5
@@ -60,8 +59,6 @@ all_tests
 # Data files
 *.csv
 *.dat
-!results/histogram.dat
-!results/kde.dat
 
 # Archives
 *.tar*
@@ -75,10 +72,6 @@ all_tests
 *.config
 *.cfg
 *.json
-
-# Excluding configuration file examples
-!config*.json
-!configs/
 
 # Drawings
 *.vtk
