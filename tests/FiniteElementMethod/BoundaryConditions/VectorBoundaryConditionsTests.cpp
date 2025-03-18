@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "FiniteElementMethod/BoundaryConditions/VectorBoundaryConditionManager.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 
 extern void supress_output(std::ostream &stream);
 extern void restore_output(std::ostream &stream);
@@ -18,9 +19,11 @@ Teuchos::RCP<TpetraVectorType> createTestVector(size_t size)
     return vector;
 }
 
-bool checkVectorBoundaryConditions(Teuchos::RCP<TpetraVectorType> vector, std::map<GlobalOrdinal, Scalar> const &boundary_conditions, size_t polynom_order)
+bool checkVectorBoundaryConditions(Teuchos::RCP<TpetraVectorType> vector,
+                                   std::map<GlobalOrdinal, Scalar> const &boundary_conditions,
+                                   size_t polynom_order)
 {
-    auto vectorData = vector->get1dView(); // Получение представления данных вектора
+    auto vectorData = vector->get1dView();
 
     for (auto const &[nodeInGmsh, value] : boundary_conditions)
     {
@@ -84,7 +87,8 @@ TEST(VectorBoundaryConditionsManagerTest, OutOfBoundsNodeID)
     execute_without_output([&]()
                            {
     VectorBoundaryConditionsManager manager;
-    EXPECT_THROW(manager.set(vector, 1, boundary_conditions), std::out_of_range); }, std::cerr);
+    EXPECT_THROW(manager.set(vector, 1, boundary_conditions),
+        VectorBoundaryConditionsSettingException); }, std::cerr);
 }
 
 // Dirty test: boundary conditions with a polynomial of order 2

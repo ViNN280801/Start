@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
 #include "FiniteElementMethod/Cubature/CubatureManager.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Utils/FEMLimits.hpp"
 
 extern void supress_output(std::ostream &stream);
@@ -68,15 +68,15 @@ TEST_F(CubatureManagerTest, UnsupportedCellType)
     try
     {
         CubatureManager cubatureManager(static_cast<CellType>(999), 2, 1);
-        FAIL() << "Expected CellSelectorExceptionion";
+        FAIL() << "Expected FEMCheckersUnsupportedCellTypeException";
     }
-    catch (CellSelectorException const &)
+    catch (FEMCheckersUnsupportedCellTypeException const &)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorExceptionion, but got: " << typeid(e).name() << " with message: " << e.what();
+        FAIL() << "Expected FEMCheckersUnsupportedCellTypeException, but got: " << typeid(e).name() << " with message: " << e.what();
     }
 }
 
@@ -86,15 +86,15 @@ TEST_F(CubatureManagerTest, NegativeDesiredAccuracy)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, -1, 1);
-        FAIL() << "Expected std::underflow_error";
+        FAIL() << "Expected FEMCheckersUnderflowDesiredAccuracyException";
     }
-    catch (const std::underflow_error &e)
+    catch (FEMCheckersUnderflowDesiredAccuracyException const &e)
     {
-        EXPECT_STREQ(e.what(), "Desired calculation accuracy can't be negative");
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::underflow_error due to negative desired accuracy";
+        FAIL() << "Expected FEMCheckersUnderflowDesiredAccuracyException due to negative desired accuracy";
     }
 }
 
@@ -104,15 +104,15 @@ TEST_F(CubatureManagerTest, ZeroDesiredAccuracy)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, 0, 1);
-        FAIL() << "Expected std::invalid_argument";
+        FAIL() << "Expected FEMCheckersUnsupportedDesiredAccuracyException";
     }
-    catch (const std::invalid_argument &e)
+    catch (FEMCheckersUnsupportedDesiredAccuracyException const &e)
     {
-        EXPECT_STREQ(e.what(), "Desired calculation accuracy can't be 0");
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::invalid_argument due to zero desired accuracy";
+        FAIL() << "Expected FEMCheckersUnsupportedDesiredAccuracyException due to zero desired accuracy";
     }
 }
 
@@ -122,19 +122,15 @@ TEST_F(CubatureManagerTest, DesiredAccuracyExceedsMaximum)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY + 1, 1);
-        FAIL() << "Expected std::overflow_error";
+        FAIL() << "Expected FEMCheckersOverflowDesiredAccuracyException";
     }
-    catch (const std::overflow_error &e)
+    catch (FEMCheckersOverflowDesiredAccuracyException const &e)
     {
-        EXPECT_STREQ(e.what(),
-                     util::stringify("Desired calculation accuracy can't be greater than ", FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY,
-                                     ". Required range: [", FEM_LIMITS_MIN_DESIRED_CALCULATION_ACCURACY, "; ",
-                                     FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY, "]")
-                         .c_str());
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::overflow_error due to desired accuracy exceeding maximum limit";
+        FAIL() << "Expected FEMCheckersOverflowDesiredAccuracyException due to desired accuracy exceeding maximum limit";
     }
 }
 
@@ -144,15 +140,15 @@ TEST_F(CubatureManagerTest, ExtremeNegativeCellType)
     try
     {
         CubatureManager cubatureManager(static_cast<CellType>(std::numeric_limits<int>::min()), 2, 1);
-        FAIL() << "Expected CellSelectorExceptionion";
+        FAIL() << "Expected FEMCheckersUnsupportedCellTypeException";
     }
-    catch (CellSelectorException const &)
+    catch (FEMCheckersUnsupportedCellTypeException const &)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorExceptionion, but got: " << typeid(e).name() << " with message: " << e.what();
+        FAIL() << "Expected FEMCheckersUnsupportedCellTypeException, but got: " << typeid(e).name() << " with message: " << e.what();
     }
 }
 
@@ -162,15 +158,15 @@ TEST_F(CubatureManagerTest, ExtremeLargeCellType)
     try
     {
         CubatureManager cubatureManager(static_cast<CellType>(std::numeric_limits<int>::max()), 2, 1);
-        FAIL() << "Expected CellSelectorExceptionion";
+        FAIL() << "Expected FEMCheckersUnsupportedCellTypeException";
     }
-    catch (CellSelectorException const &)
+    catch (FEMCheckersUnsupportedCellTypeException const &)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorExceptionion, but got: " << typeid(e).name() << " with message: " << e.what();
+        FAIL() << "Expected FEMCheckersUnsupportedCellTypeException, but got: " << typeid(e).name() << " with message: " << e.what();
     }
 }
 
@@ -180,15 +176,15 @@ TEST_F(CubatureManagerTest, NegativePolynomOrder)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, 2, -1);
-        FAIL() << "Expected std::underflow_error";
+        FAIL() << "Expected FEMCheckersUnderflowPolynomOrderException";
     }
-    catch (const std::underflow_error &e)
+    catch (FEMCheckersUnderflowPolynomOrderException const &e)
     {
-        EXPECT_STREQ(e.what(), "Polynomial order can't be negative");
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::underflow_error due to negative polynomial order";
+        FAIL() << "Expected FEMCheckersUnderflowPolynomOrderException due to negative polynomial order";
     }
 }
 
@@ -198,15 +194,15 @@ TEST_F(CubatureManagerTest, ZeroPolynomOrder)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, 2, 0);
-        FAIL() << "Expected std::invalid_argument";
+        FAIL() << "Expected FEMCheckersUnsupportedPolynomOrderException";
     }
-    catch (const std::invalid_argument &e)
+    catch (FEMCheckersUnsupportedPolynomOrderException const &e)
     {
-        EXPECT_STREQ(e.what(), "Polynomial order can't be 0");
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::invalid_argument due to zero polynomial order";
+        FAIL() << "Expected FEMCheckersUnsupportedPolynomOrderException due to zero polynomial order";
     }
 }
 
@@ -216,19 +212,15 @@ TEST_F(CubatureManagerTest, PolynomOrderExceedsMaximum)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, 2, FEM_LIMITS_MAX_POLYNOMIAL_ORDER + 1);
-        FAIL() << "Expected std::overflow_error";
+        FAIL() << "Expected FEMCheckersOverflowPolynomOrderException";
     }
-    catch (const std::overflow_error &e)
+    catch (FEMCheckersOverflowPolynomOrderException const &e)
     {
-        EXPECT_STREQ(e.what(),
-                     util::stringify("Polynomial order can't be greater than ", FEM_LIMITS_MAX_POLYNOMIAL_ORDER, ". Required range: [",
-                                     FEM_LIMITS_MIN_POLYNOMIAL_ORDER, "; ",
-                                     FEM_LIMITS_MAX_POLYNOMIAL_ORDER, "]")
-                         .c_str());
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::overflow_error due to polynomial order exceeding maximum limit";
+        FAIL() << "Expected FEMCheckersOverflowPolynomOrderException due to polynomial order exceeding maximum limit";
     }
 }
 
@@ -255,15 +247,15 @@ TEST_F(CubatureManagerTest, DesiredAccuracyBelowMinimum)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, -1, 1);
-        FAIL() << "Expected std::underflow_error";
+        FAIL() << "Expected FEMCheckersUnderflowDesiredAccuracyException";
     }
-    catch (const std::underflow_error &e)
+    catch (FEMCheckersUnderflowDesiredAccuracyException const &e)
     {
         SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::underflow_error due to desired accuracy below minimum limit";
+        FAIL() << "Expected FEMCheckersUnderflowDesiredAccuracyException due to desired accuracy below minimum limit";
     }
 }
 
@@ -273,14 +265,14 @@ TEST_F(CubatureManagerTest, PolynomOrderBelowMinimum)
     try
     {
         CubatureManager cubatureManager(CellType::Tetrahedron, 2, -1);
-        FAIL() << "Expected std::underflow_error";
+        FAIL() << "Expected FEMCheckersUnderflowPolynomOrderException";
     }
-    catch (const std::underflow_error &e)
+    catch (FEMCheckersUnderflowPolynomOrderException const &e)
     {
         SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::underflow_error due to polynomial order below minimum limit";
+        FAIL() << "Expected FEMCheckersUnderflowPolynomOrderException due to polynomial order below minimum limit";
     }
 }

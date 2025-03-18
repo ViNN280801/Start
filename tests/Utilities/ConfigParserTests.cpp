@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 
-#include "ConfigParser.hpp"
+#include "Utilities/ConfigParser.hpp"
 
 class ConfigParserTest : public ::testing::Test
 {

@@ -1,17 +1,19 @@
 #ifndef FEM_LIMITS_HPP
 #define FEM_LIMITS_HPP
 
+#include <Intrepid2_Types.hpp>
+
 #include "Utilities/PreprocessorUtils.hpp"
 
 static STARTCONSTINIT const unsigned short FEM_LIMITS_NULL_VALUE{0U};
 
 static STARTCONSTINIT const unsigned short FEM_LIMITS_DEFAULT_POLYNOMIAL_ORDER{1U};
 static STARTCONSTINIT const unsigned short FEM_LIMITS_MIN_POLYNOMIAL_ORDER{1U};
-static STARTCONSTINIT const unsigned short FEM_LIMITS_MAX_POLYNOMIAL_ORDER{20U};
+static STARTCONSTINIT const unsigned short FEM_LIMITS_MAX_POLYNOMIAL_ORDER{Intrepid2::Parameters::MaxOrder};
 
 static STARTCONSTINIT const unsigned short FEM_LIMITS_DEFAULT_DESIRED_CALCULATION_ACCURACY{3U};
 static STARTCONSTINIT const unsigned short FEM_LIMITS_MIN_DESIRED_CALCULATION_ACCURACY{1U};
-static STARTCONSTINIT const unsigned short FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY{20U};
+static STARTCONSTINIT const unsigned short FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY{Intrepid2::Parameters::MaxCubatureDegreeTet};
 
 // **************************** Count of vertices of 2D cells. *********************************** //
 static STARTCONSTINIT const unsigned short FEM_LIMITS_DEFAULT_TRIANGLE_VERTICES_COUNT{3U}; // 2D triangle.

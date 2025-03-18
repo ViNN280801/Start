@@ -55,10 +55,18 @@ if (START_CUDA_ON)
     if (EXISTS ${NVCC_WRAPPER_PATH})
         message(STATUS "⚙️  Using nvcc_wrapper at ${NVCC_WRAPPER_PATH} as the C++ compiler for CUDA-enabled targets.")
         set(CMAKE_CXX_COMPILER ${NVCC_WRAPPER_PATH})
+    
+        set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA
+            "${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA} \
+            -Wno-deprecated-gpu-targets"
+        )
 
-        set(SUPPRESS_FLAGS_FOR_TRILINOS_CUDA "--expt-extended-lambda -Wno-unused-parameter -Wno-dangling-reference -Wno-implicit-fallthrough")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}")
         message(STATUS "⚙️  Added flags [${SUPPRESS_FLAGS_FOR_TRILINOS_CUDA}] to the C++ compile flags to suppress some warnings from Trilinos")
+
+        set(ENV{NVCC_WRAPPER_DEFAULT_OPTIONS} "-Wno-deprecated-gpu-targets")
+        message(STATUS "⚙️  Setting NVCC_WRAPPER_DEFAULT_OPTIONS to -Wno-deprecated-gpu-targets")
+
     else()
         message(FATAL_ERROR "❌ nvcc_wrapper not found at ${NVCC_WRAPPER_PATH}. Please ensure it is installed.")
     endif()
@@ -390,16 +398,29 @@ set(FINITE_ELEMENT_METHOD_SRC_PATH
 )
 set(FINITE_ELEMENT_METHOD_INC_PATH
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Assemblers
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/BoundaryConditions
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cell
     ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Cubature
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/LinearAlgebraManagers
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Solvers
+    ${CMAKE_SOURCE_DIR}/../include/FiniteElementMethod/Utils
 )
 set(GENERATORS_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Generators)
 set(GENERATORS_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Generators)
+
 set(GEOMETRY_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Geometry)
 set(GEOMETRY_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Geometry)
+
 set(PARTICLES_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Particle)
 set(PARTICLES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Particle)
+
+set(PARTICLE_IN_CELL_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/ParticleInCellEngine)
+set(PARTICLE_IN_CELL_INC_PATH ${CMAKE_SOURCE_DIR}/../include/ParticleInCellEngine)
+
+set(SESSION_MANAGEMENT_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/SessionManagement)
+set(SESSION_MANAGEMENT_INC_PATH ${CMAKE_SOURCE_DIR}/../include/SessionManagement)
+
 set(UTILITIES_SRC_PATH ${CMAKE_SOURCE_DIR}/../src/Utilities)
 set(UTILITIES_INC_PATH ${CMAKE_SOURCE_DIR}/../include/Utilities)
 
@@ -407,22 +428,24 @@ set(DATA_HANDLING_SOURCES
     ${DATA_HANDLING_SRC_PATH}/TriangleMeshHdf5Manager.cpp
 )
 set(FINITE_ELEMENT_METHOD_SOURCES
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Assemblers/GSMAssembler.cpp
+
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/BoundaryConditionsManager.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/MatrixBoundaryConditionsManager.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/BoundaryConditions/VectorBoundaryConditionsManager.cpp
 
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelector.cpp
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cell/CellSelectorException.cpp
 
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/Cubature/CubatureManager.cpp
 
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/LinearAlgebraManagers/MatrixManager.cpp
     ${FINITE_ELEMENT_METHOD_SRC_PATH}/LinearAlgebraManagers/VectorManager.cpp
 
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMCheckers.cpp
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/FEMPrinter.cpp
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/GSMAssembler.cpp
-    ${FINITE_ELEMENT_METHOD_SRC_PATH}/MatrixEquationSolver.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Solvers/MatrixEquationSolver.cpp
+
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Utils/FEMCheckers.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Utils/FEMInitializer.cpp
+    ${FINITE_ELEMENT_METHOD_SRC_PATH}/Utils/FEMPrinter.cpp
 )
 set(GENERATORS_SOURCES
     ${GENERATORS_SRC_PATH}/Host/ParticleGeneratorHost.cpp
@@ -448,6 +471,20 @@ set(PARTICLES_SOURCES
     ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/HSModel.cpp
     ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/VHSModel.cpp
     ${PARTICLES_SRC_PATH}/PhysicsCore/CollisionModel/VSSModel.cpp
+)
+set(PARTICLE_IN_CELL_SOURCES
+    ${PARTICLE_IN_CELL_SRC_PATH}/ParticleDynamicsProcessor/ParticleDynamicsProcessor.cpp
+    ${PARTICLE_IN_CELL_SRC_PATH}/ParticleDynamicsProcessor/ParticleMovementTracker.cpp
+    ${PARTICLE_IN_CELL_SRC_PATH}/ParticleDynamicsProcessor/ParticlePhysicsUpdater.cpp
+    ${PARTICLE_IN_CELL_SRC_PATH}/ParticleDynamicsProcessor/ParticleSettler.cpp
+    ${PARTICLE_IN_CELL_SRC_PATH}/ParticleDynamicsProcessor/ParticleSurfaceCollisionHandler.cpp
+    ${PARTICLE_IN_CELL_SRC_PATH}/ParticleDynamicsProcessor/StopModelingObserver.cpp
+
+    ${PARTICLE_IN_CELL_SRC_PATH}/ChargeDensityEquationSolver.cpp
+    ${PARTICLE_IN_CELL_SRC_PATH}/NodeChargeDensityProcessor.cpp
+)
+set(SESSION_MANAGEMENT_SOURCES
+    ${SESSION_MANAGEMENT_SRC_PATH}/GmshSessionManager.cpp
 )
 set(UTILITIES_SOURCES
     ${UTILITIES_SRC_PATH}/GmshUtilities/GmshMesher.cpp

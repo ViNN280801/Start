@@ -1,7 +1,7 @@
 #ifndef FEM_CHECKERS_HPP
 #define FEM_CHECKERS_HPP
 
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Cell/CellType.hpp"
 #include "FiniteElementMethod/Utils/FEMLimits.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"

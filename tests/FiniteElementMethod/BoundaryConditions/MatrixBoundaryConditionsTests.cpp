@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "FiniteElementMethod/BoundaryConditions/MatrixBoundaryConditionsManager.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 
 void supress_output(std::ostream &stream) { stream.setstate(std::ios_base::failbit); }
 void restore_output(std::ostream &stream) { stream.clear(); }
@@ -137,7 +138,8 @@ TEST(MatrixBoundaryConditionsManagerTest, OutOfBoundsNodeID)
     execute_without_output([&]()
                            {
     MatrixBoundaryConditionsManager manager;
-    EXPECT_THROW(manager.set(matrix, 1, boundary_conditions), std::out_of_range); }, std::cerr);
+    EXPECT_THROW(manager.set(matrix, 1, boundary_conditions),
+        MatrixBoundaryConditionsSettingException); }, std::cerr);
 }
 
 // Dirty test: boundary conditions with a polynomial of order 2

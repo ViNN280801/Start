@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <iomanip>
 
+#include "Generators/GeneratorsExceptions.hpp"
 #include "Generators/Host/ParticleGeneratorHost.hpp"
 #include "Generators/Host/RealNumberGeneratorHost.hpp"
 #include "Particle/ParticlePropertiesManager.hpp"
@@ -85,12 +86,8 @@ TEST_F(ParticleGeneratorTest, DirtyFromPointSourceZeroEnergy)
         {"O2", 10, 0.0, 1.0, 1.0, 2.0, {0.0, 0.0, 0.0}} // Zero energy
     };
 
-    ParticleVector particles = ParticleGenerator::fromPointSource(pointSources);
-    ASSERT_EQ(particles.size(), 10);
-    for (Particle const &p : particles)
-    {
-        EXPECT_DOUBLE_EQ(p.getEnergy_eV(), 0.0);
-    }
+    EXPECT_THROW(ParticleVector particles = ParticleGenerator::fromPointSource(pointSources),
+                 ParticleGeneratorsZeroEnergyException);
 }
 
 // === Clean Test for fromSurfaceSource === //
@@ -147,12 +144,8 @@ TEST_F(ParticleGeneratorTest, DirtyFromSurfaceSourceZeroEnergy)
         {"Ne", 10, 0.0, {{"0,0,0", {0.0, 0.0, 1.0}}}} // Zero energy
     };
 
-    ParticleVector particles = ParticleGenerator::fromSurfaceSource(surfaceSources);
-    ASSERT_EQ(particles.size(), 10);
-    for (Particle const &p : particles)
-    {
-        EXPECT_DOUBLE_EQ(p.getEnergy_eV(), 0.0);
-    }
+    EXPECT_THROW(ParticleVector particles = ParticleGenerator::fromSurfaceSource(surfaceSources),
+                 ParticleGeneratorsZeroEnergyException);
 }
 
 TEST_F(ParticleGeneratorTest, DirtyFromPointSourceZeroParticles)

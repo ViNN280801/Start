@@ -3,21 +3,29 @@
 
 #include "Utilities/ExceptionMacros.hpp"
 
+// ****************************** Base exceptions ************************************** //
 START_DEFINE_EXCEPTION(UtilsBaseException, std::runtime_error)
-START_DEFINE_EXCEPTION(UtilsMissingRequiredParameterException, std::invalid_argument)
+START_DEFINE_EXCEPTION(UtilsInvalidArgumentException, std::invalid_argument)
+START_DEFINE_EXCEPTION(UtilsOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(UtilsUnknownException, UtilsBaseException)
+// ************************************************************************************* //
+
+// ****************************** Utils exceptions ************************************** //
+START_DEFINE_EXCEPTION(UtilsMissingRequiredParameterException, UtilsInvalidArgumentException)
 START_DEFINE_EXCEPTION(UtilsFailedToOpenConfigurationFileException, UtilsBaseException)
 START_DEFINE_EXCEPTION(UtilsFailedToParseConfigurationFileException, UtilsBaseException)
 START_DEFINE_EXCEPTION(UtilsNumThreadsOutOfRangeException, UtilsBaseException)
 START_DEFINE_EXCEPTION(UtilsGettingConfigDataException, UtilsBaseException)
-START_DEFINE_EXCEPTION(UtilsUnknownException, UtilsBaseException)
 START_DEFINE_EXCEPTION(UtilsDuplicateNodeValuesException, UtilsBaseException)
-START_DEFINE_EXCEPTION(UtilsNodeIDOutOfRangeException, std::out_of_range)
-START_DEFINE_EXCEPTION(UtilsInvalidNodeIDException, std::invalid_argument)
-START_DEFINE_EXCEPTION(UtilsInvalidValueForNodeIDsException, std::invalid_argument)
+START_DEFINE_EXCEPTION(UtilsNodeIDOutOfRangeException, UtilsOutOfRangeException)
+START_DEFINE_EXCEPTION(UtilsInvalidNodeIDException, UtilsInvalidArgumentException)
+START_DEFINE_EXCEPTION(UtilsInvalidValueForNodeIDsException, UtilsInvalidArgumentException)
 
 START_DEFINE_EXCEPTION(UtilsFailedToOpenFileException, UtilsBaseException)
 START_DEFINE_EXCEPTION(UtilsInvalidJSONFileException, UtilsBaseException)
+// ************************************************************************************* //
 
+// ****************************** Gmsh utils exceptions ************************************** //
 START_DEFINE_EXCEPTION(GmshUtilsBaseException, UtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsGmshNotInitializedException, GmshUtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsFileDoesNotExistException, GmshUtilsBaseException)
@@ -37,5 +45,6 @@ START_DEFINE_EXCEPTION(GmshUtilsNoSurfaceCoordsException, GmshUtilsBaseException
 START_DEFINE_EXCEPTION(GmshUtilsInvalidSurfaceCoordsException, GmshUtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsFailedToFillTriangleCellsMapException, GmshUtilsBaseException)
 START_DEFINE_EXCEPTION(GmshUtilsFailedToCreateTriangleException, GmshUtilsBaseException)
+// ************************************************************************************* //
 
 #endif // !UTILS_EXCEPTIONS_HPP

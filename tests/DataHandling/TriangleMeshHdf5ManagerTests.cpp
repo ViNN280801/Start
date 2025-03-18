@@ -2,8 +2,8 @@
 #include <filesystem>
 #include <gtest/gtest.h>
 
+#include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "Geometry/Basics/BaseTypes.hpp"
-#include "TriangleMeshHdf5Manager.hpp"
 
 class TriangleMeshHdf5ManagerTest : public ::testing::Test
 {
@@ -43,7 +43,7 @@ TEST_F(TriangleMeshHdf5ManagerTest, SaveAndReadMesh)
     {
         auto const &[id, triangle, area, count]{readMesh[0]};
         auto const &[id2, triangle2, area2, count2]{mesh[0]};
-        
+
         EXPECT_EQ(id, id2);
         EXPECT_EQ(triangle, triangle2);
         EXPECT_DOUBLE_EQ(area, area2);

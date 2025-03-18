@@ -4,8 +4,12 @@
 #include "Utilities/ExceptionMacros.hpp"
 
 START_DEFINE_EXCEPTION(GeometryBaseException, std::runtime_error)
-START_DEFINE_EXCEPTION(GeometryIndexOutOfRangeException, std::out_of_range)
-START_DEFINE_EXCEPTION(GeometryDivisionByZeroException, std::overflow_error)
+START_DEFINE_EXCEPTION(GeometryOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(GeometryOverflowException, std::overflow_error)
+START_DEFINE_EXCEPTION(GeometryUnknownException, GeometryBaseException)
+
+START_DEFINE_EXCEPTION(GeometryIndexOutOfRangeException, GeometryOutOfRangeException)
+START_DEFINE_EXCEPTION(GeometryDivisionByZeroException, GeometryOverflowException)
 START_DEFINE_EXCEPTION(GeometryAngleCalculationException, GeometryBaseException)
 
 START_DEFINE_EXCEPTION(GeometryTimeMomentException, GeometryBaseException)
@@ -14,7 +18,7 @@ START_DEFINE_EXCEPTION(GeometryParticleTrackerEmptyException, GeometryBaseExcept
 START_DEFINE_EXCEPTION(GeometryTriangleCellMapEmptyException, GeometryBaseException)
 START_DEFINE_EXCEPTION(GeometryTrianglesVectorEmptyException, GeometryBaseException)
 START_DEFINE_EXCEPTION(GeometryAABBTreeEmptyException, GeometryBaseException)
-START_DEFINE_EXCEPTION(GeometryCellIdNotFoundException, std::out_of_range)
+START_DEFINE_EXCEPTION(GeometryCellIdNotFoundException, GeometryOutOfRangeException)
 START_DEFINE_EXCEPTION(GeometryPhysicalGroupNotFoundException, GeometryBaseException)
 
 START_DEFINE_EXCEPTION(GeometryReadingMeshException, GeometryBaseException)

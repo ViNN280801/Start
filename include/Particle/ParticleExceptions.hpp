@@ -5,6 +5,7 @@
 
 START_DEFINE_EXCEPTION(ParticleBaseException, std::runtime_error)
 START_DEFINE_EXCEPTION(ParticleDeviceArrayIndexOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(ParticleUnknownException, ParticleBaseException)
 
 START_DEFINE_EXCEPTION(ParticleDevicePointerNullException, ParticleBaseException)
 START_DEFINE_EXCEPTION(ParticleDeviceArrayPointerNullException, ParticleBaseException)

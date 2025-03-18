@@ -1,5 +1,5 @@
 #include "FiniteElementMethod/Solvers/MatrixEquationSolver.hpp"
-#include "FiniteElementMethod/Solvers/SolversExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "Utilities/Utilities.hpp"
 
 void MatrixEquationSolver::initialize()
