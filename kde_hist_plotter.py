@@ -118,7 +118,7 @@ class HistogramVisualizer(DepositionVisualizer):
             else:
                 y_bins = data[:, 0]
                 counts = data[:, 1]
-            thickness = counts  # * self.data_loader.TI_RADIUS_NM
+            thickness = counts * self.data_loader.TI_RADIUS_NM
             envelope = self._calculate_envelope(thickness)
             smooth_envelope = self._smooth_data(envelope)
 
@@ -135,8 +135,7 @@ class HistogramVisualizer(DepositionVisualizer):
                 thickness,
                 width=0.8,
                 color="#1e90ff",
-                # label="Average Thickness (nm)"
-                label=f"Count of titanium atoms = {counts.sum()}",
+                label="Average Thickness (nm)",
             )
             self.axes.plot(
                 y_bins,
@@ -148,11 +147,9 @@ class HistogramVisualizer(DepositionVisualizer):
             )
 
             self._setup_plot(
-                # title=f"Deposition Thickness along Y-axis\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
-                title=f"Deposition Thickness along Y-axis\nCount of titanium atoms = {counts.sum()}",
+                title=f"Deposition Thickness along Y-axis\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
                 xlabel="Y-coordinate (cm)",
-                # ylabel="Thickness (nm)",
-                ylabel="Count of titanium atoms",
+                ylabel="Thickness (nm)",
             )
             self.axes.legend()
         except IndexError as exc:
@@ -188,7 +185,7 @@ class KDEXYVisualizer(DepositionVisualizer):
         try:
             x = data[:, 0]
             y = data[:, 1]
-            thickness = data[:, 2]  # * self.data_loader.TI_RADIUS_NM
+            thickness = data[:, 2] * self.data_loader.TI_RADIUS_NM
 
             X, Y = self._create_grid(x, y)
             grid_coords = np.vstack([X.ravel(), Y.ravel()])
@@ -205,8 +202,8 @@ class KDEXYVisualizer(DepositionVisualizer):
             plt.colorbar(contour, ax=self.axes, label="Density")
 
             self._setup_plot(
-                # title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
-                title=f"Gaussian KDE of Deposition Thickness\nCount of titanium atoms = {thickness.sum()}",
+                title="Gaussian KDE of Deposition Thickness\n(Titanium Radius = "
+                f"{self.data_loader.TI_RADIUS_NM:.2f} nm)",
                 xlabel="X-coordinate (cm)",
                 ylabel="Y-coordinate (cm)",
             )
@@ -266,7 +263,8 @@ class KDEYTVisualizer(DepositionVisualizer):
             plt.colorbar(contour, ax=self.axes, label="Density")
 
             self._setup_plot(
-                title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = {self.data_loader.TI_RADIUS_NM:.2f} nm)",
+                title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = "
+                f"{self.data_loader.TI_RADIUS_NM:.2f} nm)",
                 xlabel="Y-coordinate (cm)",
                 ylabel="Thickness (nm)",
             )
