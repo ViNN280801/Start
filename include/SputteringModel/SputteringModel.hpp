@@ -30,8 +30,9 @@ private:
     void _ginitialize();
     void _updateSurfaceMesh();
 
-    void _distributeSettledParticles();
-    void _writeHistogramToFile();
+    void _distributeSettledParticles(std::string_view filepath = "results/settled_particles.hdf5");
+    void _writeHistogramToFile(std::string_view filepath = "results/histogram.dat");
+    void _writeKDEToFile(std::string_view filepath = "results/kde.dat");
 
     void _gfinalize();
 
