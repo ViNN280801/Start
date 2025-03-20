@@ -73,6 +73,9 @@ all_tests
 *.cfg
 *.json
 
+# Results
+results/
+
 # Drawings
 *.vtk
 
