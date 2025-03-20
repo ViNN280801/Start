@@ -212,67 +212,6 @@ class KDEXYVisualizer(DepositionVisualizer):
             raise ValueError("Invalid data format for XY KDE") from exc
 
 
-class KDEYTVisualizer(DepositionVisualizer):
-    """Visualizes 2D KDE for Y-Thickness deposition"""
-
-    def __init__(
-        self,
-        data_loader: DepositionDataLoader,
-        grid_points: int = 100,
-        levels: int = 100,
-    ) -> None:
-        super().__init__(data_loader)
-        self.grid_points = grid_points
-        self.levels = levels
-
-    def _create_grid(
-        self, y: np.ndarray, t: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """Create evaluation grid for KDE"""
-        y_lin = np.linspace(y.min() - 0.5, y.max() + 0.5, self.grid_points)
-        t_lin = np.linspace(t.min() - 0.5, t.max() + 0.5, self.grid_points)
-        return np.meshgrid(y_lin, t_lin)
-
-    def plot(self) -> None:
-        """Create YT KDE plot"""
-        self.create_figure()
-        data = self.data_loader.data
-
-        try:
-            if data.shape[1] == 3:
-                y_coords = data[:, 1]
-                counts = data[:, 2]
-            else:
-                y_coords = data[:, 0]
-                counts = data[:, 1]
-
-            thickness = counts * self.data_loader.TI_RADIUS_NM
-
-            Y, T = self._create_grid(y_coords, thickness)
-            grid_coords = np.vstack([Y.ravel(), T.ravel()])
-
-            kde = gaussian_kde(np.vstack([y_coords, thickness]))
-            Z = kde(grid_coords).reshape(Y.shape)
-
-            if self.axes is None:
-                raise RuntimeError(
-                    "Axes not initialized in method KDEYTVisualizer.plot()"
-                )
-
-            contour = self.axes.contourf(Y, T, Z, self.levels, cmap="inferno")
-            plt.colorbar(contour, ax=self.axes, label="Density")
-
-            self._setup_plot(
-                title=f"Gaussian KDE of Deposition Thickness\n(Titanium Radius = "
-                f"{self.data_loader.TI_RADIUS_NM:.2f} nm)",
-                xlabel="Y-coordinate (cm)",
-                ylabel="Thickness (nm)",
-            )
-
-        except IndexError as exc:
-            raise ValueError("Invalid data format for YT KDE") from exc
-
-
 def main() -> None:
     try:
         hist_data_loader = DepositionDataLoader("results/histogram.dat")
@@ -284,8 +223,6 @@ def main() -> None:
         kde_data_loader.load()
         kde_xy = KDEXYVisualizer(kde_data_loader)
         kde_xy.plot()
-        kde_yt = KDEYTVisualizer(kde_data_loader)
-        kde_yt.plot()
 
         plt.tight_layout()
         plt.show()
