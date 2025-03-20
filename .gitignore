@@ -69,6 +69,7 @@ all_tests
 *.cache*
 
 # Configs
+configs/
 *.config
 *.cfg
 *.json
