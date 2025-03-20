@@ -14,7 +14,12 @@ TwoPlatesCreator::TwoPlatesCreator(MeshType mesh_type, double cell_size, double 
 
 void TwoPlatesCreator::addPlates()
 {
-    m_volume_tags[0] = gmsh::model::occ::addBox(0, 0, 50 * m_unit, 100 * m_unit, 20 * m_unit, 1 * m_unit);
+    std::cout << "Enter z-coordinate of the first plate: ";
+    int z1{};
+    std::cin >> z1;
+    std::cout << "z of the 2nd plate is 100\n";
+
+    m_volume_tags[0] = gmsh::model::occ::addBox(0, 0, z1 * m_unit, 100 * m_unit, 20 * m_unit, 1 * m_unit);
     m_volume_tags[1] = gmsh::model::occ::addBox(20, 5, 100 * m_unit, 60 * m_unit, 10 * m_unit, 1 * m_unit);
     gmsh::model::occ::synchronize();
 }
