@@ -3,6 +3,7 @@
 
 #include "Geometry/Mesh/Surface/AABBTree/AABBTree.hpp"
 #include "Geometry/Mesh/Surface/TriangleCell.hpp"
+#include "Particle/Particle.hpp"
 
 /**
  * @class SurfaceMesh
@@ -223,6 +224,26 @@ public:
      * - A lambda function extracts the `count` from each `TriangleCell` in `m_triangleCellMap`.
      */
     size_t getTotalCountOfSettledParticles() const noexcept;
+
+    /**
+     * @brief Gets the global bounding box of the entire surface mesh.
+     * @return CGAL::Bbox_3 Global bounding box enclosing all triangles.
+     */
+    CGAL::Bbox_3 getGlobalBoundingBox() const;
+
+    /**
+     * @brief Checks if a particle is within the modeling space
+     *
+     * Determines if a particle is within the modeling space by checking if
+     * it's inside or near the global bounding box of the surface mesh.
+     * The check includes a small margin around the bounding box to avoid
+     * prematurely skipping particles that might still interact with the surface.
+     *
+     * @param particle The particle to check
+     * @param expansionFactor Optional factor to expand the bounding box (default: 1.2)
+     * @return bool True if the particle is within the modeling space, false otherwise
+     */
+    bool isParticleWithinModelingSpace(Particle_cref particle, double expansionFactor = constants::global_bounding_box_expansion_factor::expansion_factor) const;
 
     /**
      * @brief Gets the IDs of neighboring cells for a given triangle.

@@ -44,32 +44,36 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                               return;
 
                           // 2. Skip particles with velocity close to zero
-                          if (particle.getVelocityModule() < 1e-3)
+                          if (particle.getVelocityModule() < constants::physical_limitations::min_velocity)
                               return;
 
-                          // 3. Apply electromagnetic forces to the particle.
+                          // 3. Skip particles that are too far from the modeling space
+                          if (!surfaceMesh.isParticleWithinModelingSpace(particle))
+                              return;
+
+                          // 4. Apply electromagnetic forces to the particle.
                           if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
                               ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
-                          // 4. Record the particle's previous position for movement tracking.
+                          // 5. Record the particle's previous position for movement tracking.
                           Point const &prev{particle.getCentre()};
                           ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
-                          // 5. Update the particle's position.
+                          // 6. Update the particle's position.
                           particle.updatePosition(timeStep);
                           Segment segment(prev, particle.getCentre());
                           if (segment.is_degenerate())
                               return;
 
-                          // 6. Simulate collisions between the particle and gas molecules.
+                          // 7. Simulate collisions between the particle and gas molecules.
                           ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-                          // 7. Handle collisions between the particle and the surface mesh.
+                          // 8. Handle collisions between the particle and the surface mesh.
                           auto collision{ParticleSurfaceCollisionHandler::handle(
                               particle, segment, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
                               mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject)};
 
-                          // 8. If we collided and settled with a tetrahedron or triangle, we need to update collision counter.
+                          // 9. If we collided and settled with a tetrahedron or triangle, we need to update collision counter.
                           if (collision)
                           {
                               if (stopSubject.isStopRequested())
@@ -173,31 +177,35 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
                 continue;
 
             // 2. Skip particles with velocity close to zero
-            if (particle.getVelocityModule() < 1e-3)
+            if (particle.getVelocityModule() < constants::physical_limitations::min_velocity)
                 continue;
 
-            // 3. Electromagnetic push.
+            // 3. Skip particles that are too far from the modeling space
+            if (!surfaceMesh.isParticleWithinModelingSpace(particle))
+                continue;
+
+            // 4. Electromagnetic push.
             if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
                 ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
-            // 4. Record previous position.
+            // 5. Record previous position.
             Point prev{particle.getCentre()};
             ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
-            // 5. Update position.
+            // 6. Update position.
             particle.updatePosition(timeStep);
             Segment segment(prev, particle.getCentre());
             if (segment.is_degenerate())
                 continue;
 
-            // 6. Gas collision.
+            // 7. Gas collision.
             ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-            // 7. Skip surface collision checks if t == 0.
+            // 8. Skip surface collision checks if t == 0.
             if (timeMoment == 0.0)
                 continue;
 
-            // 8. Surface collision.
+            // 9. Surface collision.
             ParticleSurfaceCollisionHandler::handle(particle, segment, particles.size(),
                                                     surfaceMesh, sh_mutex_settledParticlesCounterMap,
                                                     mutex_particlesMovementMap,

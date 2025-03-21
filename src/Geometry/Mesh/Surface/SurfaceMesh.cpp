@@ -90,6 +90,50 @@ size_t SurfaceMesh::getTotalCountOfSettledParticles() const noexcept
                            { return sum + entry.second.count; });
 }
 
+CGAL::Bbox_3 SurfaceMesh::getGlobalBoundingBox() const
+{
+    if (m_triangles.empty())
+        return CGAL::Bbox_3();
+
+    CGAL::Bbox_3 globalBbox = m_triangles.front().bbox();
+    for (auto const &triangle : m_triangles)
+        globalBbox += triangle.bbox();
+
+    return globalBbox;
+}
+
+bool SurfaceMesh::isParticleWithinModelingSpace(Particle_cref particle, double expansionFactor) const
+{
+    // Get the global bounding box
+    CGAL::Bbox_3 bbox{getGlobalBoundingBox()};
+
+    // Calculate the center of the bounding box
+    double center_x{(bbox.xmin() + bbox.xmax()) / 2.0},
+        center_y{(bbox.ymin() + bbox.ymax()) / 2.0},
+        center_z{(bbox.zmin() + bbox.zmax()) / 2.0};
+
+    // Calculate the half-dimensions of the bounding box
+    double half_width{(bbox.xmax() - bbox.xmin()) / 2.0},
+        half_height{(bbox.ymax() - bbox.ymin()) / 2.0},
+        half_depth{(bbox.zmax() - bbox.zmin()) / 2.0};
+
+    // Expand the dimensions by the expansion factor
+    half_width *= expansionFactor;
+    half_height *= expansionFactor;
+    half_depth *= expansionFactor;
+
+    // Get particle position
+    Point position{particle.getCentre()};
+
+    // Check if the particle is within the expanded bounding box
+    bool isWithin =
+        position.x() >= center_x - half_width && position.x() <= center_x + half_width &&
+        position.y() >= center_y - half_height && position.y() <= center_y + half_height &&
+        position.z() >= center_z - half_depth && position.z() <= center_z + half_depth;
+
+    return isWithin;
+}
+
 void SurfaceMesh::_findNeighbors()
 {
     // 1. Create a temporary edge map.

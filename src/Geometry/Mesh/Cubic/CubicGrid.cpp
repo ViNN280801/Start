@@ -4,8 +4,8 @@
 #include <ranges>
 #endif
 
-#include "Geometry/Mesh/Cubic/CubicGrid.hpp"
 #include "Geometry/GeometryExceptions.hpp"
+#include "Geometry/Mesh/Cubic/CubicGrid.hpp"
 
 CubicGrid::CubicGrid(VolumetricMesh_cref meshData, double edgeSize)
     : m_cubeEdgeSize(edgeSize), m_meshData(meshData)
