@@ -45,6 +45,7 @@ class ModelingMainDriver : public StopSubject
 {
 private:
     std::string m_config_filename;                    ///< Filename of the configuration to parse it.
+    static std::mutex m_particlesVectorMutex;         ///< Mutex for synchronizing access to the particles vector.
     static std::mutex m_PICTrackerMutex;              ///< Mutex for synchronizing access to the particles in tetrahedrons.
     static std::mutex m_nodeChargeDensityMapMutex;    ///< Mutex for synchronizing access to the charge densities in nodes.
     static std::mutex m_particlesMovementMutex;       ///< Mutex for synchronizing access to the trajectories of particles.
@@ -77,20 +78,11 @@ private:
      * @throws std::runtime_error if no particles are generated, which may indicate a misconfiguration.
      * @note This method requires a valid configuration file specifying particle sources.
      */
-    void _initializeParticles();
+    void _spawnParticles();
     /* =========================================== */
 
     /// @brief Global initializator. Uses all the initializers above.
     void _ginitialize();
-
-    /* Finalizers for all the necessary objects. */
-    /**
-     * @brief Saves the particle movements to a JSON file.
-     *
-     * This function saves the contents of m_particlesMovement to a JSON file named "particles_movements.json".
-     * It handles exceptions and provides a warning message if the map is empty.
-     */
-    void _saveParticleMovements() const;
 
     /// @brief Using HDF5Handler to update the mesh according to the settled particles.
     void _updateSurfaceMesh();

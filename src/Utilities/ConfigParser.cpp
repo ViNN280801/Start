@@ -256,8 +256,6 @@ void ConfigParser::getConfigData(std::string_view config)
         _processPicFemParameters(configJson);
         _processIterativeSolverParameters(configJson);
         _processBoundaryConditions(configJson);
-
-        SUCCESSMSG(util::stringify("Successfully loaded configuration from: ", config));
     }
     catch (json::exception const &e)
     {

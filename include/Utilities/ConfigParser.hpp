@@ -108,43 +108,43 @@ private:
      * @param config Name of the configuration file.
      */
     void getConfigData(std::string_view config);
-    
+
     /**
      * @brief Process the required parameters that must exist in the config file.
      * @param configJson JSON configuration object.
      */
     void _processRequiredParameters(json const &configJson);
-    
+
     /**
      * @brief Process the basic simulation parameters.
      * @param configJson JSON configuration object.
      */
     void _processSimulationParameters(json const &configJson);
-    
+
     /**
      * @brief Process the point particle sources if they exist.
      * @param configJson JSON configuration object.
      */
     void _processPointParticleSources(json const &configJson);
-    
+
     /**
      * @brief Process the surface particle sources if they exist.
      * @param configJson JSON configuration object.
      */
     void _processSurfaceParticleSources(json const &configJson);
-    
+
     /**
      * @brief Process the PIC and FEM parameters.
      * @param configJson JSON configuration object.
      */
     void _processPicFemParameters(json const &configJson);
-    
+
     /**
      * @brief Process the iterative solver parameters if they exist.
      * @param configJson JSON configuration object.
      */
     void _processIterativeSolverParameters(json const &configJson);
-    
+
     /**
      * @brief Process the boundary conditions if they exist.
      * @param configJson JSON configuration object.
@@ -174,8 +174,8 @@ public:
     STARTCONSTEXPRFUNC std::string_view getScatteringModel() const { return m_config.model.data(); }
     constexpr std::vector<point_source_t> const &getParticleSourcePoints() const { return m_config.particleSourcePoints; }
     constexpr std::vector<surface_source_t> const &getParticleSourceSurfaces() const { return m_config.particleSourceSurfaces; }
-    STARTCONSTEXPRFUNC bool isParticleSourcePoint() const { return !m_config.particleSourcePoints.empty(); }
-    STARTCONSTEXPRFUNC bool isParticleSourceSurface() const { return !m_config.particleSourceSurfaces.empty(); }
+    STARTCONSTEXPRFUNC bool hasParticleSourcePoint() const { return !m_config.particleSourcePoints.empty(); }
+    STARTCONSTEXPRFUNC bool hasParticleSourceSurface() const { return !m_config.particleSourceSurfaces.empty(); }
     constexpr double getEdgeSize() const { return m_config.edgeSize; }
     constexpr short getDesiredCalculationAccuracy() const { return m_config.desiredAccuracy; }
     STARTCONSTEXPRFUNC std::string_view getSolverName() const { return m_config.solverName; }

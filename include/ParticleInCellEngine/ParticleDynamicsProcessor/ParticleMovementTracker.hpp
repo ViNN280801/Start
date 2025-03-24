@@ -91,6 +91,15 @@ public:
                                size_t particleId,
                                Point const &position,
                                size_t maxParticles = kdefault_max_particles_to_record) noexcept;
+
+    /**
+     * @brief Saves the particle movements to a JSON file.
+     *
+     * This function saves the contents of `particlesMovementMap` to a JSON file named `filepath`.
+     * It handles exceptions and provides a warning message if the map is empty.
+     */
+    static void saveMovementsToJson(ParticleMovementMap const &particlesMovementMap,
+                                    std::string_view filepath = "results/particles_movements.json");
 };
 
 #endif // !PARTICLE_MOVEMENT_TRACKER_HPP

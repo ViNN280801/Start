@@ -646,10 +646,8 @@ void SputteringModel::_distributeSettledParticles(std::string_view filepath)
                         r1 = uniform_dist(gen);
                         r2 = uniform_dist(gen);
                     } else {
-                        // Для нормального распределения нужно преобразовать к [0,1]
                         r1 = std::abs(normal_dist(gen));
                         r2 = std::abs(normal_dist(gen));
-                        // Ограничиваем значение до 1.0
                         r1 = std::min(r1, 1.0);
                         r2 = std::min(r2, 1.0);
                     }

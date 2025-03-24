@@ -339,7 +339,7 @@ void NodeChargeDensityProcessor::gather(double timeMoment,
 {
     // Check if the requested number of threads exceeds available hardware concurrency.
     ConfigParser configParser(configFilename);
-    auto numThreads{configParser.getNumThreads_s()};
+    auto numThreads{configParser.getNumThreads()};
 
 #ifdef USE_OMP
     _gather_ompver__(numThreads,
