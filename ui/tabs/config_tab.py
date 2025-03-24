@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QWidget, QComboBox,
     QMessageBox, QLabel, QLineEdit, QFormLayout,
     QGroupBox, QFileDialog, QPushButton, QSizePolicy,
-    QSpacerItem, QDialog
+    QSpacerItem, QDialog, QCheckBox
 )
 from PyQt5.QtCore import QSize, pyqtSignal, QRegExp
 from PyQt5.QtGui import QRegExpValidator
@@ -39,7 +39,7 @@ class ConfigTab(QWidget):
     def setup_ui(self):
         self.setup_mesh_group()
         self.setup_particles_group()
-        self.setup_scattering_model_group()
+        self.setup_scattering_sputtering_model_group()
         self.setup_simulation_parameters_group()
         self.setup_next_button()
 
@@ -87,9 +87,13 @@ class ConfigTab(QWidget):
         particles_group_box.setLayout(particles_layout)
         self.layout.addWidget(particles_group_box)
 
-    def setup_scattering_model_group(self):
+    def setup_scattering_sputtering_model_group(self):
         scattering_group_box = QGroupBox("Scattering Model")
         scattering_layout = QVBoxLayout()
+        
+        self.sputtering_checkbox = QCheckBox("Sputtering")
+        self.sputtering_checkbox.setToolTip(HINT_CONFIG_SPUTTERING)
+        scattering_layout.addWidget(self.sputtering_checkbox)
 
         self.model_input = QComboBox()
         self.model_input.setToolTip(HINT_CONFIG_SCATTERING_MODEL)
@@ -548,6 +552,7 @@ class ConfigTab(QWidget):
                 str(config.get('Simulation Time', '')))
             self.temperature_input.setText(str(config.get('T', '')))
             self.pressure_input.setText(str(config.get('P', '')))
+            self.sputtering_checkbox.setChecked(config.get('Sputtering', False))
 
             solvername_text = config.get("solverName")
             solvername_index = self.solvername_input.findText(
@@ -918,6 +923,7 @@ class ConfigTab(QWidget):
         update_config("EdgeSize", self.cubic_grid_size_input.text())
         update_config("DesiredAccuracy", self.fem_accuracy_input.text())
         update_config("solverName", self.solvername_input.currentText())
+        update_config("Sputtering", self.sputtering_checkbox.isChecked())
 
         # Update solver parameters
         for key, (input_field,
@@ -964,6 +970,8 @@ class ConfigTab(QWidget):
                 self.gas_input.currentText(),
                 "Model":
                 self.model_input.currentText(),
+                "Sputtering":
+                self.sputtering_checkbox.isChecked(),
                 "EdgeSize":
                 self.cubic_grid_size_input.text(),
                 "DesiredAccuracy":

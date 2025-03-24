@@ -45,6 +45,7 @@ HINT_CONFIG_PRESSURE = "Pressure: Initial pressure for the simulation. Units: mP
 
 HINT_CONFIG_MESH_FILE = "Select the mesh file to use for the simulation. Supported formats: .msh, .stp, .vtk."
 HINT_CONFIG_GAS_SELECTION = "Select the type of gas particles for the simulation. Options: O2, Ar, Ne, He."
+HINT_CONFIG_SPUTTERING = "Sputtering: Enable sputtering of particles on the surface of the mesh. Disables electrical field."
 HINT_CONFIG_SCATTERING_MODEL = "Select the scattering model to use in the simulation. Options: HS, VHS, VSS."
 
 HINT_CONFIG_CUBIC_GRID_SIZE = (
