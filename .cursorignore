@@ -17,6 +17,7 @@ configs/
 intermediateResults/
 meshes/
 results/
+!ui/tabs/results/
 
 tests/configs/
 tests/meshes/
