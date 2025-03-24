@@ -40,7 +40,7 @@
 class ParticleMovementTracker
 {
 private:
-    constexpr static size_t kdefault_max_particles_to_record{1'000'000ul}; ///< Default number of the particles to record them.
+    constexpr static size_t kdefault_max_particles_to_record{200'000ul}; ///< Default number of the particles to record them.
 
 public:
     /**
