@@ -1,4 +1,5 @@
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
+#include "ParticleInCellEngine/PICExceptions.hpp"
 
 void ParticleMovementTracker::recordMovement(ParticleMovementMap &particlesMovementMap,
                                              std::mutex &mutex_particlesMovement,
@@ -14,7 +15,7 @@ void ParticleMovementTracker::recordMovement(ParticleMovementMap &particlesMovem
     }
 }
 
-void ParticleMovementTracker::saveMovementsToJson(ParticleMovementMap const &particlesMovementMap,
+void ParticleMovementTracker::saveMovementsToJson(ParticleMovementMap_cref particlesMovementMap,
                                                   std::string_view filepath)
 {
     try
@@ -35,8 +36,6 @@ void ParticleMovementTracker::saveMovementsToJson(ParticleMovementMap const &par
                     positions.push_back({{"x", point.x()}, {"y", point.y()}, {"z", point.z()}});
                 j[std::to_string(id)] = positions;
             }
-            else
-                throw std::runtime_error("There is no movements between particles, something may go wrong.");
         }
 
         std::ofstream file(filepath.data());
@@ -46,7 +45,7 @@ void ParticleMovementTracker::saveMovementsToJson(ParticleMovementMap const &par
             file.close();
         }
         else
-            throw std::ios_base::failure("Failed to open file for writing");
+            START_THROW_EXCEPTION(PICParticleMovementTrackerSaveMovementsToJsonException, "Failed to open file for writing");
         LOGMSG(util::stringify("Successfully written particle movements to the file ", filepath));
 
         util::check_json_validity(filepath);

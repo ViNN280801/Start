@@ -68,20 +68,9 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                           ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
                           // 8. Handle collisions between the particle and the surface mesh.
-                          auto collisionResult = ParticleSurfaceCollisionHandler::handle(
+                          ParticleSurfaceCollisionHandler::handle(
                               particle, segment, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
                               mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject);
-
-                          // 9. Record final position if no collision detected
-                          // Collision handling already records intersection points if a collision occurred
-                          if (!collisionResult.has_value())
-                          {
-                              ParticleMovementTracker::recordMovement(
-                                  particleMovementMap,
-                                  mutex_particlesMovementMap,
-                                  particle.getId(),
-                                  particle.getCentre());
-                          }
                       });
     }
     catch (std::exception const &e)

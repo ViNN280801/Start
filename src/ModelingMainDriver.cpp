@@ -59,22 +59,6 @@ void ModelingMainDriver::_spawnParticles()
         ParticleDisplacer::displaceParticlesFromSurfaceSources(surfaceSourceParticles, m_config.getParticleSourceSurfaces());
     }
 
-    // Record initial positions of new particles before adding them to the main container
-    for (const auto &particle : pointSourceParticles)
-    {
-        ParticleMovementTracker::recordMovement(m_particlesMovement,
-                                                m_particlesMovementMutex,
-                                                particle.getId(),
-                                                particle.getCentre());
-    }
-    for (const auto &particle : surfaceSourceParticles)
-    {
-        ParticleMovementTracker::recordMovement(m_particlesMovement,
-                                                m_particlesMovementMutex,
-                                                particle.getId(),
-                                                particle.getCentre());
-    }
-
     // Now add the new particles to the main container
     // With stable_vector, this won't invalidate iterators to existing particles
     std::lock_guard<std::mutex> lock(m_particlesVectorMutex);

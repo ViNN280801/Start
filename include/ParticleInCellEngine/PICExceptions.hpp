@@ -4,6 +4,7 @@
 #include "Utilities/ExceptionMacros.hpp"
 
 START_DEFINE_EXCEPTION(PICBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(PICBaseIosBaseFailureException, std::ios_base::failure)
 START_DEFINE_EXCEPTION(PICUnknownException, PICBaseException)
 
 START_DEFINE_EXCEPTION(PICParticleDynamicsProcessorStdVersionHelperException, PICBaseException)
@@ -20,5 +21,9 @@ START_DEFINE_EXCEPTION(PICNodeChargeDensityProcessorStdVersionHelperException, P
 START_DEFINE_EXCEPTION(PICNodeChargeDensityProcessorOmpVersionHelperException, PICBaseException)
 START_DEFINE_EXCEPTION(PICNodeChargeDensityProcessorOmpVersionHelperUnknownException, PICUnknownException)
 START_DEFINE_EXCEPTION(PICNodeChargeDensityProcessorStdVersionHelperUnknownException, PICUnknownException)
+
+START_DEFINE_EXCEPTION(PICParticleMovementTrackerException, PICBaseException)
+START_DEFINE_EXCEPTION(PICParticleMovementTrackerUnknownException, PICUnknownException)
+START_DEFINE_EXCEPTION(PICParticleMovementTrackerSaveMovementsToJsonException, PICBaseIosBaseFailureException)
 
 #endif // !PIC_EXCEPTIONS_HPP
