@@ -6,6 +6,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 #include "Utilities/Utilities.hpp"
 
 namespace ConfigParserTypes
@@ -51,6 +54,7 @@ namespace ConfigParserTypes
         ParticleType gas{};         ///< Gas particle type, e.g., N.
         std::string mshfilename;    ///< Filename of the mesh file.
         std::string model;          ///< Scattering model, e.g., HS/VHS/VSS.
+        bool sputtering{};          ///< Flag indicating whether sputtering is enabled.
 
         /* Particle source params. */
         std::vector<point_source_t> particleSourcePoints;     ///< Vector of point particle sources.
@@ -104,6 +108,48 @@ private:
      * @param config Name of the configuration file.
      */
     void getConfigData(std::string_view config);
+    
+    /**
+     * @brief Process the required parameters that must exist in the config file.
+     * @param configJson JSON configuration object.
+     */
+    void _processRequiredParameters(json const &configJson);
+    
+    /**
+     * @brief Process the basic simulation parameters.
+     * @param configJson JSON configuration object.
+     */
+    void _processSimulationParameters(json const &configJson);
+    
+    /**
+     * @brief Process the point particle sources if they exist.
+     * @param configJson JSON configuration object.
+     */
+    void _processPointParticleSources(json const &configJson);
+    
+    /**
+     * @brief Process the surface particle sources if they exist.
+     * @param configJson JSON configuration object.
+     */
+    void _processSurfaceParticleSources(json const &configJson);
+    
+    /**
+     * @brief Process the PIC and FEM parameters.
+     * @param configJson JSON configuration object.
+     */
+    void _processPicFemParameters(json const &configJson);
+    
+    /**
+     * @brief Process the iterative solver parameters if they exist.
+     * @param configJson JSON configuration object.
+     */
+    void _processIterativeSolverParameters(json const &configJson);
+    
+    /**
+     * @brief Process the boundary conditions if they exist.
+     * @param configJson JSON configuration object.
+     */
+    void _processBoundaryConditions(json const &configJson);
 
 public:
     /**
@@ -116,12 +162,13 @@ public:
     ~ConfigParser() { clearConfig(); }
 
     /* $$$ Getters for all data members from the `config_data_t` structure. $$$ */
-    constexpr unsigned int getNumThreads() const { return m_config.num_threads; }
+    unsigned int getNumThreads() const;
     constexpr double getTimeStep() const { return m_config.time_step; }
     constexpr double getSimulationTime() const { return m_config.simtime; }
     constexpr double getTemperature() const { return m_config.temperature; }
     constexpr double getPressure() const { return m_config.pressure; }
     constexpr ParticleType getGas() const { return m_config.gas; }
+    constexpr bool isSputtering() const { return m_config.sputtering; }
     std::string getGasStr() const { return util::getParticleType(m_config.gas); }
     STARTCONSTEXPRFUNC std::string_view getMeshFilename() const { return m_config.mshfilename.data(); }
     STARTCONSTEXPRFUNC std::string_view getScatteringModel() const { return m_config.model.data(); }
@@ -145,9 +192,6 @@ public:
     constexpr int getConvergenceTestFrequency() const { return m_config.convergenceTestFrequency; }
     constexpr std::vector<std::pair<std::vector<size_t>, double>> const &getBoundaryConditions() const { return m_config.boundaryConditions; }
     constexpr std::vector<size_t> const &getNonChangeableNodes() const { return m_config.nonChangeableNodes; }
-
-    /// @brief Returns count of threads from config. Has initial checkings and warning msg when num threads occupies 80% of all the threads.
-    unsigned int getNumThreads_s();
 };
 
 #endif // !CONFIG_PARSER_HPP
