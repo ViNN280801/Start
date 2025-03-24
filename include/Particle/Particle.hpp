@@ -7,6 +7,7 @@
 
 #include <CGAL/Bbox_3.h>
 #include <atomic>
+#include <boost/container/stable_vector.hpp>
 
 #include "Geometry/Basics/BaseTypes.hpp"
 #include "Geometry/Basics/GeometryVector.hpp"
@@ -160,7 +161,7 @@ std::ostream &operator<<(std::ostream &os, Particle const &particle);
 using Particle_ref = Particle &;
 using Particle_cref = Particle const &;
 
-using ParticleVector = std::vector<Particle>;
+using ParticleVector = boost::container::stable_vector<Particle>;
 using ParticleVector_ref = ParticleVector &;
 using ParticleVector_cref = ParticleVector const &;
 
