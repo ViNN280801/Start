@@ -52,7 +52,7 @@ namespace constants
 
     namespace global_bounding_box_expansion_factor
     {
-        static STARTCONSTINIT const double expansion_factor{1.2};
+        static STARTCONSTINIT const double expansion_factor{1.01}; ///< 1% expansion factor of the global bounding box.
     }
 
     // Book: The DSMC method G. A. Bird Version 1.2; 2013. 286 p. (Table A.1) - omega
