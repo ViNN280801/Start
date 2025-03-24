@@ -4,7 +4,6 @@
 #include <omp.h>
 #endif
 
-#include "ParticleInCellEngine/PICExceptions.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 
 void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
@@ -40,9 +39,7 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                        &surfaceMesh, &stopSubject](Particle &particle)
                       {
                           // 1. If particle is already settled, skip further processing.
-                          if (ParticleSettler::isSettled(particle.getId(),
-                                                         settledParticlesIds,
-                                                         sh_mutex_settledParticlesCounterMap))
+                          if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
                               return;
 
                           // 2. Skip particles with velocity close to zero
@@ -55,17 +52,11 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
 
                           // 4. Apply electromagnetic forces to the particle.
                           if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
-                              ParticlePhysicsUpdater::doElectroMagneticPush(particle,
-                                                                            gsmAssembler,
-                                                                            *tetraId,
-                                                                            timeStep);
+                              ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
                           // 5. Record the particle's previous position for movement tracking.
                           Point const &prev{particle.getCentre()};
-                          ParticleMovementTracker::recordMovement(particleMovementMap,
-                                                                  mutex_particlesMovementMap,
-                                                                  particle.getId(),
-                                                                  prev);
+                          ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
                           // 6. Update the particle's position.
                           particle.updatePosition(timeStep);
@@ -73,30 +64,29 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                           if (segment.is_degenerate())
                               return;
 
-                          // 7. Record the new position after movement
-                          ParticleMovementTracker::recordMovement(particleMovementMap,
-                                                                  mutex_particlesMovementMap,
-                                                                  particle.getId(),
-                                                                  particle.getCentre());
+                          // 7. Simulate collisions between the particle and gas molecules.
+                          ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-                          // 8. Simulate collisions between the particle and gas molecules.
-                          ParticlePhysicsUpdater::collideWithGas(particle,
-                                                                 scatteringModel,
-                                                                 gasName,
-                                                                 gasConcentration,
-                                                                 timeStep);
+                          // 8. Handle collisions between the particle and the surface mesh.
+                          auto collisionResult = ParticleSurfaceCollisionHandler::handle(
+                              particle, segment, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
+                              mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject);
 
-                          // 9. Handle collisions between the particle and the surface mesh.
-                          ParticleSurfaceCollisionHandler::handle(particle, segment, particles.size(),
-                                                                  surfaceMesh, sh_mutex_settledParticlesCounterMap,
-                                                                  mutex_particlesMovementMap,
-                                                                  particleMovementMap, settledParticlesIds, stopSubject);
+                          // 9. Record final position if no collision detected
+                          // Collision handling already records intersection points if a collision occurred
+                          if (!collisionResult.has_value())
+                          {
+                              ParticleMovementTracker::recordMovement(
+                                  particleMovementMap,
+                                  mutex_particlesMovementMap,
+                                  particle.getId(),
+                                  particle.getCentre());
+                          }
                       });
     }
     catch (std::exception const &e)
     {
-        START_THROW_EXCEPTION(PICParticleDynamicsProcessorStdVersionHelperException,
-                              util::stringify("[process_stdver__helper] ", e.what()));
+        throw std::runtime_error{std::string{"[process_stdver__helper] "} + e.what()};
     }
 }
 
@@ -185,9 +175,7 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
             auto &particle = particles[i];
 
             // 1. Check if particle is settled.
-            if (ParticleSettler::isSettled(particle.getId(),
-                                           settledParticlesIds,
-                                           sh_mutex_settledParticlesCounterMap))
+            if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
                 continue;
 
             // 2. Skip particles with velocity close to zero
@@ -200,17 +188,11 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
 
             // 4. Electromagnetic push.
             if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
-                ParticlePhysicsUpdater::doElectroMagneticPush(particle,
-                                                              gsmAssembler,
-                                                              *tetraId,
-                                                              timeStep);
+                ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
             // 5. Record previous position.
             Point prev{particle.getCentre()};
-            ParticleMovementTracker::recordMovement(particleMovementMap,
-                                                    mutex_particlesMovementMap,
-                                                    particle.getId(),
-                                                    prev);
+            ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
             // 6. Update position.
             particle.updatePosition(timeStep);
@@ -218,16 +200,10 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
             if (segment.is_degenerate())
                 continue;
 
-            // 7. Record the new position after movement
-            ParticleMovementTracker::recordMovement(particleMovementMap,
-                                                    mutex_particlesMovementMap,
-                                                    particle.getId(),
-                                                    particle.getCentre());
-
-            // 8. Gas collision.
+            // 7. Gas collision.
             ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-            // 9. Surface collision.
+            // 8. Surface collision.
             ParticleSurfaceCollisionHandler::handle(particle, segment, particles.size(),
                                                     surfaceMesh, sh_mutex_settledParticlesCounterMap,
                                                     mutex_particlesMovementMap,
@@ -236,13 +212,11 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
     }
     catch (std::exception const &ex)
     {
-        START_THROW_EXCEPTION(PICParticleDynamicsProcessorOmpVersionHelperException,
-                              util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
+        ERRMSG(util::stringify("Can't finish detecting particles collisions with surfaces (OMP): ", ex.what()));
     }
     catch (...)
     {
-        START_THROW_EXCEPTION(PICParticleDynamicsProcessorOmpVersionHelperUnknownException,
-                              util::stringify("Some error occured while detecting particles collisions with surfaces (OMP)"));
+        ERRMSG("Some error occured while detecting particles collisions with surfaces (OMP)");
     }
 }
 #endif // !USE_OMP
@@ -266,8 +240,7 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
                                         double gasConcentration)
 {
     // Implement a fallback mechanism: first OpenMP, then standard multi-threading
-    bool processing_success = false;
-    WARNINGMSG("Processing particles with CUDA is not supported yet");
+    bool processing_success{};
 
 #ifdef USE_OMP
     // Try OpenMP if CUDA failed
@@ -286,8 +259,7 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
         catch (std::exception const &e)
         {
             processing_success = false;
-            START_THROW_EXCEPTION(PICParticleDynamicsProcessorOmpVersionProcessingException,
-                                  util::stringify("OpenMP processing failed: ", e.what()));
+            ERRMSG(util::stringify("OpenMP processing failed: ", e.what()));
         }
     }
 #endif
@@ -307,12 +279,10 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
         catch (std::exception const &e)
         {
             processing_success = false;
-            START_THROW_EXCEPTION(PICParticleDynamicsProcessorStdVersionProcessingException,
-                                  util::stringify("Standard C++ parallel execution failed: ", e.what()));
+            ERRMSG(util::stringify("Standard C++ parallel execution failed: ", e.what()));
         }
     }
 
     if (!processing_success)
-        START_THROW_EXCEPTION(PICParticleDynamicsProcessorProcessingException,
-                              util::stringify("Failed to process particles, tried OpenMP and standard C++ parallel execution"));
+        ERRMSG("Resume: Failed to process particles");
 }

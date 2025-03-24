@@ -59,6 +59,24 @@ void ModelingMainDriver::_spawnParticles()
         ParticleDisplacer::displaceParticlesFromSurfaceSources(surfaceSourceParticles, m_config.getParticleSourceSurfaces());
     }
 
+    // Record initial positions of new particles before adding them to the main container
+    for (const auto &particle : pointSourceParticles)
+    {
+        ParticleMovementTracker::recordMovement(m_particlesMovement,
+                                                m_particlesMovementMutex,
+                                                particle.getId(),
+                                                particle.getCentre());
+    }
+    for (const auto &particle : surfaceSourceParticles)
+    {
+        ParticleMovementTracker::recordMovement(m_particlesMovement,
+                                                m_particlesMovementMutex,
+                                                particle.getId(),
+                                                particle.getCentre());
+    }
+
+    // Now add the new particles to the main container
+    // With stable_vector, this won't invalidate iterators to existing particles
     std::lock_guard<std::mutex> lock(m_particlesVectorMutex);
     m_particles.reserve(m_particles.size() + pointSourceParticles.size() + surfaceSourceParticles.size());
     m_particles.insert(m_particles.end(), pointSourceParticles.begin(), pointSourceParticles.end());
@@ -132,7 +150,10 @@ void ModelingMainDriver::startModeling()
 #endif
     {
         // 1. Spawn new particles for this time step (continuous sputtering)
-        if (m_config.isSputtering())
+        // Time moment here not 0.0 because in _initialize() we already spawn particles
+        // and we don't want to spawn particles in the last time step because
+        // it will be handled in the next time step, so it doesn't make sense
+        if (m_config.isSputtering() && timeMoment != 0.0 && timeMoment != totalTime)
             _spawnParticles();
 
         if (!m_config.isSputtering())
