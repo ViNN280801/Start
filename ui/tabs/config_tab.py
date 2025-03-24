@@ -108,7 +108,8 @@ class ConfigTab(QWidget):
                                 input_type,
                                 units=None,
                                 default_unit=None,
-                                default_value="0.0"):
+                                default_value="0.0",
+                                has_converted_label=True):
         input_field = QLineEdit()
         input_field.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         input_field.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
@@ -123,10 +124,13 @@ class ConfigTab(QWidget):
                 units_combobox.setCurrentText(default_unit)
             units_combobox.setFixedWidth(DEFAULT_COMBOBOX_WIDTH)
             layout.addWidget(units_combobox, alignment=Qt.AlignLeft)
-
+        
         converted_label = QLabel(
             f"{default_value} {units[0] if units else ''}")
         layout.addWidget(converted_label, alignment=Qt.AlignRight)
+        
+        if not has_converted_label:
+            converted_label.hide()
 
         self.simulation_layout.addRow(QLabel(label_text), layout)
 
@@ -177,7 +181,7 @@ class ConfigTab(QWidget):
 
         # Thread count
         self.thread_count_input, _, _ = self.create_simulation_field(
-            "Thread count:", QLineEdit)
+            "Thread count:", QLineEdit, has_converted_label=False)
         self.thread_count_input.setToolTip(HINT_CONFIG_THREAD_COUNT)
         self.thread_count_input.setValidator(
             CustomIntValidator(LIMIT_CONFIG_MIN_THREAD_COUNT,
