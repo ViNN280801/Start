@@ -41,6 +41,10 @@ public:
     Particle(ParticleType type_, double x_, double y_, double z_, VelocityVector_rref velvec);
     Particle(ParticleType type_, Point_cref centre, VelocityVector_cref velvec);
     Particle(ParticleType type_, Point_rref centre, VelocityVector_rref velvec);
+    Particle(Particle const &other);
+    Particle(Particle &&other) noexcept;
+    Particle &operator=(Particle const &other);
+    Particle &operator=(Particle &&other) noexcept;
     ~Particle() {}
 
 #ifdef USE_CUDA

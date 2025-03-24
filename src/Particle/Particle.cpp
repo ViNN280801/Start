@@ -110,6 +110,50 @@ Particle::Particle(ParticleType type_, Point_rref centre,
 	ParticleDynamicUtils::calculateEnergyJFromVelocity(m_energy, getMass(), velvec.getX(), velvec.getY(), velvec.getZ());
 }
 
+Particle::Particle(Particle const &other)
+	: m_id(m_nextId++),
+	  m_type(other.m_type),
+	  m_centre(other.m_centre),
+	  m_velocity(other.m_velocity),
+	  m_energy(other.m_energy)
+{
+}
+
+Particle::Particle(Particle &&other) noexcept
+	: m_id(m_nextId++),
+	  m_type(std::move(other.m_type)),
+	  m_centre(std::move(other.m_centre)),
+	  m_velocity(std::move(other.m_velocity)),
+	  m_energy(std::move(other.m_energy))
+{
+}
+
+Particle &Particle::operator=(Particle const &other)
+{
+	if (this == &other)
+		return *this;
+
+	m_id = m_nextId++;
+	m_type = other.m_type;
+	m_centre = other.m_centre;
+	m_velocity = other.m_velocity;
+	m_energy = other.m_energy;
+	return *this;
+}
+
+Particle &Particle::operator=(Particle &&other) noexcept
+{
+	if (this == &other)
+		return *this;
+
+	m_id = m_nextId++;
+	m_type = std::move(other.m_type);
+	m_centre = std::move(other.m_centre);
+	m_velocity = std::move(other.m_velocity);
+	m_energy = std::move(other.m_energy);
+	return *this;
+}
+
 void Particle::updatePosition(double dt)
 {
 	// Update particle positions: x = x + Vx ⋅ Δt
