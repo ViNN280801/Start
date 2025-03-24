@@ -12,6 +12,7 @@
 
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel; ///< Kernel for exact predicates and inexact constructions.
 using Point = Kernel::Point_3;                                      ///< 3D point type.
+using CGALVector = Kernel::Vector_3;                                ///< 3D vector type.
 using Segment = Kernel::Segment_3;                                  ///< 3D line segment type.
 using Triangle = Kernel::Triangle_3;                                ///< 3D triangle type.
 using Tetrahedron = Kernel::Tetrahedron_3;                          ///< 3D tetrahedron type.
