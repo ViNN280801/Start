@@ -3,7 +3,6 @@ from .gmsh_geometry import GMSHGeometryManipulator
 
 
 class GeometryManipulator:
-    
     @staticmethod
     def move(actor, dimtags, x_offset, y_offset, z_offset):
         VTKGeometryManipulator.move(actor, x_offset, y_offset, z_offset)
@@ -24,13 +23,13 @@ class GeometryManipulator:
         out_actor = VTKGeometryManipulator.subtract(first_actor, second_actor)
         out_dimtags = GMSHGeometryManipulator.subtract(first_dimtags, second_dimtags)
         return out_actor, out_dimtags
-        
+
     @staticmethod
     def combine(first_actor, second_actor, first_dimtags, second_dimtags):
         out_actor = VTKGeometryManipulator.combine(first_actor, second_actor)
         out_dimtags = GMSHGeometryManipulator.combine(first_dimtags, second_dimtags)
         return out_actor, out_dimtags
-    
+
     @staticmethod
     def intersect(first_actor, second_actor, first_dimtags, second_dimtags):
         out_actor = VTKGeometryManipulator.intersect(first_actor, second_actor)
@@ -38,7 +37,9 @@ class GeometryManipulator:
         return out_actor, out_dimtags
 
     @staticmethod
-    def cross_section(actor_to_cut, plane, actor_dimtags, plane_dimtags):        
+    def cross_section(actor_to_cut, plane, actor_dimtags, plane_dimtags):
         out_actors = VTKGeometryManipulator.cross_section(actor_to_cut, plane)
-        out_dimtags = GMSHGeometryManipulator.cross_section(actor_dimtags, plane_dimtags)
+        out_dimtags = GMSHGeometryManipulator.cross_section(
+            actor_dimtags, plane_dimtags
+        )
         return out_actors, out_dimtags

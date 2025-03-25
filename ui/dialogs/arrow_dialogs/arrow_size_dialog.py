@@ -1,6 +1,11 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLineEdit,
-    QDialogButtonBox, QLabel, QSlider
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QLabel,
+    QSlider,
 )
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import Qt
@@ -36,7 +41,8 @@ class ArrowSizeDialog(QDialog):
         layout.addLayout(size_layout)
 
         button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         layout.addWidget(button_box)
 
         button_box.accepted.connect(self.accept)

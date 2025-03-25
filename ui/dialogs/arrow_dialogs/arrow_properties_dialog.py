@@ -1,11 +1,19 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLineEdit,
-    QDialogButtonBox, QMessageBox, QLabel,
-    QPushButton
+    QDialog,
+    QVBoxLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMessageBox,
+    QLabel,
+    QPushButton,
 )
 from vtk import (
-    vtkArrowSource, vtkTransform, vtkTransformPolyDataFilter,
-    vtkActor, vtkPolyDataMapper, vtkRenderer
+    vtkArrowSource,
+    vtkTransform,
+    vtkTransformPolyDataFilter,
+    vtkActor,
+    vtkPolyDataMapper,
+    vtkRenderer,
 )
 from styles import *
 from constants import *
@@ -18,7 +26,13 @@ from .arrow_size_dialog import ArrowSizeDialog
 class ArrowPropertiesDialog(QDialog):
     properties_accepted = pyqtSignal(tuple)
 
-    def __init__(self, vtkWidget: QVTKRenderWindowInteractor, renderer: vtkRenderer, arrowActor: vtkActor, parent=None):
+    def __init__(
+        self,
+        vtkWidget: QVTKRenderWindowInteractor,
+        renderer: vtkRenderer,
+        arrowActor: vtkActor,
+        parent=None,
+    ):
         super(ArrowPropertiesDialog, self).__init__(parent)
 
         self.vtkWidget = vtkWidget
@@ -69,7 +83,8 @@ class ArrowPropertiesDialog(QDialog):
         layout.addWidget(size_button)
 
         button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         layout.addWidget(button_box)
 
         button_box.accepted.connect(self.accept_and_emit)
@@ -97,7 +112,8 @@ class ArrowPropertiesDialog(QDialog):
             x, y, z, angle_x, angle_y, angle_z, size = properties
             self.resetArrowActor()
             self.create_direction_arrow_manually(
-                x, y, z, angle_x, angle_y, angle_z, self.arrowSize)
+                x, y, z, angle_x, angle_y, angle_z, self.arrowSize
+            )
 
     def getProperties(self):
         try:
@@ -159,8 +175,9 @@ class ArrowPropertiesDialog(QDialog):
             self.accept()
             self.resetArrowActor()
         else:
-            QMessageBox.warning(self, "Invalid input",
-                                "Please enter valid numerical values.")
+            QMessageBox.warning(
+                self, "Invalid input", "Please enter valid numerical values."
+            )
 
     def reject(self):
         self.resetArrowActor()

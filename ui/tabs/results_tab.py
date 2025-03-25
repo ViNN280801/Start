@@ -1,11 +1,28 @@
 from vtk import (
-    vtkAxesActor, vtkOrientationMarkerWidget, vtkRenderer, 
-    vtkWindowToImageFilter, vtkPNGWriter, vtkJPEGWriter
+    vtkAxesActor,
+    vtkOrientationMarkerWidget,
+    vtkRenderer,
+    vtkWindowToImageFilter,
+    vtkPNGWriter,
+    vtkJPEGWriter,
 )
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QSpacerItem,
-    QSizePolicy, QMenu, QAction, QFontDialog, QDialog, QLabel,
-    QLineEdit, QMessageBox, QColorDialog, QFileDialog, QCheckBox
+    QVBoxLayout,
+    QHBoxLayout,
+    QWidget,
+    QPushButton,
+    QSpacerItem,
+    QSizePolicy,
+    QMenu,
+    QAction,
+    QFontDialog,
+    QDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QColorDialog,
+    QFileDialog,
+    QCheckBox,
 )
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon
@@ -52,7 +69,7 @@ class ResultsTab(QWidget):
         self.layout.addLayout(self.toolbarLayout)
         self.layout.addWidget(self.vtkWidget)
         self.setLayout(self.layout)
-        
+
     def setup_axes(self):
         self.axes_actor = vtkAxesActor()
         self.axes_widget = vtkOrientationMarkerWidget()
@@ -61,17 +78,25 @@ class ResultsTab(QWidget):
         self.axes_widget.SetViewport(0.0, 0.0, 0.2, 0.2)
         self.axes_widget.EnabledOn()
         self.axes_widget.InteractiveOff()
-        
+
     def setup_particle_animator(self):
         self.particle_animator = ParticleAnimator(
-            self.vtkWidget, 
-            self.log_console, 
-            self.renderer, 
+            self.vtkWidget,
+            self.log_console,
+            self.renderer,
             self,
-            self.config_tab  # Pass the config_tab reference
+            self.config_tab,  # Pass the config_tab reference
         )
 
-    def create_toolbar_button(self, icon_path, tooltip, callback, layout, icon_size=QSize(40, 40), button_size=QSize(40, 40)):
+    def create_toolbar_button(
+        self,
+        icon_path,
+        tooltip,
+        callback,
+        layout,
+        icon_size=QSize(40, 40),
+        button_size=QSize(40, 40),
+    ):
         """
         Create a toolbar button and add it to the specified layout.
 
@@ -95,52 +120,53 @@ class ResultsTab(QWidget):
     def setup_toolbar(self):
         self.animationsButton = self.create_toolbar_button(
             icon_path="icons/anim.png",
-            tooltip='Shows animation',
+            tooltip="Shows animation",
             callback=self.show_animation,
-            layout=self.toolbarLayout
+            layout=self.toolbarLayout,
         )
 
         self.animationClearButton = self.create_toolbar_button(
             icon_path="icons/anim-remove.png",
-            tooltip='Removes all the objects from the previous animation',
+            tooltip="Removes all the objects from the previous animation",
             callback=self.stop_animation,
-            layout=self.toolbarLayout
+            layout=self.toolbarLayout,
         )
 
         self.scalarBarSettingsButton = self.create_toolbar_button(
             icon_path="icons/settings.png",
-            tooltip='Scalar bar settings',
+            tooltip="Scalar bar settings",
             callback=self.show_context_menu,
-            layout=self.toolbarLayout
+            layout=self.toolbarLayout,
         )
 
         self.savePictureButton = self.create_toolbar_button(
             icon_path="icons/save-picture.png",
-            tooltip='Save results as screenshot',
+            tooltip="Save results as screenshot",
             callback=self.save_screenshot,
-            layout=self.toolbarLayout
+            layout=self.toolbarLayout,
         )
-        
+
         self.uploadMeshButton = self.create_toolbar_button(
             icon_path="",
             tooltip="Test",
             callback=self.upload_mesh,
-            layout=self.toolbarLayout
+            layout=self.toolbarLayout,
         )
 
-        self.spacer = QSpacerItem(
-            40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.toolbarLayout.addSpacerItem(self.spacer)
-        
+
         self.viewMeshCheckBox = QCheckBox("Hide mesh")
-        self.viewMeshCheckBox.stateChanged.connect(self.on_viewMeshCheckBox_state_changed)
+        self.viewMeshCheckBox.stateChanged.connect(
+            self.on_viewMeshCheckBox_state_changed
+        )
         self.viewMeshCheckBox.setVisible(False)
         self.toolbarLayout.addWidget(self.viewMeshCheckBox)
-        
+
         self.posFileCheckbox = QCheckBox("Load .pos file")
         self.posFileCheckbox.stateChanged.connect(self.on_posFileCheckbox_state_changed)
         self.toolbarLayout.addWidget(self.posFileCheckbox)
-    
+
     def upload_mesh(self):
         # Open a file dialog to select a .msh file
         file_path, _ = QFileDialog.getOpenFileName(
@@ -154,17 +180,19 @@ class ResultsTab(QWidget):
             if actor:
                 add_actor(self.vtkWidget, self.renderer, actor, needResetCamera=True)
             else:
-                QMessageBox.critical(self, "Error", "Failed to load and render the .vtk file.")
+                QMessageBox.critical(
+                    self, "Error", "Failed to load and render the .vtk file."
+                )
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred: {e}")
-        
+
     def show_animation(self):
         self.particle_animator.show_animation()
-        
+
     def stop_animation(self):
         self.particle_animator.stop_animation()
-        
+
     def edit_fps(self):
         self.particle_animator.edit_fps()
 
@@ -178,15 +206,21 @@ class ResultsTab(QWidget):
             self.mesh_data = self.handler.read_mesh_from_hdf5()
             self.mesh_visualizer = MeshVisualizer(self.renderer, self.mesh_data)
             self.mesh_actor = self.mesh_visualizer.create_colored_mesh_actor()
-            
+
             if self.mesh_actor is not None:
-                self.viewMeshCheckBox.setVisible(True)                
-            
-            self.particles_colorbar_manager = ParticlesColorbarManager(self, self.mesh_data, self.mesh_actor)
-            self.particles_colorbar_manager.add_colorbar('Particle Count')
-            
+                self.viewMeshCheckBox.setVisible(True)
+
+            self.particles_colorbar_manager = ParticlesColorbarManager(
+                self, self.mesh_data, self.mesh_actor
+            )
+            self.particles_colorbar_manager.add_colorbar("Particle Count")
+
         except Exception as e:
-            QMessageBox.warning(self, "HDF5 Error", f"Something went wrong while hdf5 processing. Error: {e}")
+            QMessageBox.warning(
+                self,
+                "HDF5 Error",
+                f"Something went wrong while hdf5 processing. Error: {e}",
+            )
 
         self.reset_camera()
 
@@ -197,22 +231,23 @@ class ResultsTab(QWidget):
     def clear_plot(self):
         self.mesh_actor = None
         self.viewMeshCheckBox.setVisible(False)
-        
+
         self.renderer.RemoveAllViewProps()
         self.vtkWidget.GetRenderWindow().Render()
 
     def align_view_by_axis(self, axis: str):
         from util import align_view_by_axis
+
         align_view_by_axis(axis, self.renderer, self.vtkWidget)
 
     def show_context_menu(self):
         context_menu = QMenu(self)
 
         # Add actions for changing scale, font, and division number
-        action_change_scale = QAction('Change Scale', self)
-        action_change_font = QAction('Change Font', self)
-        action_change_divs = QAction('Change Number of Divisions', self)
-        action_reset = QAction('Reset To Default Settings', self)
+        action_change_scale = QAction("Change Scale", self)
+        action_change_font = QAction("Change Font", self)
+        action_change_divs = QAction("Change Number of Divisions", self)
+        action_reset = QAction("Reset To Default Settings", self)
 
         action_change_scale.triggered.connect(self.change_scale)
         action_change_font.triggered.connect(self.change_font)
@@ -227,15 +262,15 @@ class ResultsTab(QWidget):
         context_menu.exec_(self.mapToGlobal(self.scalarBarSettingsButton.pos()))
 
     def change_scale(self):
-        if not hasattr(self, 'particles_colorbar_manager'):
+        if not hasattr(self, "particles_colorbar_manager"):
             return
-        
+
         dialog = QDialog(self)
-        dialog.setWindowTitle('Change Scalar Bar Scale')
+        dialog.setWindowTitle("Change Scalar Bar Scale")
         layout = QVBoxLayout(dialog)
 
         # Width input
-        width_label = QLabel('Width (as fraction of window width, 0-1):', dialog)
+        width_label = QLabel("Width (as fraction of window width, 0-1):", dialog)
         layout.addWidget(width_label)
         width_input = QLineEdit(dialog)
         width_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -243,16 +278,18 @@ class ResultsTab(QWidget):
         layout.addWidget(width_input)
 
         # Height input
-        height_label = QLabel('Height (as fraction of window height, 0-1):', dialog)
+        height_label = QLabel("Height (as fraction of window height, 0-1):", dialog)
         layout.addWidget(height_label)
         height_input = QLineEdit(dialog)
         height_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         height_input.setValidator(CustomDoubleValidator(0, 1, 9))
         layout.addWidget(height_input)
 
-        apply_button = QPushButton('Apply', dialog)
+        apply_button = QPushButton("Apply", dialog)
         layout.addWidget(apply_button)
-        apply_button.clicked.connect(lambda: self.apply_scale(width_input.text(), height_input.text()))
+        apply_button.clicked.connect(
+            lambda: self.apply_scale(width_input.text(), height_input.text())
+        )
 
         dialog.setLayout(layout)
         dialog.exec_()
@@ -265,14 +302,18 @@ class ResultsTab(QWidget):
                 self.particles_colorbar_manager.apply_scale(width, height)
                 self.vtkWidget.GetRenderWindow().Render()
             else:
-                QMessageBox.warning(self, "Invalid Scale", "Width and height must be between 0 and 1")
+                QMessageBox.warning(
+                    self, "Invalid Scale", "Width and height must be between 0 and 1"
+                )
         except ValueError as e:
-            QMessageBox.warning(self, "Invalid Input", f"Width and height must be numeric: {e}")
+            QMessageBox.warning(
+                self, "Invalid Input", f"Width and height must be numeric: {e}"
+            )
 
     def change_font(self):
-        if not hasattr(self, 'particles_colorbar_manager'):
+        if not hasattr(self, "particles_colorbar_manager"):
             return
-        
+
         font, ok = QFontDialog.getFont()
         if ok:
             color = QColorDialog.getColor()
@@ -284,23 +325,23 @@ class ResultsTab(QWidget):
                 self.vtkWidget.GetRenderWindow().Render()
 
     def change_division_number(self):
-        if not hasattr(self, 'particles_colorbar_manager'):
+        if not hasattr(self, "particles_colorbar_manager"):
             return
-        
+
         dialog = QDialog(self)
         dialog.setFixedWidth(250)
-        dialog.setWindowTitle('Change Division Number')
+        dialog.setWindowTitle("Change Division Number")
         layout = QVBoxLayout(dialog)
 
         # Width input
-        divs_label = QLabel('Count of divisions:', dialog)
+        divs_label = QLabel("Count of divisions:", dialog)
         layout.addWidget(divs_label)
         divs_input = QLineEdit(dialog)
         divs_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         divs_input.setValidator(CustomIntValidator(1, 1000))
         layout.addWidget(divs_input)
 
-        apply_button = QPushButton('Apply', dialog)
+        apply_button = QPushButton("Apply", dialog)
         layout.addWidget(apply_button)
         apply_button.clicked.connect(lambda: self.apply_divs(divs_input.text()))
 
@@ -313,19 +354,20 @@ class ResultsTab(QWidget):
             self.particles_colorbar_manager.change_divs(divs)
             self.vtkWidget.GetRenderWindow().Render()
         except ValueError:
-            QMessageBox.warning(self, "Invalid Input",
-                                "Division number must be numeric")
+            QMessageBox.warning(
+                self, "Invalid Input", "Division number must be numeric"
+            )
 
     def reset_to_default(self):
-        if not hasattr(self, 'particles_colorbar_manager'):
+        if not hasattr(self, "particles_colorbar_manager"):
             return
-        
+
         self.particles_colorbar_manager.reset_to_default()
         self.vtkWidget.GetRenderWindow().Render()
 
     def save_screenshot(self):
         from os.path import splitext
-        
+
         try:
             options = QFileDialog.Options()
             file_path, _ = QFileDialog.getSaveFileName(
@@ -333,7 +375,7 @@ class ResultsTab(QWidget):
                 "Save Screenshot",
                 "",
                 "Images (*.png *.jpg *.jpeg)",
-                options=options
+                options=options,
             )
             if file_path:
                 render_window = self.vtkWidget.GetRenderWindow()
@@ -345,9 +387,9 @@ class ResultsTab(QWidget):
                     file_path += ".png"
 
                 writer = None
-                if file_path.endswith('.png'):
+                if file_path.endswith(".png"):
                     writer = vtkPNGWriter()
-                elif file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
+                elif file_path.endswith(".jpg") or file_path.endswith(".jpeg"):
                     writer = vtkJPEGWriter()
                 else:
                     raise ValueError("Unsupported file extension")
@@ -357,12 +399,12 @@ class ResultsTab(QWidget):
                 writer.Write()
 
                 QMessageBox.information(
-                    self, "Success", f"Screenshot saved to {file_path}")
+                    self, "Success", f"Screenshot saved to {file_path}"
+                )
 
         except Exception as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to save screenshot: {e}")
-            
+            QMessageBox.critical(self, "Error", f"Failed to save screenshot: {e}")
+
     def on_viewMeshCheckBox_state_changed(self, state):
         if state == Qt.Checked:
             self.mesh_actor.SetVisibility(False)

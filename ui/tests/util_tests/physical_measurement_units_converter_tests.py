@@ -3,7 +3,6 @@ from util.physical_measurement_units_converter import PhysicalMeasurementUnitsCo
 
 
 class PhysicalMeasurementUnitsConverterTests(unittest.TestCase):
-
     def test_to_kelvin(self):
         test_cases = [
             ("0", "C", 273.15),
@@ -15,11 +14,13 @@ class PhysicalMeasurementUnitsConverterTests(unittest.TestCase):
             ("-273.15", "C", 0),
             ("-459.67", "F", 0),
             ("1000", "K", 1000),
-            ("-40", "C", 233.15)
+            ("-40", "C", 233.15),
         ]
         for value, unit, expected in test_cases:
             with self.subTest(value=value, unit=unit, expected=expected):
-                self.assertAlmostEqual(PhysicalMeasurementUnitsConverter.to_kelvin(value, unit), expected)
+                self.assertAlmostEqual(
+                    PhysicalMeasurementUnitsConverter.to_kelvin(value, unit), expected
+                )
         with self.assertRaises(ValueError):
             PhysicalMeasurementUnitsConverter.to_kelvin("100", "X")
 
@@ -32,11 +33,13 @@ class PhysicalMeasurementUnitsConverterTests(unittest.TestCase):
             ("60", "min", 3600),
             ("1000", "μs", 1e-3),
             ("0", "s", 0),
-            ("2", "min", 120)
+            ("2", "min", 120),
         ]
         for value, unit, expected in test_cases:
             with self.subTest(value=value, unit=unit, expected=expected):
-                self.assertAlmostEqual(PhysicalMeasurementUnitsConverter.to_seconds(value, unit), expected)
+                self.assertAlmostEqual(
+                    PhysicalMeasurementUnitsConverter.to_seconds(value, unit), expected
+                )
 
     def test_to_pascal(self):
         test_cases = [
@@ -49,11 +52,13 @@ class PhysicalMeasurementUnitsConverterTests(unittest.TestCase):
             ("0", "kPa", 0),
             ("0", "psi", 0),
             ("10", "psi", 68947.6),
-            ("1000", "Pa", 1000)
+            ("1000", "Pa", 1000),
         ]
         for value, unit, expected in test_cases:
             with self.subTest(value=value, unit=unit, expected=expected):
-                self.assertAlmostEqual(PhysicalMeasurementUnitsConverter.to_pascal(value, unit), expected)
+                self.assertAlmostEqual(
+                    PhysicalMeasurementUnitsConverter.to_pascal(value, unit), expected
+                )
 
     def test_to_cubic_meters(self):
         test_cases = [
@@ -66,11 +71,14 @@ class PhysicalMeasurementUnitsConverterTests(unittest.TestCase):
             ("1000", "m³", 1000),
             ("0.001", "m³", 1e-3),
             ("500", "cm³", 0.0005),
-            ("10", "m³", 10)
+            ("10", "m³", 10),
         ]
         for value, unit, expected in test_cases:
             with self.subTest(value=value, unit=unit, expected=expected):
-                self.assertAlmostEqual(PhysicalMeasurementUnitsConverter.to_cubic_meters(value, unit), expected)
+                self.assertAlmostEqual(
+                    PhysicalMeasurementUnitsConverter.to_cubic_meters(value, unit),
+                    expected,
+                )
 
     def test_to_joules(self):
         test_cases = [
@@ -79,12 +87,14 @@ class PhysicalMeasurementUnitsConverterTests(unittest.TestCase):
             ("1", "J", 1),
             ("1", "kJ", 1000),
             ("1", "cal", 4.184),
-            ("1000", "eV", 1.602176634e-16)
+            ("1000", "eV", 1.602176634e-16),
         ]
         for value, unit, expected in test_cases:
             with self.subTest(value=value, unit=unit, expected=expected):
-                self.assertAlmostEqual(PhysicalMeasurementUnitsConverter.to_joules(value, unit), expected)
+                self.assertAlmostEqual(
+                    PhysicalMeasurementUnitsConverter.to_joules(value, unit), expected
+                )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

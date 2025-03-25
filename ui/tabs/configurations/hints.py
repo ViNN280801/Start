@@ -3,7 +3,8 @@ from .limitations import *
 
 HINT_CONFIG_MAX_ITERATIONS = (
     f"Max Iterations: The maximum number of iterations the solver will perform. "
-    f"Range: {LIMIT_CONFIG_MIN_ITERATIONS} to {LIMIT_CONFIG_MAX_ITERATIONS}.")
+    f"Range: {LIMIT_CONFIG_MIN_ITERATIONS} to {LIMIT_CONFIG_MAX_ITERATIONS}."
+)
 HINT_CONFIG_CONVERGENCE_TOLERANCE = (
     f"Convergence Tolerance: The tolerance for the relative residual norm used to determine convergence. "
     f"Range: {LIMIT_CONFIG_MIN_CONVERGENCE_TOLERANCE} to {LIMIT_CONFIG_MAX_CONVERGENCE_TOLERANCE}."
@@ -14,10 +15,12 @@ HINT_CONFIG_OUTPUT_FREQUENCY = (
 )
 HINT_CONFIG_NUM_BLOCKS = (
     f"Num Blocks: Sets the number of blocks in the Krylov basis, related to the restart mechanism of GMRES. "
-    f"Range: {LIMIT_CONFIG_MIN_NUM_BLOCKS} to {LIMIT_CONFIG_MAX_NUM_BLOCKS}.")
+    f"Range: {LIMIT_CONFIG_MIN_NUM_BLOCKS} to {LIMIT_CONFIG_MAX_NUM_BLOCKS}."
+)
 HINT_CONFIG_BLOCK_SIZE = (
     f"Block Size: Determines the block size for block methods. "
-    f"Range: {LIMIT_CONFIG_MIN_BLOCK_SIZE} to {LIMIT_CONFIG_MAX_BLOCK_SIZE}.")
+    f"Range: {LIMIT_CONFIG_MIN_BLOCK_SIZE} to {LIMIT_CONFIG_MAX_BLOCK_SIZE}."
+)
 HINT_CONFIG_MAX_RESTARTS = (
     f"Max Restarts: Specifies the maximum number of restarts allowed. "
     f"Range: {LIMIT_CONFIG_MIN_MAX_RESTARTS} to {LIMIT_CONFIG_MAX_MAX_RESTARTS}."
@@ -38,15 +41,27 @@ HINT_CONFIG_SOLVERNAME = (
 )
 
 HINT_CONFIG_THREAD_COUNT = "Thread count: Number of threads used for simulation. Range: 1 to the number of available threads on the system."
-HINT_CONFIG_TIME_STEP = "Time Step: The time interval for each simulation step. Units: ns, μs, ms, s, min."
-HINT_CONFIG_SIMULATION_TIME = "Simulation Time: Total time for the simulation. Units: ns, μs, ms, s, min."
-HINT_CONFIG_TEMPERATURE = "Temperature: Initial temperature for the simulation. Units: K, F, C."
-HINT_CONFIG_PRESSURE = "Pressure: Initial pressure for the simulation. Units: mPa, Pa, kPa, psi."
+HINT_CONFIG_TIME_STEP = (
+    "Time Step: The time interval for each simulation step. Units: ns, μs, ms, s, min."
+)
+HINT_CONFIG_SIMULATION_TIME = (
+    "Simulation Time: Total time for the simulation. Units: ns, μs, ms, s, min."
+)
+HINT_CONFIG_TEMPERATURE = (
+    "Temperature: Initial temperature for the simulation. Units: K, F, C."
+)
+HINT_CONFIG_PRESSURE = (
+    "Pressure: Initial pressure for the simulation. Units: mPa, Pa, kPa, psi."
+)
 
 HINT_CONFIG_MESH_FILE = "Select the mesh file to use for the simulation. Supported formats: .msh, .stp, .vtk."
-HINT_CONFIG_GAS_SELECTION = "Select the type of gas particles for the simulation. Options: O2, Ar, Ne, He."
+HINT_CONFIG_GAS_SELECTION = (
+    "Select the type of gas particles for the simulation. Options: O2, Ar, Ne, He."
+)
 HINT_CONFIG_SPUTTERING = "Sputtering: Enable sputtering of particles on the surface of the mesh. Disables electrical field."
-HINT_CONFIG_SCATTERING_MODEL = "Select the scattering model to use in the simulation. Options: HS, VHS, VSS."
+HINT_CONFIG_SCATTERING_MODEL = (
+    "Select the scattering model to use in the simulation. Options: HS, VHS, VSS."
+)
 
 HINT_CONFIG_CUBIC_GRID_SIZE = (
     "Cubic Grid Size: This parameter specifies the edge size of the cubic cells in the 3D grid. "
@@ -159,7 +174,13 @@ Note: The specific number of quadrature points for a given accuracy is determine
     <td>1001</td>
   </tr>
 </table>
-""".format(DEFAULT_FEM_ACCURACY=DEFAULT_FEM_ACCURACY, LIMIT_CONFIG_MIN_FEM_ACCURACY=LIMIT_CONFIG_MIN_FEM_ACCURACY, LIMIT_CONFIG_MAX_FEM_ACCURACY=LIMIT_CONFIG_MAX_FEM_ACCURACY)
+""".format(
+    DEFAULT_FEM_ACCURACY=DEFAULT_FEM_ACCURACY,
+    LIMIT_CONFIG_MIN_FEM_ACCURACY=LIMIT_CONFIG_MIN_FEM_ACCURACY,
+    LIMIT_CONFIG_MAX_FEM_ACCURACY=LIMIT_CONFIG_MAX_FEM_ACCURACY,
+)
 
 HINT_CONFIG_LOAD_MAGNETIC_INDUCTION = "Load Magnetic Induction: Load and parse the generated magnetic induction file from Ansys."
-HINT_CONFIG_SELECT_BOUNDARY_CONDITIONS = "Select Boundary Conditions: Define the boundary conditions for the simulation."
+HINT_CONFIG_SELECT_BOUNDARY_CONDITIONS = (
+    "Select Boundary Conditions: Define the boundary conditions for the simulation."
+)

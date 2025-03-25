@@ -19,8 +19,8 @@ class AxisSelectionDialog(QDialog):
     def getSelectedAxis(self):
         axis_text = self.axisComboBox.currentText()
         if axis_text == "X-axis":
-            return 'x'
+            return "x"
         elif axis_text == "Y-axis":
-            return 'y'
+            return "y"
         elif axis_text == "Z-axis":
-            return 'z'
+            return "z"

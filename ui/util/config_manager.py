@@ -35,10 +35,12 @@ class ConfigManager:
                 config = load(file)
                 self.config_file_path = config_file_path
                 self.config_data = config
-                
+
                 if self.log_console:
-                    self.log_console.printInfo(f"Loaded configuration from: {config_file_path}. Parameters: {self.config_data}")
-                
+                    self.log_console.printInfo(
+                        f"Loaded configuration from: {config_file_path}. Parameters: {self.config_data}"
+                    )
+
                 return config
         except FileNotFoundError:
             if self.log_console:

@@ -5,12 +5,12 @@ from util.gmsh_helpers import gmsh_init, gmsh_finalize
 
 
 def main():
-    gmsh_init() # Initializing gmsh session only once for all runtime of the appliction
-    
+    gmsh_init()  # Initializing gmsh session only once for all runtime of the appliction
+
     app = QApplication(sys.argv)
     main_window = WindowApp()
     main_window.show()
-    
+
     # Handling app crush
     try:
         sys.exit(app.exec_())

@@ -5,7 +5,6 @@ from field_validators import CustomSignedDoubleValidator
 
 
 class CustomSignedDoubleValidatorTests(unittest.TestCase):
-
     def setUp(self):
         self.parent = QObject()
         self.validator = CustomSignedDoubleValidator(-100.0, 100.0, 2, self.parent)
@@ -51,5 +50,5 @@ class CustomSignedDoubleValidatorTests(unittest.TestCase):
         self.assertEqual(state, QValidator.Invalid)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

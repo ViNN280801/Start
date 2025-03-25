@@ -20,14 +20,16 @@ class Box:
         The triangle vtkLinearSubdivisionFilter count of the subdivisions.
     """
 
-    def __init__(self,
-                 x: float, 
-                 y: float, 
-                 z: float,
-                 length: float, 
-                 width: float, 
-                 height: float, 
-                 mesh_resolution: int):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        length: float,
+        width: float,
+        height: float,
+        mesh_resolution: int,
+    ):
         """
         Constructs all the necessary attributes for the box object.
 
@@ -66,8 +68,8 @@ class Box:
             A string representation of the box.
         """
         box_data_str = []
-        box_data_str.append(f'Primary Point: ({self.x}, {self.y}, {self.z})')
-        box_data_str.append(f'Length: {self.length}')
-        box_data_str.append(f'Width: {self.width}')
-        box_data_str.append(f'Height: {self.height}')
-        return '\n'.join(box_data_str)
+        box_data_str.append(f"Primary Point: ({self.x}, {self.y}, {self.z})")
+        box_data_str.append(f"Length: {self.length}")
+        box_data_str.append(f"Width: {self.width}")
+        box_data_str.append(f"Height: {self.height}")
+        return "\n".join(box_data_str)

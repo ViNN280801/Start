@@ -1,7 +1,11 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLineEdit,
-    QDialogButtonBox, QLabel,
-    QSlider, QHBoxLayout
+    QDialog,
+    QVBoxLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QLabel,
+    QSlider,
+    QHBoxLayout,
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QDoubleValidator
@@ -49,7 +53,9 @@ class NormalOrientationDialog(QDialog):
         button_box.rejected.connect(self.accepted_no)
 
         self.size_slider.valueChanged.connect(self.update_size_input)
-        self.size_slider.valueChanged.connect(lambda: self.size_changed.emit(float(self.size_input.text())))
+        self.size_slider.valueChanged.connect(
+            lambda: self.size_changed.emit(float(self.size_input.text()))
+        )
         self.size_input.textChanged.connect(self.update_size_slider)
 
     def update_size_input(self, value):

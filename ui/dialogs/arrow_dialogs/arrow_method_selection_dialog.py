@@ -1,6 +1,4 @@
-from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QDialogButtonBox, QLabel, QPushButton
-)
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox, QLabel, QPushButton
 
 
 class ArrowMethodSelectionDialog(QDialog):
@@ -11,16 +9,14 @@ class ArrowMethodSelectionDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        label = QLabel(
-            "Do you want to set the parameters manually or interactively?")
+        label = QLabel("Do you want to set the parameters manually or interactively?")
         layout.addWidget(label)
 
         button_box = QDialogButtonBox(self)
         self.manual_button = QPushButton("Manually")
         self.interactive_button = QPushButton("Interactively")
         button_box.addButton(self.manual_button, QDialogButtonBox.AcceptRole)
-        button_box.addButton(self.interactive_button,
-                             QDialogButtonBox.AcceptRole)
+        button_box.addButton(self.interactive_button, QDialogButtonBox.AcceptRole)
 
         self.manual_button.clicked.connect(self.accept_manual)
         self.interactive_button.clicked.connect(self.accept_interactive)

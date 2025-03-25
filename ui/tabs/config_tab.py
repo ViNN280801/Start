@@ -3,15 +3,30 @@ from json import load, dump, JSONDecodeError
 from util.path_file_checkers import *
 from util.physical_measurement_units_converter import PhysicalMeasurementUnitsConverter
 from util.util import get_os_info
-from field_validators import CustomIntValidator, CustomDoubleValidator, CustomSignedDoubleValidator
+from field_validators import (
+    CustomIntValidator,
+    CustomDoubleValidator,
+    CustomSignedDoubleValidator,
+)
 from styles import *
 from .configurations import *
 from dialogs import MeshDialog
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QWidget, QComboBox,
-    QMessageBox, QLabel, QLineEdit, QFormLayout,
-    QGroupBox, QFileDialog, QPushButton, QSizePolicy,
-    QSpacerItem, QDialog, QCheckBox
+    QVBoxLayout,
+    QHBoxLayout,
+    QWidget,
+    QComboBox,
+    QMessageBox,
+    QLabel,
+    QLineEdit,
+    QFormLayout,
+    QGroupBox,
+    QFileDialog,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QDialog,
+    QCheckBox,
 )
 from PyQt5.QtCore import QSize, pyqtSignal, QRegExp
 from PyQt5.QtGui import QRegExpValidator
@@ -45,14 +60,14 @@ class ConfigTab(QWidget):
 
     def setup_next_button(self):
         button_layout = QHBoxLayout()
-        nextButton = QPushButton('Next >')
+        nextButton = QPushButton("Next >")
         nextButton.setFixedSize(QSize(50, 25))
         nextButton.setToolTip(
-            'Check this tab and move to the next with starting the simulation')
+            "Check this tab and move to the next with starting the simulation"
+        )
         nextButton.clicked.connect(self.next_button_on_clicked)
 
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding,
-                             QSizePolicy.Minimum)
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         button_layout.addSpacerItem(spacer)
 
         button_layout.addWidget(nextButton)
@@ -90,7 +105,7 @@ class ConfigTab(QWidget):
     def setup_scattering_sputtering_model_group(self):
         scattering_group_box = QGroupBox("Scattering Model")
         scattering_layout = QVBoxLayout()
-        
+
         self.sputtering_checkbox = QCheckBox("Sputtering")
         self.sputtering_checkbox.setToolTip(HINT_CONFIG_SPUTTERING)
         scattering_layout.addWidget(self.sputtering_checkbox)
@@ -103,13 +118,15 @@ class ConfigTab(QWidget):
         scattering_group_box.setLayout(scattering_layout)
         self.layout.addWidget(scattering_group_box)
 
-    def create_simulation_field(self,
-                                label_text,
-                                input_type,
-                                units=None,
-                                default_unit=None,
-                                default_value="0.0",
-                                has_converted_label=True):
+    def create_simulation_field(
+        self,
+        label_text,
+        input_type,
+        units=None,
+        default_unit=None,
+        default_value="0.0",
+        has_converted_label=True,
+    ):
         input_field = QLineEdit()
         input_field.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         input_field.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
@@ -124,11 +141,10 @@ class ConfigTab(QWidget):
                 units_combobox.setCurrentText(default_unit)
             units_combobox.setFixedWidth(DEFAULT_COMBOBOX_WIDTH)
             layout.addWidget(units_combobox, alignment=Qt.AlignLeft)
-        
-        converted_label = QLabel(
-            f"{default_value} {units[0] if units else ''}")
+
+        converted_label = QLabel(f"{default_value} {units[0] if units else ''}")
         layout.addWidget(converted_label, alignment=Qt.AlignRight)
-        
+
         if not has_converted_label:
             converted_label.hide()
 
@@ -136,12 +152,9 @@ class ConfigTab(QWidget):
 
         return input_field, units_combobox if units else None, converted_label
 
-    def create_solver_params_field(self,
-                                   parent_layout,
-                                   label_text,
-                                   default_value,
-                                   units=None,
-                                   is_combobox=False):
+    def create_solver_params_field(
+        self, parent_layout, label_text, default_value, units=None, is_combobox=False
+    ):
         DEFAULT_LINE_EDIT_WIDTH = 175
         DEFAULT_COMBOBOX_WIDTH = 85
 
@@ -176,56 +189,99 @@ class ConfigTab(QWidget):
         simulation_group_box.setLayout(self.simulation_layout)
 
         self.simulation_layout.addRow(
-            QLabel(
-                f"System: {get_os_info()} has {get_thread_count()} threads"))
+            QLabel(f"System: {get_os_info()} has {get_thread_count()} threads")
+        )
 
         # Thread count
         self.thread_count_input, _, _ = self.create_simulation_field(
-            "Thread count:", QLineEdit, has_converted_label=False)
+            "Thread count:", QLineEdit, has_converted_label=False
+        )
         self.thread_count_input.setToolTip(HINT_CONFIG_THREAD_COUNT)
         self.thread_count_input.setValidator(
-            CustomIntValidator(LIMIT_CONFIG_MIN_THREAD_COUNT,
-                               LIMIT_CONFIG_MAX_THREAD_COUNT))
+            CustomIntValidator(
+                LIMIT_CONFIG_MIN_THREAD_COUNT, LIMIT_CONFIG_MAX_THREAD_COUNT
+            )
+        )
 
         # Time Step with units
-        self.time_step_input, self.time_step_units, self.time_step_converted = self.create_simulation_field(
-            "Time Step:", QLineEdit, ["ns", "μs", "ms", "s", "min"], "ms",
-            str(DEFAULT_TIME_STEP))
+        (
+            self.time_step_input,
+            self.time_step_units,
+            self.time_step_converted,
+        ) = self.create_simulation_field(
+            "Time Step:",
+            QLineEdit,
+            ["ns", "μs", "ms", "s", "min"],
+            "ms",
+            str(DEFAULT_TIME_STEP),
+        )
         self.time_step_input.setToolTip(HINT_CONFIG_TIME_STEP)
         self.time_step_input.setValidator(
-            CustomDoubleValidator(LIMIT_CONFIG_MIN_TIME_STEP,
-                                  LIMIT_CONFIG_MAX_TIME_STEP,
-                                  SIM_PARAMS_PRECISION_TIME_STEP))
+            CustomDoubleValidator(
+                LIMIT_CONFIG_MIN_TIME_STEP,
+                LIMIT_CONFIG_MAX_TIME_STEP,
+                SIM_PARAMS_PRECISION_TIME_STEP,
+            )
+        )
 
         # Simulation time with units
-        self.simulation_time_input, self.simulation_time_units, self.simulation_time_converted = self.create_simulation_field(
-            "Simulation Time:", QLineEdit, ["ns", "μs", "ms", "s", "min"], "s",
-            str(DEFAULT_SIMULATION_TIME))
+        (
+            self.simulation_time_input,
+            self.simulation_time_units,
+            self.simulation_time_converted,
+        ) = self.create_simulation_field(
+            "Simulation Time:",
+            QLineEdit,
+            ["ns", "μs", "ms", "s", "min"],
+            "s",
+            str(DEFAULT_SIMULATION_TIME),
+        )
         self.simulation_time_input.setToolTip(HINT_CONFIG_SIMULATION_TIME)
         self.simulation_time_input.setValidator(
-            CustomDoubleValidator(LIMIT_CONFIG_MIN_SIMULATION_TIME,
-                                  LIMIT_CONFIG_MAX_SIMULATION_TIME,
-                                  SIM_PARAMS_PRECISION_SIMULATION_TIME))
+            CustomDoubleValidator(
+                LIMIT_CONFIG_MIN_SIMULATION_TIME,
+                LIMIT_CONFIG_MAX_SIMULATION_TIME,
+                SIM_PARAMS_PRECISION_SIMULATION_TIME,
+            )
+        )
 
         # Temperature with units
-        self.temperature_input, self.temperature_units, self.temperature_converted = self.create_simulation_field(
-            "Temperature:", QLineEdit, ["K", "F", "C"], "K",
-            str(DEFAULT_TEMPERATURE))
+        (
+            self.temperature_input,
+            self.temperature_units,
+            self.temperature_converted,
+        ) = self.create_simulation_field(
+            "Temperature:", QLineEdit, ["K", "F", "C"], "K", str(DEFAULT_TEMPERATURE)
+        )
         self.temperature_input.setToolTip(HINT_CONFIG_TEMPERATURE)
         self.temperature_input.setValidator(
-            CustomSignedDoubleValidator(LIMIT_CONFIG_MIN_TEMPERATURE,
-                                         LIMIT_CONFIG_MAX_TEMPERATURE,
-                                    SIM_PARAMS_PRECISION_TEMPERATURE))
+            CustomSignedDoubleValidator(
+                LIMIT_CONFIG_MIN_TEMPERATURE,
+                LIMIT_CONFIG_MAX_TEMPERATURE,
+                SIM_PARAMS_PRECISION_TEMPERATURE,
+            )
+        )
 
         # Pressure with units
-        self.pressure_input, self.pressure_units, self.pressure_converted = self.create_simulation_field(
-            "Pressure:", QLineEdit, ["mPa", "Pa", "kPa", "psi"], "Pa",
-            str(DEFAULT_PRESSURE))
+        (
+            self.pressure_input,
+            self.pressure_units,
+            self.pressure_converted,
+        ) = self.create_simulation_field(
+            "Pressure:",
+            QLineEdit,
+            ["mPa", "Pa", "kPa", "psi"],
+            "Pa",
+            str(DEFAULT_PRESSURE),
+        )
         self.pressure_input.setToolTip(HINT_CONFIG_PRESSURE)
         self.pressure_input.setValidator(
-            CustomDoubleValidator(LIMIT_CONFIG_MIN_PRESSURE,
-                                  LIMIT_CONFIG_MAX_PRESSURE,
-                                  SIM_PARAMS_PRECISION_PRESSURE))
+            CustomDoubleValidator(
+                LIMIT_CONFIG_MIN_PRESSURE,
+                LIMIT_CONFIG_MAX_PRESSURE,
+                SIM_PARAMS_PRECISION_PRESSURE,
+            )
+        )
 
         simulation_group_box.setLayout(self.simulation_layout)
 
@@ -246,8 +302,10 @@ class ConfigTab(QWidget):
         self.cubic_grid_size_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
         self.cubic_grid_size_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.cubic_grid_size_input.setValidator(
-            CustomDoubleValidator(LIMIT_CONFIG_MIN_CUBIC_GRID_SIZE,
-                                  LIMIT_CONFIG_MAX_CUBIC_GRID_SIZE, 3))
+            CustomDoubleValidator(
+                LIMIT_CONFIG_MIN_CUBIC_GRID_SIZE, LIMIT_CONFIG_MAX_CUBIC_GRID_SIZE, 3
+            )
+        )
         self.cubic_grid_size_input.setToolTip(HINT_CONFIG_CUBIC_GRID_SIZE)
         h_layout = QHBoxLayout()
         h_layout.setContentsMargins(50, 0, 0, 0)
@@ -259,8 +317,10 @@ class ConfigTab(QWidget):
         self.fem_accuracy_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
         self.fem_accuracy_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.fem_accuracy_input.setValidator(
-            CustomIntValidator(LIMIT_CONFIG_MIN_FEM_ACCURACY,
-                               LIMIT_CONFIG_MAX_FEM_ACCURACY))
+            CustomIntValidator(
+                LIMIT_CONFIG_MIN_FEM_ACCURACY, LIMIT_CONFIG_MAX_FEM_ACCURACY
+            )
+        )
         self.fem_accuracy_input.setToolTip(HINT_CONFIG_FEM_ACCURACY)
         h1_layout = QHBoxLayout()
         h1_layout.setContentsMargins(25, 0, 0, 0)
@@ -269,16 +329,26 @@ class ConfigTab(QWidget):
 
         # Add Load Magnetic Induction button
         self.load_magnetic_induction_button = QPushButton("Load Magnetic Induction")
-        self.load_magnetic_induction_button.setToolTip(HINT_CONFIG_LOAD_MAGNETIC_INDUCTION)
+        self.load_magnetic_induction_button.setToolTip(
+            HINT_CONFIG_LOAD_MAGNETIC_INDUCTION
+        )
         self.load_magnetic_induction_button.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
-        self.load_magnetic_induction_button.clicked.connect(self.load_magnetic_induction)
+        self.load_magnetic_induction_button.clicked.connect(
+            self.load_magnetic_induction
+        )
         fem_layout.addRow(self.load_magnetic_induction_button)
 
         # Add Select Boundary Conditions button
-        self.select_boundary_conditions_button = QPushButton("Select Boundary Conditions")
-        self.select_boundary_conditions_button.setToolTip(HINT_CONFIG_SELECT_BOUNDARY_CONDITIONS)
+        self.select_boundary_conditions_button = QPushButton(
+            "Select Boundary Conditions"
+        )
+        self.select_boundary_conditions_button.setToolTip(
+            HINT_CONFIG_SELECT_BOUNDARY_CONDITIONS
+        )
         self.select_boundary_conditions_button.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
-        self.select_boundary_conditions_button.clicked.connect(self.emit_select_boundary_conditions_signal)
+        self.select_boundary_conditions_button.clicked.connect(
+            self.emit_select_boundary_conditions_signal
+        )
         fem_layout.addRow(self.select_boundary_conditions_button)
 
         # Create additional fields group box
@@ -295,97 +365,124 @@ class ConfigTab(QWidget):
         self.solvername_input.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
         self.solvername_input.addItems(ITERATIVE_SOLVER_NAMES)
         self.solvername_input.setToolTip(HINT_CONFIG_SOLVERNAME)
-        self.solvername_input.currentIndexChanged.connect(
-            self.update_solver_parameters)
+        self.solvername_input.currentIndexChanged.connect(self.update_solver_parameters)
         additional_layout_left.addRow(QLabel("Solver:"), self.solvername_input)
 
         # Parameters for solvers
         self.solver_parameters = {}
 
         self.solver_parameters[
-            ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_left, "Max Iterations:",
-                f"{DEFAULT_MAX_ITERATIONS}")
+            ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_left, "Max Iterations:", f"{DEFAULT_MAX_ITERATIONS}"
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_left, "Convergence Tolerance:",
-                f"{DEFAULT_CONVERGENCE_TOLERANCE}")        
+            ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_left,
+            "Convergence Tolerance:",
+            f"{DEFAULT_CONVERGENCE_TOLERANCE}",
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_left, "Num Blocks:", f"{DEFAULT_NUM_BLOCKS}")
+            ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_left, "Num Blocks:", f"{DEFAULT_NUM_BLOCKS}"
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_left, "Block Size:", f"{DEFAULT_BLOCK_SIZE}")
+            ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_left, "Block Size:", f"{DEFAULT_BLOCK_SIZE}"
+        )
 
         self.solver_parameters[
-            ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_right, "Max Restarts:",
-                f"{DEFAULT_MAX_RESTARTS}")
+            ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_right, "Max Restarts:", f"{DEFAULT_MAX_RESTARTS}"
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_right,
-                "Flexible GMRES:", ["false", "true"],
-                is_combobox=True)
+            ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_right,
+            "Flexible GMRES:",
+            ["false", "true"],
+            is_combobox=True,
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_right,
-                "Orthogonalization:", ["ICGS", "IMGS"],
-                is_combobox=True)
+            ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_right,
+            "Orthogonalization:",
+            ["ICGS", "IMGS"],
+            is_combobox=True,
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_right,
-                "Adaptive Block Size:", ["false", "true"],
-                is_combobox=True)
+            ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_right,
+            "Adaptive Block Size:",
+            ["false", "true"],
+            is_combobox=True,
+        )
         self.solver_parameters[
-            ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME] = self.create_solver_params_field(
-                additional_layout_right, "Convergence Test Frequency:", "-1")
+            ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME
+        ] = self.create_solver_params_field(
+            additional_layout_right, "Convergence Test Frequency:", "-1"
+        )
         self.solvername_input.setCurrentIndex(2)  # By default using GMRES
 
         # Applying validators to different fields
-        exp_regexp = QRegExp(r'1e-([1-9]|[1-4][0-9]|50)|1e-1')
+        exp_regexp = QRegExp(r"1e-([1-9]|[1-4][0-9]|50)|1e-1")
 
         self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][
-            0].setValidator(
-                CustomIntValidator(LIMIT_CONFIG_MIN_ITERATIONS,
-                                   LIMIT_CONFIG_MAX_ITERATIONS))
-        self.solver_parameters[
-            ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setValidator(
-                QRegExpValidator(exp_regexp))
-        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][
-            0].setValidator(
-                CustomIntValidator(LIMIT_CONFIG_MIN_NUM_BLOCKS,
-                                   LIMIT_CONFIG_MAX_NUM_BLOCKS))
-        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][
-            0].setValidator(
-                CustomIntValidator(LIMIT_CONFIG_MIN_BLOCK_SIZE,
-                                   LIMIT_CONFIG_MAX_BLOCK_SIZE))
+            0
+        ].setValidator(
+            CustomIntValidator(LIMIT_CONFIG_MIN_ITERATIONS, LIMIT_CONFIG_MAX_ITERATIONS)
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][
+            0
+        ].setValidator(QRegExpValidator(exp_regexp))
+        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][0].setValidator(
+            CustomIntValidator(LIMIT_CONFIG_MIN_NUM_BLOCKS, LIMIT_CONFIG_MAX_NUM_BLOCKS)
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][0].setValidator(
+            CustomIntValidator(LIMIT_CONFIG_MIN_BLOCK_SIZE, LIMIT_CONFIG_MAX_BLOCK_SIZE)
+        )
         self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][
-            0].setValidator(
-                CustomIntValidator(LIMIT_CONFIG_MIN_MAX_RESTARTS,
-                                   LIMIT_CONFIG_MAX_MAX_RESTARTS))
+            0
+        ].setValidator(
+            CustomIntValidator(
+                LIMIT_CONFIG_MIN_MAX_RESTARTS, LIMIT_CONFIG_MAX_MAX_RESTARTS
+            )
+        )
 
         # Adding tooltips to different fields
-        self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_MAX_ITERATIONS)
-        self.solver_parameters[
-            ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setToolTip(
-                HINT_CONFIG_CONVERGENCE_TOLERANCE)
-        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_NUM_BLOCKS)
-        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_BLOCK_SIZE)
-        self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_MAX_RESTARTS)
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][0].setToolTip(
+            HINT_CONFIG_MAX_ITERATIONS
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][
+            0
+        ].setToolTip(HINT_CONFIG_CONVERGENCE_TOLERANCE)
+        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][0].setToolTip(
+            HINT_CONFIG_NUM_BLOCKS
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][0].setToolTip(
+            HINT_CONFIG_BLOCK_SIZE
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][0].setToolTip(
+            HINT_CONFIG_MAX_RESTARTS
+        )
         self.solver_parameters[ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_FLEXIBLE_GMRES)
+            0
+        ].setToolTip(HINT_CONFIG_FLEXIBLE_GMRES)
         self.solver_parameters[ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME][
-            0].setToolTip(HINT_CONFIG_ORTHOGONALIZATION)
-        self.solver_parameters[
-            ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME][0].setToolTip(
-                HINT_CONFIG_ADAPTIVE_BLOCK_SIZE)
-        self.solver_parameters[
-            ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME][
-                0].setToolTip(HINT_CONFIG_CONVERGENCE_TEST_FREQUENCY)
+            0
+        ].setToolTip(HINT_CONFIG_ORTHOGONALIZATION)
+        self.solver_parameters[ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME][
+            0
+        ].setToolTip(HINT_CONFIG_ADAPTIVE_BLOCK_SIZE)
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME][
+            0
+        ].setToolTip(HINT_CONFIG_CONVERGENCE_TEST_FREQUENCY)
 
         # Create main layout and add both group boxes
         main_layout = QHBoxLayout()
@@ -394,7 +491,7 @@ class ConfigTab(QWidget):
         main_rightside_layout.addWidget(picfem_group_box)
         main_rightside_layout.addWidget(solver_group_box)
         main_layout.addLayout(main_rightside_layout)
-        
+
         # Adding reset settings button
         reset_button = QPushButton("Reset to Defaults")
         reset_button.setFixedWidth(DEFAULT_LINE_EDIT_WIDTH)
@@ -410,19 +507,15 @@ class ConfigTab(QWidget):
 
         # Connect signals to the slot that updates converted value labels
         self.time_step_input.textChanged.connect(self.update_converted_values)
-        self.time_step_units.currentIndexChanged.connect(
-            self.update_converted_values)
-        self.simulation_time_input.textChanged.connect(
-            self.update_converted_values)
+        self.time_step_units.currentIndexChanged.connect(self.update_converted_values)
+        self.simulation_time_input.textChanged.connect(self.update_converted_values)
         self.simulation_time_units.currentIndexChanged.connect(
-            self.update_converted_values)
-        self.temperature_input.textChanged.connect(
-            self.update_converted_values)
-        self.temperature_units.currentIndexChanged.connect(
-            self.update_converted_values)
+            self.update_converted_values
+        )
+        self.temperature_input.textChanged.connect(self.update_converted_values)
+        self.temperature_units.currentIndexChanged.connect(self.update_converted_values)
         self.pressure_input.textChanged.connect(self.update_converted_values)
-        self.pressure_units.currentIndexChanged.connect(
-            self.update_converted_values)
+        self.pressure_units.currentIndexChanged.connect(self.update_converted_values)
 
     def update_converted_values(self):
         self.time_step_converted.setText(
@@ -441,7 +534,7 @@ class ConfigTab(QWidget):
     def update_solver_parameters(self):
         if not hasattr(self, "config_file_path") or not self.config_file_path:
             return
-        
+
         solver = self.solvername_input.currentText()
 
         # Disable all fields initially and apply disabled style
@@ -468,28 +561,35 @@ class ConfigTab(QWidget):
                     self.solver_parameters[param][0].setEnabled(True)
                     if isinstance(self.solver_parameters[param][0], QLineEdit):
                         self.solver_parameters[param][0].setStyleSheet(
-                            DEFAULT_QLINEEDIT_STYLE)
+                            DEFAULT_QLINEEDIT_STYLE
+                        )
                     elif isinstance(self.solver_parameters[param][0], QComboBox):
                         self.solver_parameters[param][0].setStyleSheet(
-                            DEFAULT_COMBOBOX_STYLE)
+                            DEFAULT_COMBOBOX_STYLE
+                        )
 
                     if self.solver_parameters[param][1] is not None:
                         self.solver_parameters[param][1].setEnabled(True)
                         if isinstance(self.solver_parameters[param][1], QLineEdit):
                             self.solver_parameters[param][1].setStyleSheet(
-                                DEFAULT_QLINEEDIT_STYLE)
-                        elif isinstance(self.solver_parameters[param][1],
-                                        QComboBox):
+                                DEFAULT_QLINEEDIT_STYLE
+                            )
+                        elif isinstance(self.solver_parameters[param][1], QComboBox):
                             self.solver_parameters[param][1].setStyleSheet(
-                                DEFAULT_COMBOBOX_STYLE)
+                                DEFAULT_COMBOBOX_STYLE
+                            )
 
             # Print missing keys to the console
             if missing_keys:
-                keys_str = ', '.join(missing_keys)
+                keys_str = ", ".join(missing_keys)
                 if len(missing_keys) == 1:
-                    print(f'There is no such key in the file "{self.config_file_path}": {keys_str}')
+                    print(
+                        f'There is no such key in the file "{self.config_file_path}": {keys_str}'
+                    )
                 else:
-                    print(f'There are no such keys in the file "{self.config_file_path}": {keys_str}')
+                    print(
+                        f'There are no such keys in the file "{self.config_file_path}": {keys_str}'
+                    )
 
     def upload_config(self, config_file: str = None):
         if config_file:
@@ -502,13 +602,16 @@ class ConfigTab(QWidget):
                 "Select Configuration File",
                 "",
                 "JSON (*.json);;All Files (*)",
-                options=options)
+                options=options,
+            )
 
         if self.config_file_path:
             if not is_file_valid(self.config_file_path):
                 QMessageBox.warning(
-                    self, "Invalid File",
-                    "The selected file is invalid or cannot be accessed.")
+                    self,
+                    "Invalid File",
+                    "The selected file is invalid or cannot be accessed.",
+                )
                 return
 
             if self.read_config_file(self.config_file_path) == 1:
@@ -516,29 +619,36 @@ class ConfigTab(QWidget):
 
             if not is_path_accessible(self.mesh_file):
                 QMessageBox.warning(
-                    self, "File Error",
-                    f"Your file {self.mesh_file} is unaccessible. Check the path or permissions to this path: {dirname(self.config_file_path)}"
+                    self,
+                    "File Error",
+                    f"Your file {self.mesh_file} is unaccessible. Check the path or permissions to this path: {dirname(self.config_file_path)}",
                 )
                 return
 
             self.meshFileSelected.emit(self.mesh_file)
             self.log_console.logSignal.emit(
-                f'Selected configuration: {self.config_file_path}\n')
+                f"Selected configuration: {self.config_file_path}\n"
+            )
         else:
-            QMessageBox.warning(self, "No Configuration File Selected",
-                                "No configuration file was uploaded.")
+            QMessageBox.warning(
+                self,
+                "No Configuration File Selected",
+                "No configuration file was uploaded.",
+            )
             return
 
     def read_config_file(self, config_file_path):
         config = str()
         try:
-            with open(config_file_path, 'r') as file:
+            with open(config_file_path, "r") as file:
                 config = load(file)
         except FileNotFoundError:
             QMessageBox.warning(self, "Warning", f"File not found: {config_file_path}")
             return None
         except JSONDecodeError:
-            QMessageBox.warning(self, "Warning", f"Failed to decode JSON from {config_file_path}")
+            QMessageBox.warning(
+                self, "Warning", f"Failed to decode JSON from {config_file_path}"
+            )
             return None
         if not self.apply_config(config):
             return None
@@ -547,20 +657,20 @@ class ConfigTab(QWidget):
 
     def apply_config(self, config):
         try:
-            self.mesh_file = config.get('Mesh File', '')
+            self.mesh_file = config.get("Mesh File", "")
             self.mesh_file_label.setText(f"Selected: {self.mesh_file}")
 
-            self.thread_count_input.setText(str(config.get('Threads', '')))
-            self.time_step_input.setText(str(config.get('Time Step', '')))
-            self.simulation_time_input.setText(
-                str(config.get('Simulation Time', '')))
-            self.temperature_input.setText(str(config.get('T', '')))
-            self.pressure_input.setText(str(config.get('P', '')))
-            self.sputtering_checkbox.setChecked(config.get('Sputtering', False))
+            self.thread_count_input.setText(str(config.get("Threads", "")))
+            self.time_step_input.setText(str(config.get("Time Step", "")))
+            self.simulation_time_input.setText(str(config.get("Simulation Time", "")))
+            self.temperature_input.setText(str(config.get("T", "")))
+            self.pressure_input.setText(str(config.get("P", "")))
+            self.sputtering_checkbox.setChecked(config.get("Sputtering", False))
 
             solvername_text = config.get("solverName")
             solvername_index = self.solvername_input.findText(
-                solvername_text, Qt.MatchFixedString)
+                solvername_text, Qt.MatchFixedString
+            )
             if solvername_index >= 0:
                 self.solvername_input.setCurrentIndex(solvername_index)
 
@@ -569,22 +679,21 @@ class ConfigTab(QWidget):
             if gas_index >= 0:
                 self.gas_input.setCurrentIndex(gas_index)
 
-            model_index = self.model_input.findText(config.get('Model', ''),
-                                                    Qt.MatchFixedString)
+            model_index = self.model_input.findText(
+                config.get("Model", ""), Qt.MatchFixedString
+            )
             if model_index >= 0:
                 self.model_input.setCurrentIndex(model_index)
 
-            self.cubic_grid_size_input.setText(config.get('EdgeSize', ''))
-            self.fem_accuracy_input.setText(config.get('DesiredAccuracy', ''))
+            self.cubic_grid_size_input.setText(config.get("EdgeSize", ""))
+            self.fem_accuracy_input.setText(config.get("DesiredAccuracy", ""))
 
-            for key, (input_field,
-                      units_combobox) in self.solver_parameters.items():
+            for key, (input_field, units_combobox) in self.solver_parameters.items():
                 if key in config:
                     if isinstance(input_field, QLineEdit):
                         input_field.setText(config[key])
                     elif isinstance(input_field, QComboBox):
-                        index = input_field.findText(config[key],
-                                                     Qt.MatchFixedString)
+                        index = input_field.findText(config[key], Qt.MatchFixedString)
                         if index >= 0:
                             input_field.setCurrentIndex(index)
 
@@ -595,13 +704,16 @@ class ConfigTab(QWidget):
             self.pressure_units.setCurrentIndex(1)
 
         except Exception as e:
-            QMessageBox.critical(self, "Error Applying Configuration", f"An error occurred while applying the configuration: Exception: {e}")
+            QMessageBox.critical(
+                self,
+                "Error Applying Configuration",
+                f"An error occurred while applying the configuration: Exception: {e}",
+            )
             return None
 
     def save_solver_params_to_dict(self):
         solver_params = {}
-        for key, (input_field,
-                  units_combobox) in self.solver_parameters.items():
+        for key, (input_field, units_combobox) in self.solver_parameters.items():
             if isinstance(input_field, QLineEdit):
                 solver_params[key] = input_field.text()
             elif isinstance(input_field, QComboBox):
@@ -619,7 +731,7 @@ class ConfigTab(QWidget):
     def save_boundary_conditions_to_dict(self, config_file_path: str):
         boundary_conditions = {}
         try:
-            with open(config_file_path, 'r') as file:
+            with open(config_file_path, "r") as file:
                 data = load(file)
                 if "Boundary Conditions" in data:
                     boundary_conditions = data["Boundary Conditions"]
@@ -627,12 +739,13 @@ class ConfigTab(QWidget):
             pass
         except JSONDecodeError as e:
             QMessageBox.critical(
-                self, "Error",
-                f"Error parsing JSON file '{config_file_path}': {e}")
+                self, "Error", f"Error parsing JSON file '{config_file_path}': {e}"
+            )
         except Exception as e:
             QMessageBox.critical(
-                self, "Error",
-                f"An error occurred while reading the configuration file '{config_file_path}': {e}"
+                self,
+                "Error",
+                f"An error occurred while reading the configuration file '{config_file_path}': {e}",
             )
 
         return boundary_conditions
@@ -640,23 +753,22 @@ class ConfigTab(QWidget):
     def check_particle_sources(self, config_file_path):
         sources = {}
         try:
-            with open(config_file_path, 'r') as file:
+            with open(config_file_path, "r") as file:
                 data = load(file)
 
                 if "ParticleSourcePoint" in data:
-                    sources["ParticleSourcePoint"] = data[
-                        "ParticleSourcePoint"]
+                    sources["ParticleSourcePoint"] = data["ParticleSourcePoint"]
                 if "ParticleSourceSurface" in data:
-                    sources["ParticleSourceSurface"] = data[
-                        "ParticleSourceSurface"]
+                    sources["ParticleSourceSurface"] = data["ParticleSourceSurface"]
 
                 if not sources:
                     QMessageBox.warning(
-                        self, "Particle Sources",
-                        f'Warning: No particle source defined in the configuration file: {config_file_path}\n'
+                        self,
+                        "Particle Sources",
+                        f"Warning: No particle source defined in the configuration file: {config_file_path}\n",
                     )
                     self.log_console.printWarning(
-                        f'Warning: No particle source defined in the configuration file: {config_file_path}\n'
+                        f"Warning: No particle source defined in the configuration file: {config_file_path}\n"
                     )
                     return
 
@@ -664,18 +776,19 @@ class ConfigTab(QWidget):
 
         except FileNotFoundError:
             QMessageBox.warning(
-                self, "Warning",
-                f"Configuration file not found: {config_file_path}")
+                self, "Warning", f"Configuration file not found: {config_file_path}"
+            )
             return
         except JSONDecodeError as e:
             QMessageBox.critical(
-                self, "Error",
-                f"Error parsing JSON file '{config_file_path}': {e}")
+                self, "Error", f"Error parsing JSON file '{config_file_path}': {e}"
+            )
             return
         except Exception as e:
             QMessageBox.critical(
-                self, "Error",
-                f"An error occurred while reading the configuration file '{config_file_path}': {e}"
+                self,
+                "Error",
+                f"An error occurred while reading the configuration file '{config_file_path}': {e}",
             )
             return
 
@@ -686,17 +799,27 @@ class ConfigTab(QWidget):
 
         time_step = float(self.time_step_input.text())
         simtime = float(self.simulation_time_input.text())
-        
+
         if time_step == 0:
-            QMessageBox.warning(self, "Time Step Error", "Writing zero time step does not make sense")
+            QMessageBox.warning(
+                self, "Time Step Error", "Writing zero time step does not make sense"
+            )
             return
-        
+
         if simtime == 0:
-            QMessageBox.warning(self, "Simulation Time Error", "Writing zero simulation time does not make sense")
+            QMessageBox.warning(
+                self,
+                "Simulation Time Error",
+                "Writing zero simulation time does not make sense",
+            )
             return
-        
+
         if simtime < time_step:
-            QMessageBox.warning(self, "Time Error", f"Time step = {time_step}\nSimulation time = {simtime}\nSimulation time can not be less than time step")
+            QMessageBox.warning(
+                self,
+                "Time Error",
+                f"Time step = {time_step}\nSimulation time = {simtime}\nSimulation time can not be less than time step",
+            )
             return
 
         if not self.config_file_path:
@@ -713,14 +836,14 @@ class ConfigTab(QWidget):
             if not self.config_file_path:
                 return
 
-            if not self.config_file_path.endswith('.json'):
-                self.config_file_path += '.json'
+            if not self.config_file_path.endswith(".json"):
+                self.config_file_path += ".json"
 
-        if not is_file_valid(self.mesh_file) or not is_path_accessible(
-                self.mesh_file):
+        if not is_file_valid(self.mesh_file) or not is_path_accessible(self.mesh_file):
             QMessageBox.warning(
-                self, "File Error",
-                f"Mesh file '{self.mesh_file}' can't be selected. Check path or existence of it"
+                self,
+                "File Error",
+                f"Mesh file '{self.mesh_file}' can't be selected. Check path or existence of it",
             )
             return
 
@@ -730,18 +853,19 @@ class ConfigTab(QWidget):
             self.check_particle_sources(self.config_file_path)
 
             QMessageBox.information(
-                self, "Success",
-                f"Configuration saved to {self.config_file_path}")
+                self, "Success", f"Configuration saved to {self.config_file_path}"
+            )
             self.log_console.logSignal.emit(
-                f'Successfully saved data to new config: {self.config_file_path}\n'
+                f"Successfully saved data to new config: {self.config_file_path}\n"
             )
 
             self.upload_mesh_file(False)
         except Exception as e:
             QMessageBox.critical(
-                self, "Error", f"Failed to save configuration: Exception: {e}")
+                self, "Error", f"Failed to save configuration: Exception: {e}"
+            )
             self.log_console.logSignal.emit(
-                f'Error: Failed to save configuration to {self.config_file_path}: Exception: {e}\n'
+                f"Error: Failed to save configuration to {self.config_file_path}: Exception: {e}\n"
             )
 
     def upload_mesh_file(self, need_to_create_actor: bool = True):
@@ -760,15 +884,15 @@ class ConfigTab(QWidget):
             )
 
         if not self.mesh_file:
-            QMessageBox.warning(self, "No Mesh File Selected",
-                                "No mesh file was uploaded.")
+            QMessageBox.warning(
+                self, "No Mesh File Selected", "No mesh file was uploaded."
+            )
             return
 
         self.mesh_file_label.setText(f"Selected: {self.mesh_file}")
-        QMessageBox.information(self, "Mesh File Selected",
-                                f"File: {self.mesh_file}")
+        QMessageBox.information(self, "Mesh File Selected", f"File: {self.mesh_file}")
 
-        if self.mesh_file.endswith('.stp'):
+        if self.mesh_file.endswith(".stp"):
             # Show dialog for user input
             dialog = MeshDialog(self)
             if dialog.exec() == QDialog.Accepted:
@@ -778,33 +902,36 @@ class ConfigTab(QWidget):
                     mesh_dim = int(mesh_dim)
                     if mesh_dim not in [2, 3]:
                         raise ValueError("Mesh dimensions must be 2 or 3.")
-                    self.convert_stp_to_msh(self.mesh_file, mesh_size,
-                                            mesh_dim)
+                    self.convert_stp_to_msh(self.mesh_file, mesh_size, mesh_dim)
                 except ValueError as e:
                     QMessageBox.warning(self, "Invalid Input", str(e))
                     return None
             else:
                 QMessageBox.critical(
-                    self, "Error",
-                    "Dialog was closed by user. Invalid mesh size or mesh dimensions"
+                    self,
+                    "Error",
+                    "Dialog was closed by user. Invalid mesh size or mesh dimensions",
                 )
                 return None
 
-        if self.mesh_file.endswith('.stp'):
-            self.mesh_file = self.mesh_file.replace('.stp', '.msh')
-        if self.mesh_file.endswith('.vtk'):
-            self.mesh_file = self.mesh_file.replace('.vtk', '.msh')
+        if self.mesh_file.endswith(".stp"):
+            self.mesh_file = self.mesh_file.replace(".stp", ".msh")
+        if self.mesh_file.endswith(".vtk"):
+            self.mesh_file = self.mesh_file.replace(".vtk", ".msh")
 
         if need_to_create_actor:
             self.meshFileSelected.emit(self.mesh_file)
-        self.log_console.logSignal.emit(f'Uploaded mesh: {self.mesh_file}\n')
+        self.log_console.logSignal.emit(f"Uploaded mesh: {self.mesh_file}\n")
 
     def ask_to_upload_mesh_file(self):
         if self.mesh_file:
             reply = QMessageBox.question(
-                self, 'Mesh File',
+                self,
+                "Mesh File",
                 f"Mesh file {self.mesh_file} is already chosen. Do you like to rechoose it?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
             if reply == QMessageBox.Yes:
                 self.upload_mesh_file()
             else:
@@ -814,7 +941,7 @@ class ConfigTab(QWidget):
 
     def convert_stp_to_msh(self, file_path, mesh_size, mesh_dim):
         from gmsh import model, option, write
-        
+
         try:
             model.occ.importShapes(file_path)
             model.occ.synchronize()
@@ -828,68 +955,101 @@ class ConfigTab(QWidget):
 
             output_file = file_path.replace(".stp", ".msh")
             write(output_file)
-        
+
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred during conversion: {str(e)}")
+            QMessageBox.critical(
+                self, "Error", f"An error occurred during conversion: {str(e)}"
+            )
             return None
-        
+
         self.mesh_file = output_file
-        self.log_console.logSignal.emit(f'Successfully converted {file_path} to {output_file}. Mesh size is {mesh_size}. Mesh dimension: {mesh_dim}\n')
+        self.log_console.logSignal.emit(
+            f"Successfully converted {file_path} to {output_file}. Mesh size is {mesh_size}. Mesh dimension: {mesh_dim}\n"
+        )
 
     def load_magnetic_induction(self):
         # TODO: Implement the functionality to load and parse the generated magnetic induction file from Ansys
         pass
-    
+
     def emit_select_boundary_conditions_signal(self):
         self.selectBoundaryConditionsSignal.emit()
-        
+
     def reset_to_defaults(self):
         self.reset_cubic_grid_size_to_defaults()
         self.reset_fem_accuracy_to_defaults()
         self.reset_solver_parameters_to_defaults()
-    
+
     def reset_cubic_grid_size_to_defaults(self):
-        self.log_console.printInfo(f"Resetting cubic grid size to: {DEFAULT_CUBIC_GRID_SIZE}")
+        self.log_console.printInfo(
+            f"Resetting cubic grid size to: {DEFAULT_CUBIC_GRID_SIZE}"
+        )
         self.cubic_grid_size_input.setText(f"{DEFAULT_CUBIC_GRID_SIZE}")
-    
+
     def reset_fem_accuracy_to_defaults(self):
         self.log_console.printInfo(f"Resetting FEM accuracy to: {DEFAULT_FEM_ACCURACY}")
         self.fem_accuracy_input.setText(f"{DEFAULT_FEM_ACCURACY}")
-    
+
     def reset_solver_parameters_to_defaults(self):
         self.log_console.printInfo(f"Resetting iterative solver settings")
-        self.solvername_input.setCurrentIndex(2) # GMRES
-        self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][0].setText(f"{DEFAULT_MAX_ITERATIONS}")
-        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][0].setText(f"{DEFAULT_CONVERGENCE_TOLERANCE}")
-        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][0].setText(f"{DEFAULT_NUM_BLOCKS}")
-        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][0].setText(f"{DEFAULT_BLOCK_SIZE}")
-        self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][0].setText(f"{DEFAULT_MAX_RESTARTS}")
-        self.solver_parameters[ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME][0].setCurrentIndex(0)  # "false"
-        self.solver_parameters[ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME][0].setCurrentIndex(0)  # "ICGS"
-        self.solver_parameters[ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME][0].setCurrentIndex(0)  # "false"
-        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME][0].setText("-1")
-        
+        self.solvername_input.setCurrentIndex(2)  # GMRES
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME][0].setText(
+            f"{DEFAULT_MAX_ITERATIONS}"
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME][
+            0
+        ].setText(f"{DEFAULT_CONVERGENCE_TOLERANCE}")
+        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME][0].setText(
+            f"{DEFAULT_NUM_BLOCKS}"
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME][0].setText(
+            f"{DEFAULT_BLOCK_SIZE}"
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME][0].setText(
+            f"{DEFAULT_MAX_RESTARTS}"
+        )
+        self.solver_parameters[ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME][
+            0
+        ].setCurrentIndex(
+            0
+        )  # "false"
+        self.solver_parameters[ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME][
+            0
+        ].setCurrentIndex(
+            0
+        )  # "ICGS"
+        self.solver_parameters[ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME][
+            0
+        ].setCurrentIndex(
+            0
+        )  # "false"
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME][
+            0
+        ].setText("-1")
+
     def sync_config_with_ui(self):
         if self.check_particle_sources(self.config_file_path) != 1:
             return
 
         try:
-            with open(self.config_file_path, 'r') as file:
+            with open(self.config_file_path, "r") as file:
                 config_data = load(file)
         except FileNotFoundError:
             QMessageBox.warning(
-                self, "Warning",
-                f"Configuration file not found: {self.config_file_path}")
+                self,
+                "Warning",
+                f"Configuration file not found: {self.config_file_path}",
+            )
             return
         except JSONDecodeError as e:
             QMessageBox.critical(
-                self, "Error",
-                f"Error parsing JSON file '{self.config_file_path}': {e}")
+                self, "Error", f"Error parsing JSON file '{self.config_file_path}': {e}"
+            )
             return
         except Exception as e:
             QMessageBox.critical(
-                self, "Error",
-                f"An error occurred while reading the configuration file '{self.config_file_path}': {e}"
+                self,
+                "Error",
+                f"An error occurred while reading the configuration file '{self.config_file_path}': {e}",
             )
             return
 
@@ -907,21 +1067,29 @@ class ConfigTab(QWidget):
         update_config("Threads", int(self.thread_count_input.text()))
         update_config(
             "Time Step",
-            self.converter.to_seconds(self.time_step_input.text(),
-                                      self.time_step_units.currentText()))
+            self.converter.to_seconds(
+                self.time_step_input.text(), self.time_step_units.currentText()
+            ),
+        )
         update_config(
             "Simulation Time",
             self.converter.to_seconds(
                 self.simulation_time_input.text(),
-                self.simulation_time_units.currentText()))
+                self.simulation_time_units.currentText(),
+            ),
+        )
         update_config(
             "T",
-            self.converter.to_kelvin(self.temperature_input.text(),
-                                     self.temperature_units.currentText()))
+            self.converter.to_kelvin(
+                self.temperature_input.text(), self.temperature_units.currentText()
+            ),
+        )
         update_config(
             "P",
-            self.converter.to_pascal(self.pressure_input.text(),
-                                     self.pressure_units.currentText()))
+            self.converter.to_pascal(
+                self.pressure_input.text(), self.pressure_units.currentText()
+            ),
+        )
         update_config("Gas", self.gas_input.currentText())
         update_config("Model", self.model_input.currentText())
         update_config("EdgeSize", self.cubic_grid_size_input.text())
@@ -930,8 +1098,7 @@ class ConfigTab(QWidget):
         update_config("Sputtering", self.sputtering_checkbox.isChecked())
 
         # Update solver parameters
-        for key, (input_field,
-                  units_combobox) in self.solver_parameters.items():
+        for key, (input_field, units_combobox) in self.solver_parameters.items():
             if isinstance(input_field, QLineEdit):
                 update_config(key, input_field.text())
             elif isinstance(input_field, QComboBox):
@@ -940,12 +1107,13 @@ class ConfigTab(QWidget):
         # Save updated config if there were any changes
         if updated:
             try:
-                with open(self.config_file_path, 'w') as file:
+                with open(self.config_file_path, "w") as file:
                     dump(config_data, file, indent=4)
             except Exception as e:
                 QMessageBox.critical(
-                    self, "Error",
-                    f"An error occurred while writing to the configuration file '{self.config_file_path}': {e}"
+                    self,
+                    "Error",
+                    f"An error occurred while writing to the configuration file '{self.config_file_path}': {e}",
                 )
 
         return 1
@@ -953,39 +1121,30 @@ class ConfigTab(QWidget):
     def read_ui_values(self):
         try:
             config_content = {
-                "Mesh File":
-                self.mesh_file,
-                "Threads":
-                int(self.thread_count_input.text()),
-                "Time Step":
-                self.converter.to_seconds(self.time_step_input.text(),
-                                          self.time_step_units.currentText()),
-                "Simulation Time":
-                self.converter.to_seconds(
+                "Mesh File": self.mesh_file,
+                "Threads": int(self.thread_count_input.text()),
+                "Time Step": self.converter.to_seconds(
+                    self.time_step_input.text(), self.time_step_units.currentText()
+                ),
+                "Simulation Time": self.converter.to_seconds(
                     self.simulation_time_input.text(),
-                    self.simulation_time_units.currentText()),
-                "T":
-                self.converter.to_kelvin(self.temperature_input.text(),
-                                         self.temperature_units.currentText()),
-                "P":
-                self.converter.to_pascal(self.pressure_input.text(),
-                                         self.pressure_units.currentText()),
-                "Gas":
-                self.gas_input.currentText(),
-                "Model":
-                self.model_input.currentText(),
-                "Sputtering":
-                self.sputtering_checkbox.isChecked(),
-                "EdgeSize":
-                self.cubic_grid_size_input.text(),
-                "DesiredAccuracy":
-                self.fem_accuracy_input.text(),
-                "solverName":
-                self.solvername_input.currentText()
+                    self.simulation_time_units.currentText(),
+                ),
+                "T": self.converter.to_kelvin(
+                    self.temperature_input.text(), self.temperature_units.currentText()
+                ),
+                "P": self.converter.to_pascal(
+                    self.pressure_input.text(), self.pressure_units.currentText()
+                ),
+                "Gas": self.gas_input.currentText(),
+                "Model": self.model_input.currentText(),
+                "Sputtering": self.sputtering_checkbox.isChecked(),
+                "EdgeSize": self.cubic_grid_size_input.text(),
+                "DesiredAccuracy": self.fem_accuracy_input.text(),
+                "solverName": self.solvername_input.currentText(),
             }
 
-            for key, (input_field,
-                      units_combobox) in self.solver_parameters.items():
+            for key, (input_field, units_combobox) in self.solver_parameters.items():
                 if isinstance(input_field, QLineEdit):
                     config_content[key] = input_field.text()
                 elif isinstance(input_field, QComboBox):
@@ -993,6 +1152,7 @@ class ConfigTab(QWidget):
 
             return config_content
         except ValueError as e:
-            QMessageBox.critical(self, "Invalid Input",
-                                 f"Error in input fields: Exception: {e}")
+            QMessageBox.critical(
+                self, "Invalid Input", f"Error in input fields: Exception: {e}"
+            )
             return None

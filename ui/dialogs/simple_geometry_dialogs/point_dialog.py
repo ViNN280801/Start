@@ -1,5 +1,11 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-                             QDialogButtonBox, QMessageBox)
+from PyQt5.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMessageBox,
+)
 from field_validators import CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
@@ -8,7 +14,6 @@ from tabs.graphical_editor.geometry.point import Point
 
 
 class PointDialog(QDialog):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -26,17 +31,20 @@ class PointDialog(QDialog):
         self.zInput = QLineEdit("0.0")
 
         self.xInput.setValidator(
-            CustomSignedDoubleValidator(GEOMETRY_POINT_XMIN,
-                                        GEOMETRY_POINT_XMAX,
-                                        GEOMETRY_POINT_FIELD_PRECISION))
+            CustomSignedDoubleValidator(
+                GEOMETRY_POINT_XMIN, GEOMETRY_POINT_XMAX, GEOMETRY_POINT_FIELD_PRECISION
+            )
+        )
         self.yInput.setValidator(
-            CustomSignedDoubleValidator(GEOMETRY_POINT_YMIN,
-                                        GEOMETRY_POINT_YMAX,
-                                        GEOMETRY_POINT_FIELD_PRECISION))
+            CustomSignedDoubleValidator(
+                GEOMETRY_POINT_YMIN, GEOMETRY_POINT_YMAX, GEOMETRY_POINT_FIELD_PRECISION
+            )
+        )
         self.zInput.setValidator(
-            CustomSignedDoubleValidator(GEOMETRY_POINT_ZMIN,
-                                        GEOMETRY_POINT_ZMAX,
-                                        GEOMETRY_POINT_FIELD_PRECISION))
+            CustomSignedDoubleValidator(
+                GEOMETRY_POINT_ZMIN, GEOMETRY_POINT_ZMAX, GEOMETRY_POINT_FIELD_PRECISION
+            )
+        )
 
         self.xInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -50,7 +58,8 @@ class PointDialog(QDialog):
 
         # Dialog buttons
         self.buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         self.buttons.accepted.connect(self.validate_and_accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -61,8 +70,10 @@ class PointDialog(QDialog):
         all_valid = True
 
         for input_field in inputs:
-            if input_field.validator().validate(
-                    input_field.text(), 0)[0] != QDoubleValidator.Acceptable:
+            if (
+                input_field.validator().validate(input_field.text(), 0)[0]
+                != QDoubleValidator.Acceptable
+            ):
                 input_field.setStyleSheet(INVALID_QLINEEDIT_STYLE)
                 all_valid = False
             else:
@@ -71,11 +82,16 @@ class PointDialog(QDialog):
         if all_valid:
             self.accept()
         else:
-            QMessageBox.warning(self, "Invalid input",
-                                "Please correct the highlighted fields.")
+            QMessageBox.warning(
+                self, "Invalid input", "Please correct the highlighted fields."
+            )
 
     def getValues(self):
-        values = (float(self.xInput.text()), float(self.yInput.text()), float(self.zInput.text()))
+        values = (
+            float(self.xInput.text()),
+            float(self.yInput.text()),
+            float(self.zInput.text()),
+        )
         return values
 
     def getPoint(self):

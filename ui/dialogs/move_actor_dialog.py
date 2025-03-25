@@ -1,6 +1,10 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-    QDialogButtonBox, QMessageBox
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMessageBox,
 )
 from styles import *
 from field_validators import CustomSignedDoubleValidator
@@ -18,10 +22,16 @@ class MoveActorDialog(QDialog):
         self.xOffsetInput = QLineEdit("0.0")
         self.yOffsetInput = QLineEdit("0.0")
         self.zOffsetInput = QLineEdit("0.0")
-        
-        self.xOffsetInput.setValidator(CustomSignedDoubleValidator(float('-inf'), float('inf'), 10))
-        self.yOffsetInput.setValidator(CustomSignedDoubleValidator(float('-inf'), float('inf'), 10))
-        self.zOffsetInput.setValidator(CustomSignedDoubleValidator(float('-inf'), float('inf'), 10))
+
+        self.xOffsetInput.setValidator(
+            CustomSignedDoubleValidator(float("-inf"), float("inf"), 10)
+        )
+        self.yOffsetInput.setValidator(
+            CustomSignedDoubleValidator(float("-inf"), float("inf"), 10)
+        )
+        self.zOffsetInput.setValidator(
+            CustomSignedDoubleValidator(float("-inf"), float("inf"), 10)
+        )
 
         self.xOffsetInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yOffsetInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -33,7 +43,9 @@ class MoveActorDialog(QDialog):
 
         layout.addLayout(formLayout)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 

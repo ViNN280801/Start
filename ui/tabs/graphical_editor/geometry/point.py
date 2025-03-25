@@ -12,10 +12,7 @@ class Point:
         The z-coordinate of the point.
     """
 
-    def __init__(self,
-                 x: float, 
-                 y: float, 
-                 z: float):
+    def __init__(self, x: float, y: float, z: float):
         """
         Constructs all the necessary attributes for the point object.
 
@@ -33,7 +30,7 @@ class Point:
         self.x = x
         self.y = y
         self.z = z
-    
+
     def __repr__(self):
         """
         Returns a string representation of the point.
@@ -43,4 +40,4 @@ class Point:
         str
             A string representation of the point.
         """
-        return f'Point: ({self.x}, {self.y}, {self.z})'
+        return f"Point: ({self.x}, {self.y}, {self.z})"

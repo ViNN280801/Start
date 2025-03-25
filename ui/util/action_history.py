@@ -1,6 +1,6 @@
 class ActionHistory:
     def __init__(self):
-        self._id = 0          # Counter for the current ID of objects
+        self._id = 0  # Counter for the current ID of objects
         self.undo_stack = {}  # Stack to keep track of undo actions
         self.redo_stack = {}  # Stack to keep track of redo actions
 

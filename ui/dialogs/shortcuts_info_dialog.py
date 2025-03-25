@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QTableWidget,
-    QTableWidgetItem, QSizePolicy
+    QDialog,
+    QVBoxLayout,
+    QTableWidget,
+    QTableWidgetItem,
+    QSizePolicy,
 )
 
 

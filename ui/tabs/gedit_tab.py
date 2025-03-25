@@ -1,6 +1,4 @@
-from PyQt5.QtWidgets import (
-    QVBoxLayout, QWidget, QSplitter
-)
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QSplitter
 from PyQt5.QtCore import Qt
 from .config_tab import ConfigTab
 from .graphical_editor import GraphicalEditor

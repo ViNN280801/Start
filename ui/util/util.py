@@ -1,4 +1,3 @@
-
 import tempfile
 
 from vtk import vtkRenderer
@@ -10,27 +9,32 @@ from numpy import all, array
 
 def get_cur_datetime() -> str:
     from datetime import datetime
+
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def get_thread_count():
     from multiprocessing import cpu_count
+
     return cpu_count()
 
 
 def get_os_info():
     from platform import platform
+
     return platform()
 
 
 def rad_to_degree(angle: float):
     from math import pi
-    return angle * 180. / pi
+
+    return angle * 180.0 / pi
 
 
 def degree_to_rad(angle: float):
     from math import pi
-    return angle * pi / 180.
+
+    return angle * pi / 180.0
 
 
 def is_mesh_dims(value: str):
@@ -43,7 +47,7 @@ def is_mesh_dims(value: str):
 
 def is_path_ok(path: str):
     from os.path import exists, isfile
-    
+
     if exists(path) and isfile(path):
         return True
     return False
@@ -52,16 +56,16 @@ def is_path_ok(path: str):
 def check_path_access(filename: str):
     from os import access, W_OK
     from os.path import dirname
-    
-    if not access(dirname(filename) or '.', W_OK):
+
+    if not access(dirname(filename) or ".", W_OK):
         raise OSError(f"The path '{dirname(filename)}' is not accessible or writable.")
 
 
 def ansi_to_segments(text: str):
     from re import split
-    
+
     segments = []
-    current_color = 'light gray'  # Default color
+    current_color = "light gray"  # Default color
     buffer = ""
 
     def append_segment(text, color):
@@ -69,13 +73,13 @@ def ansi_to_segments(text: str):
             segments.append((text, color))
 
     # Split the text by ANSI escape codes
-    parts = split(r'(\033\[\d+(?:;\d+)*m)', text)
+    parts = split(r"(\033\[\d+(?:;\d+)*m)", text)
     for part in parts:
         if not part:  # Skip empty strings
             continue
-        if part.startswith('\033['):
+        if part.startswith("\033["):
             # Remove leading '\033[' and trailing 'm', then split
-            codes = part[2:-1].split(';')
+            codes = part[2:-1].split(";")
             for code in codes:
                 if code in ANSI_TO_QCOLOR:
                     current_color = ANSI_TO_QCOLOR[code]
@@ -89,24 +93,25 @@ def ansi_to_segments(text: str):
     return segments
 
 
-def align_view_by_axis(axis: str, renderer: vtkRenderer,
-                       vtkWidget: QVTKRenderWindowInteractor):
+def align_view_by_axis(
+    axis: str, renderer: vtkRenderer, vtkWidget: QVTKRenderWindowInteractor
+):
     axis = axis.strip().lower()
 
-    if axis not in ['x', 'y', 'z', 'center']:
+    if axis not in ["x", "y", "z", "center"]:
         return
 
     camera = renderer.GetActiveCamera()
-    if axis == 'x':
+    if axis == "x":
         camera.SetPosition(1, 0, 0)
         camera.SetViewUp(0, 0, 1)
-    elif axis == 'y':
+    elif axis == "y":
         camera.SetPosition(0, 1, 0)
         camera.SetViewUp(0, 0, 1)
-    elif axis == 'z':
+    elif axis == "z":
         camera.SetPosition(0, 0, 1)
         camera.SetViewUp(0, 1, 0)
-    elif axis == 'center':
+    elif axis == "center":
         camera.SetPosition(1, 1, 1)
         camera.SetViewUp(0, 0, 1)
 
@@ -147,12 +152,14 @@ def calculate_thetaPhi(base, tip):
 
 def calculate_thetaPhi_with_angles(x, y, z, angle_x, angle_y, angle_z):
     from numpy import array, cos, sin, arccos, arctan2, linalg, radians
-    
-    direction_vector = array([
-        cos(radians(angle_y)) * cos(radians(angle_z)),
-        sin(radians(angle_x)) * sin(radians(angle_z)),
-        cos(radians(angle_x)) * cos(radians(angle_y))
-    ])
+
+    direction_vector = array(
+        [
+            cos(radians(angle_y)) * cos(radians(angle_z)),
+            sin(radians(angle_x)) * sin(radians(angle_z)),
+            cos(radians(angle_x)) * cos(radians(angle_y)),
+        ]
+    )
     norm = linalg.norm(direction_vector)
     theta = arccos(direction_vector[2] / norm)
     phi = arctan2(direction_vector[1], direction_vector[0])
@@ -165,11 +172,13 @@ def compute_distance_between_points(coord1, coord2):
     """
     from math import sqrt
     from logger import InternalLogger
-    
+
     try:
-        result = sqrt((coord1[0] - coord2[0])**2 +
-                      (coord1[1] - coord2[1])**2 +
-                      (coord1[2] - coord2[2])**2)
+        result = sqrt(
+            (coord1[0] - coord2[0]) ** 2
+            + (coord1[1] - coord2[1]) ** 2
+            + (coord1[2] - coord2[2]) ** 2
+        )
     except Exception as e:
         print(InternalLogger.get_warning_none_result_with_exception_msg(e))
         return None
@@ -187,7 +196,7 @@ def can_create_plane(p1, p2):
 
     Returns:
     bool: True if a plane can be created, otherwise raises ValueError.
-    
+
     Raises:
     ValueError: If the points are identical.
     """
@@ -210,31 +219,33 @@ def remove_last_occurrence(lst, item):
     for i in range(len(lst) - 1, -1, -1):  # Iterate from the end to the beginning
         if lst[i] == item:
             del lst[i]  # Remove the item if found
-            break       # Exit the loop after removing the item
+            break  # Exit the loop after removing the item
 
 
 def create_secure_tempfile() -> str:
     """
     Creates a secure temporary file and returns its file path.
-    
+
     Returns:
     - str: Path to the securely created temporary file.
     """
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_file_path = temp_file.name
-    return temp_file_path 
+    return temp_file_path
 
 
 def warning_unrealized_or_malfunctionating_function(functionality: str):
     """
     Prints to stdout warning message about breaked or unimplemented functionality.
-    
+
     Parameters:
     functionality (str): String that presents functionality, for example: "Creating geometry object cone".
-    
+
     Raises:
     An exception to prevent breaking program with unimplemented or bad, or dummy functionality.
     """
     if not functionality:
         raise ValueError("'functionality' param is empty, nothing to show")
-    raise Exception(f"Warning: {functionality}: is unimplemented or breaken functionality.")
+    raise Exception(
+        f"Warning: {functionality}: is unimplemented or breaken functionality."
+    )

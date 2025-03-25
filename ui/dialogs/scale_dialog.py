@@ -1,6 +1,10 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-    QDialogButtonBox, QMessageBox
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMessageBox,
 )
 from styles import *
 from field_validators import CustomDoubleValidator
@@ -20,7 +24,7 @@ class ScaleDialog(QDialog):
         self.dxInput = QLineEdit("1.0")
         self.dyInput = QLineEdit("1.0")
         self.dzInput = QLineEdit("1.0")
-        
+
         self.dxInput.setValidator(CustomDoubleValidator(1e-9, 1e9, 9))
         self.dyInput.setValidator(CustomDoubleValidator(1e-9, 1e9, 9))
         self.dzInput.setValidator(CustomDoubleValidator(1e-9, 1e9, 9))
@@ -37,7 +41,9 @@ class ScaleDialog(QDialog):
         layout.addLayout(formLayout)
 
         # Dialog buttons
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -50,5 +56,7 @@ class ScaleDialog(QDialog):
             z_offset = float(self.dzInput.text())
             return x_offset, y_offset, z_offset
         except Exception as e:
-            QMessageBox.warning(self, "Invalid Input", f"Offsets must be valid numbers: {e}")
+            QMessageBox.warning(
+                self, "Invalid Input", f"Offsets must be valid numbers: {e}"
+            )
             return None

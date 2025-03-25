@@ -1,4 +1,5 @@
 from PyQt5.QtCore import Qt
+
 APPSTYLE_DARK = "QWidget { background-color: #333; color: white; }"
 APPSTYLE_LIGHT = "QWidget { background-color: #eee; color: black; }"
 APPSTYLE_NIGHT = "QWidget { background-color: #000; color: green; }"
@@ -7,13 +8,15 @@ APPSTYLE_BRIGHT = "QWidget { background-color: white; color: white; }"
 APPSTYLE_DEFAULT = "QWidget { background-color: #333; color: white; }"
 
 DEFAULT_QLINEEDIT_STYLE = "QLineEdit { background-color: light gray; color: black; }"
-INVALID_QLINEEDIT_STYLE = "QLineEdit { background-color: light gray; color: black; border: 1.5px solid red; }"
+INVALID_QLINEEDIT_STYLE = (
+    "QLineEdit { background-color: light gray; color: black; border: 1.5px solid red; }"
+)
 DEFAULT_COMBOBOX_STYLE = ""
 DEFAULT_DISABLED_QLINEEDIT_STYLE = "QLineEdit { background-color: gray; color: gray; }"
 DEFAULT_DISABLED_COMBOBOX_STYLE = "QComboBox { background-color: gray; color: gray; }"
 DEFAULT_DISABLED_BUTTON_STYLE = "background-color: lightgrey; color: grey;"
 
-DEFAULT_FONT_COLOR = 'white'
+DEFAULT_FONT_COLOR = "white"
 
 DEFAULT_ACTOR_COLOR = [1, 1, 0]
 DEFAULT_SELECTED_ACTOR_COLOR = [1.0, 0.5, 0.0]

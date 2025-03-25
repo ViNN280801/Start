@@ -2,7 +2,6 @@ from PyQt5.QtGui import QIntValidator
 
 
 class CustomSignedIntValidator(QIntValidator):
-
     def __init__(self, bottom, top, parent=None):
         super().__init__(bottom, top, parent)
 
@@ -12,7 +11,7 @@ class CustomSignedIntValidator(QIntValidator):
             return (self.Intermediate, input_str, pos)
 
         # Allow '-' if it's the first character
-        if input_str == '-':
+        if input_str == "-":
             return (self.Intermediate, input_str, pos)
 
         try:

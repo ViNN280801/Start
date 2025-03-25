@@ -23,14 +23,16 @@ class Sphere:
         The theta resolution of the sphere (default is DEFAULT_SPHERE_THETA_RESOLUTION).
     """
 
-    def __init__(self,
-                 x: float,
-                 y: float,
-                 z: float,
-                 radius: float,
-                 mesh_resolution: int,
-                 phi_resolution: int = DEFAULT_SPHERE_PHI_RESOLUTION,
-                 theta_resolution: int = DEFAULT_SPHERE_THETA_RESOLUTION):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        radius: float,
+        mesh_resolution: int,
+        phi_resolution: int = DEFAULT_SPHERE_PHI_RESOLUTION,
+        theta_resolution: int = DEFAULT_SPHERE_THETA_RESOLUTION,
+    ):
         """
         Constructs all the necessary attributes for the sphere object.
 
@@ -69,6 +71,6 @@ class Sphere:
             A string representation of the sphere.
         """
         sphere_data_str = []
-        sphere_data_str.append(f'Center: ({self.x}, {self.y}, {self.z})')
-        sphere_data_str.append(f'Radius: {self.radius}')
-        return '\n'.join(sphere_data_str)
+        sphere_data_str.append(f"Center: ({self.x}, {self.y}, {self.z})")
+        sphere_data_str.append(f"Radius: {self.radius}")
+        return "\n".join(sphere_data_str)

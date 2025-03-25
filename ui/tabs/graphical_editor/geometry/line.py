@@ -12,8 +12,7 @@ class Line:
         The list of points defining the line.
     """
 
-    def __init__(self,
-                 points: list):
+    def __init__(self, points: list):
         """
         Constructs all the necessary attributes for the line object.
 
@@ -27,8 +26,10 @@ class Line:
         self.points = points
 
         if not Line.can_create_line(self.points):
-            print(f"Can't create line with specified points:\n{self.points}", file=stderr)
-            raise ValueError("Invalid points for creating a line.")            
+            print(
+                f"Can't create line with specified points:\n{self.points}", file=stderr
+            )
+            raise ValueError("Invalid points for creating a line.")
 
     def __repr__(self):
         """
@@ -40,11 +41,10 @@ class Line:
             A string representation of the line.
         """
         points_str = [
-            f'Point{i + 1}: ({x}, {y}, {z})'
-            for i, (x, y, z) in enumerate(self.points)
+            f"Point{i + 1}: ({x}, {y}, {z})" for i, (x, y, z) in enumerate(self.points)
         ]
-        return '\n'.join(points_str)
-    
+        return "\n".join(points_str)
+
     @staticmethod
     def can_create_line(point_data):
         """

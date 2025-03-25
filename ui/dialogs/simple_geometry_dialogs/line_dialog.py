@@ -1,6 +1,16 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-                             QDialogButtonBox, QMessageBox, QScrollArea,
-                             QWidget, QPushButton, QHBoxLayout, QLabel)
+from PyQt5.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMessageBox,
+    QScrollArea,
+    QWidget,
+    QPushButton,
+    QHBoxLayout,
+    QLabel,
+)
 from PyQt5.QtCore import QSize
 from field_validators import CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
@@ -10,7 +20,6 @@ from tabs.graphical_editor.geometry.line import Line
 
 
 class LineDialog(QDialog):
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(400, 300)
@@ -44,7 +53,8 @@ class LineDialog(QDialog):
         self.mainLayout.addWidget(self.addButton)
 
         self.buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         self.buttons.accepted.connect(self.validate_and_accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -61,17 +71,20 @@ class LineDialog(QDialog):
         z_input = QLineEdit("0.0")
 
         x_input.setValidator(
-            CustomSignedDoubleValidator(GEOMETRY_LINE_XMIN,
-                                        GEOMETRY_LINE_XMAX,
-                                        GEOMETRY_LINE_FIELD_PRECISION))
+            CustomSignedDoubleValidator(
+                GEOMETRY_LINE_XMIN, GEOMETRY_LINE_XMAX, GEOMETRY_LINE_FIELD_PRECISION
+            )
+        )
         y_input.setValidator(
-            CustomSignedDoubleValidator(GEOMETRY_LINE_YMIN,
-                                        GEOMETRY_LINE_YMAX,
-                                        GEOMETRY_LINE_FIELD_PRECISION))
+            CustomSignedDoubleValidator(
+                GEOMETRY_LINE_YMIN, GEOMETRY_LINE_YMAX, GEOMETRY_LINE_FIELD_PRECISION
+            )
+        )
         z_input.setValidator(
-            CustomSignedDoubleValidator(GEOMETRY_LINE_ZMIN,
-                                        GEOMETRY_LINE_ZMAX,
-                                        GEOMETRY_LINE_FIELD_PRECISION))
+            CustomSignedDoubleValidator(
+                GEOMETRY_LINE_ZMIN, GEOMETRY_LINE_ZMAX, GEOMETRY_LINE_FIELD_PRECISION
+            )
+        )
 
         x_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         y_input.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -96,8 +109,10 @@ class LineDialog(QDialog):
         all_valid = True
 
         for input_field in self.inputs:
-            if input_field.validator().validate(
-                    input_field.text(), 0)[0] != QDoubleValidator.Acceptable:
+            if (
+                input_field.validator().validate(input_field.text(), 0)[0]
+                != QDoubleValidator.Acceptable
+            ):
                 input_field.setStyleSheet(INVALID_QLINEEDIT_STYLE)
                 all_valid = False
             else:
@@ -106,8 +121,9 @@ class LineDialog(QDialog):
         if all_valid:
             self.accept()
         else:
-            QMessageBox.warning(self, "Invalid input",
-                                "Please correct the highlighted fields.")
+            QMessageBox.warning(
+                self, "Invalid input", "Please correct the highlighted fields."
+            )
 
     def getValues(self):
         values = [float(field.text()) for field in self.inputs]
@@ -116,5 +132,8 @@ class LineDialog(QDialog):
     def getLine(self):
         values = self.getValues()
         if values is not None and len(values) >= 6:
-            points = [(values[i], values[i + 1], values[i + 2]) for i in range(0, len(values), 3)]
+            points = [
+                (values[i], values[i + 1], values[i + 2])
+                for i in range(0, len(values), 3)
+            ]
         return Line(points)

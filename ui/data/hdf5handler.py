@@ -15,7 +15,8 @@ class HDF5Handler:
         # Check if the file exists and is not empty
         if not h5py.is_hdf5(filename):
             raise ValueError(
-                f"The file {filename} doesn't exist or is empty or isn't a hdf5 file.")
+                f"The file {filename} doesn't exist or is empty or isn't a hdf5 file."
+            )
 
         self.filename = filename
         self.file = h5py.File(filename, "r")
@@ -46,7 +47,9 @@ class HDF5Handler:
             return min(ids) if ids else None
 
     def __del__(self):
-        if hasattr(self, 'file'):  # Check if self.file exists before attempting to close it
+        if hasattr(
+            self, "file"
+        ):  # Check if self.file exists before attempting to close it
             self.file.close()
 
     def read_dataset(self, group_name, dataset_name):
@@ -67,7 +70,9 @@ class HDF5Handler:
             group = self.file[group_name]
             return group[dataset_name][:]
         except Exception as e:
-            raise RuntimeError(f"Failed to open dataset {dataset_name} in group: {group_name}") from e
+            raise RuntimeError(
+                f"Failed to open dataset {dataset_name} in group: {group_name}"
+            ) from e
 
     def read_mesh_from_hdf5(self):
         """

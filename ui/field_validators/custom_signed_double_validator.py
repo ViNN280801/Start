@@ -8,33 +8,33 @@ class CustomSignedDoubleValidator(QDoubleValidator):
 
     def validate(self, input_str, pos):
         # Replace comma with dot for uniform interpretation
-        input_str = input_str.replace(',', '.')
+        input_str = input_str.replace(",", ".")
 
         # Allow empty input
         if not input_str:
             return self.Intermediate, input_str, pos
 
         # Allow '-' if it's the first character
-        if input_str == '-':
+        if input_str == "-":
             return self.Intermediate, input_str, pos
 
         # Check if the input string is a valid number
         try:
             value = float(input_str)
-            
+
             # Allow zero value regardless of format
             if value == 0:
                 return self.Acceptable, input_str, pos
-            
+
             # Check if the value is within the valid range
             if self.bottom() <= value <= self.top():
-                parts = input_str.split('.')
+                parts = input_str.split(".")
                 if len(parts) == 2 and len(parts[1]) <= self.decimals:
                     return self.Acceptable, input_str, pos
                 elif len(parts) == 1:
                     return self.Acceptable, input_str, pos
-            
+
             return self.Invalid, input_str, pos
-        
+
         except ValueError:
             return self.Invalid, input_str, pos

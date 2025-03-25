@@ -5,7 +5,6 @@ from field_validators import CustomSignedIntValidator
 
 
 class CustomSignedIntValidatorTests(unittest.TestCase):
-
     def setUp(self):
         self.parent = QObject()
         self.validator = CustomSignedIntValidator(-100, 100, self.parent)
@@ -39,5 +38,5 @@ class CustomSignedIntValidatorTests(unittest.TestCase):
         self.assertEqual(state, QValidator.Invalid)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
