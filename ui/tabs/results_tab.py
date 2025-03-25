@@ -22,11 +22,12 @@ from util.vtk_helpers import convert_mshfile_to_vtkactor, add_actor
 
 
 class ResultsTab(QWidget):
-    def __init__(self, log_console: LogConsole, parent=None):
+    def __init__(self, log_console: LogConsole, config_tab=None, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout()
         self.toolbarLayout = QHBoxLayout()
         self.log_console = log_console
+        self.config_tab = config_tab
 
         self.setup_ui()
         self.setup_axes()
@@ -62,7 +63,13 @@ class ResultsTab(QWidget):
         self.axes_widget.InteractiveOff()
         
     def setup_particle_animator(self):
-        self.particle_animator = ParticleAnimator(self.vtkWidget, self.log_console, self.renderer, self)
+        self.particle_animator = ParticleAnimator(
+            self.vtkWidget, 
+            self.log_console, 
+            self.renderer, 
+            self,
+            self.config_tab  # Pass the config_tab reference
+        )
 
     def create_toolbar_button(self, icon_path, tooltip, callback, layout, icon_size=QSize(40, 40), button_size=QSize(40, 40)):
         """

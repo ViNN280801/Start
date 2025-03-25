@@ -49,7 +49,7 @@ class WindowApp(QMainWindow):
         self.config_tab.selectBoundaryConditionsSignal.connect(self.handle_select_boundary_conditions)
         self.mesh_tab = GraphicalEditorTab(self.config_tab, self.log_console)
         self.geditor = self.mesh_tab.geditor
-        self.results_tab = ResultsTab(self.log_console)
+        self.results_tab = ResultsTab(self.log_console, self.config_tab)
 
         # Connecting signal to detect the selection of mesh file
         self.config_tab.meshFileSelected.connect(self.geditor.upload_mesh_file)
@@ -631,6 +631,17 @@ class WindowApp(QMainWindow):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
+            # Clean up VTK and animation resources to prevent segfaults
+            if hasattr(self, 'results_tab') and hasattr(self.results_tab, 'particle_animator'):
+                self.results_tab.particle_animator.cleanup()
+                
+            # Finalize the VTK window to prevent segfaults
+            if hasattr(self, 'results_tab') and hasattr(self.results_tab, 'vtkWidget'):
+                self.results_tab.vtkWidget.GetRenderWindow().Finalize()
+                
+            if hasattr(self, 'mesh_tab') and hasattr(self.mesh_tab, 'geditor') and hasattr(self.mesh_tab.geditor, 'vtkWidget'):
+                self.mesh_tab.geditor.vtkWidget.GetRenderWindow().Finalize()
+                
             event.accept()
         else:
             event.ignore()
