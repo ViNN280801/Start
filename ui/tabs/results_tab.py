@@ -41,7 +41,8 @@ from util.vtk_helpers import convert_mshfile_to_vtkactor, add_actor
 class ResultsTab(QWidget):
     def __init__(self, log_console: LogConsole, config_tab=None, parent=None):
         super().__init__(parent)
-        self.layout = QVBoxLayout()
+        self._layout = QVBoxLayout()
+        self.setLayout(self._layout)
         self.toolbarLayout = QHBoxLayout()
         self.log_console = log_console
         self.config_tab = config_tab
@@ -66,9 +67,8 @@ class ResultsTab(QWidget):
         self.interactor.SetInteractorStyle(self.interactorStyle)
         self.interactor.Initialize()
 
-        self.layout.addLayout(self.toolbarLayout)
-        self.layout.addWidget(self.vtkWidget)
-        self.setLayout(self.layout)
+        self._layout.addLayout(self.toolbarLayout)
+        self._layout.addWidget(self.vtkWidget)
 
     def setup_axes(self):
         self.axes_actor = vtkAxesActor()
@@ -299,6 +299,9 @@ class ResultsTab(QWidget):
             width = float(width_str)
             height = float(height_str)
             if 0 <= width <= 1 and 0 <= height <= 1:
+                if not self.particles_colorbar_manager:
+                    raise ValueError("Particles colorbar manager is not initialized")
+
                 self.particles_colorbar_manager.apply_scale(width, height)
                 self.vtkWidget.GetRenderWindow().Render()
             else:
@@ -320,6 +323,9 @@ class ResultsTab(QWidget):
             if color.isValid():
                 # Convert QColor to a normalized RGB tuple that VTK expects (range 0 to 1)
                 color_rgb = (color.red() / 255, color.green() / 255, color.blue() / 255)
+
+                if not self.particles_colorbar_manager:
+                    raise ValueError("Particles colorbar manager is not initialized")
 
                 self.particles_colorbar_manager.change_font(font, color_rgb)
                 self.vtkWidget.GetRenderWindow().Render()
@@ -351,6 +357,10 @@ class ResultsTab(QWidget):
     def apply_divs(self, divs_str):
         try:
             divs = int(divs_str)
+
+            if not self.particles_colorbar_manager:
+                raise ValueError("Particles colorbar manager is not initialized")
+
             self.particles_colorbar_manager.change_divs(divs)
             self.vtkWidget.GetRenderWindow().Render()
         except ValueError:
@@ -361,6 +371,9 @@ class ResultsTab(QWidget):
     def reset_to_default(self):
         if not hasattr(self, "particles_colorbar_manager"):
             return
+
+        if not self.particles_colorbar_manager:
+            raise ValueError("Particles colorbar manager is not initialized")
 
         self.particles_colorbar_manager.reset_to_default()
         self.vtkWidget.GetRenderWindow().Render()
@@ -406,16 +419,25 @@ class ResultsTab(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to save screenshot: {e}")
 
     def on_viewMeshCheckBox_state_changed(self, state):
-        if state == Qt.Checked:
+        if not self.particles_colorbar_manager:
+            raise ValueError("Particles colorbar manager is not initialized")
+
+        if state == Qt.CheckState.Checked:
+            if not self.mesh_actor:
+                raise ValueError("Mesh actor is not initialized")
+
             self.mesh_actor.SetVisibility(False)
             self.particles_colorbar_manager.hide()
-        elif state == Qt.Unchecked:
+        elif state == Qt.CheckState.Unchecked:
+            if not self.mesh_actor:
+                raise ValueError("Mesh actor is not initialized")
+
             self.mesh_actor.SetVisibility(True)
             self.particles_colorbar_manager.show()
         self.vtkWidget.GetRenderWindow().Render()
 
     def on_posFileCheckbox_state_changed(self, state):
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             self.EF_manager.load_pos_file()
-        elif state == Qt.Unchecked:
+        elif state == Qt.CheckState.Unchecked:
             self.EF_manager.cleanup()
