@@ -2,6 +2,7 @@
 
 set(PARTICLE_DYNAMICS_PROCESSOR_DIR ParticleDynamicsProcessor)
 set(PARTICLE_IN_CELL_ENGINE_SOURCES
+    ${PARTICLE_DYNAMICS_PROCESSOR_DIR}/ParticleDistributor.cpp
     ${PARTICLE_DYNAMICS_PROCESSOR_DIR}/ParticleDynamicsProcessor.cpp
     ${PARTICLE_DYNAMICS_PROCESSOR_DIR}/ParticleMovementTracker.cpp
     ${PARTICLE_DYNAMICS_PROCESSOR_DIR}/ParticlePhysicsUpdater.cpp

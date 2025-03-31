@@ -2,10 +2,12 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+#include "DataHandling/SettledParticleHDF5Writer.hpp"
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "Geometry/Utils/Overlaps/TriangleOverlapCalculator.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDistributor.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 #include "SputteringModel/SputteringModel.hpp"
 #include "SputteringModel/TwoPlatesCreator.hpp"
@@ -364,9 +366,9 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
     std::cout << "Enter the weight of the one modeling particle (1 modeling particle = 10^m_particleWeight real particles): ";
     std::cin >> m_particleWeight;
-    if (m_particleWeight < 1)
+    if (m_particleWeight < 0)
     {
-        ERRMSG("The weight of the particle cannot be less than 1");
+        ERRMSG("The weight of the particle cannot be less than 0");
         return;
     }
 
@@ -424,11 +426,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
         std::cin >> temperature;
     }
 
-    double gasConcentration{(pressure / (constants::physical_constants::R * temperature)) * constants::physical_constants::N_av};
-    if (gasConcentration < constants::gasConcentrationMinimalValue)
-    {
-        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
-    }
+    double gasConcentration{util::calculateConcentration(pressure, temperature)};
 
 #if __cplusplus >= 202002L
     for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test(); timeMoment += timeStep)
@@ -515,291 +513,37 @@ void SputteringModel::_distributeSettledParticles(std::string_view filepath)
 {
     try
     {
-        double const weight{std::pow(10, m_particleWeight)};
-        auto const &triangleMap{m_surfaceMesh.getTriangleCellMap()};
-
-        std::vector<std::array<double, 3>> realParticles;
-        std::unordered_map<size_t, size_t> realCounts;
-
-        int distributionType{};
+        // 1. Ask user about distribution type
+        int distributionTypeInt{};
         std::cout << "Which of the following options do you want to use for particle distribution? (1 - uniform, 2 - gaussian): ";
-        std::cin >> distributionType;
+        std::cin >> distributionTypeInt;
 
-#pragma omp parallel
+        auto distributionType = static_cast<ParticleDistributor::DistributionType>(distributionTypeInt);
+
+        // 2. Distribute particles across the mesh
+        auto distributionResult = ParticleDistributor::distributeParticles(
+            m_surfaceMesh,
+            m_particleWeight,
+            distributionType);
+
+        // 4. Save the distributed particles to HDF5 file
+        std::string outputFilePath = filepath.empty() ? "results/settled_particles.hdf5" : std::string(filepath);
+        bool saveResult = SettledParticleHDF5Writer::saveParticlesToHDF5(
+            distributionResult.positions,
+            outputFilePath);
+
+        if (!saveResult)
         {
-            // Thread-safe random number generator
-            std::random_device rd;
-            std::mt19937 gen(rd() + omp_get_thread_num());
-
-            std::uniform_real_distribution<> uniform_dist(0.0, 1.0);
-            std::normal_distribution<> normal_dist(0.0, 0.05);
-
-            std::vector<std::array<double, 3>> local_particles;
-            std::unordered_map<size_t, size_t> localCounts;
-
-#pragma omp for schedule(dynamic)
-            for (size_t idx = 0; idx < triangleMap.size(); ++idx)
-            {
-                auto it = std::next(triangleMap.begin(), idx);
-                auto const &[id, cell] = *it;
-
-                if (cell.count == 0)
-                    continue;
-
-                // Get multi-level neighbors (neighbors of neighbors)
-                std::unordered_set<size_t> expanded_neighbors{id};
-                std::vector<size_t> current_level = {id};
-
-                const int neighbor_levels = 4;
-
-                // For each level, find neighbors of current cells
-                for (int level = 0; level < neighbor_levels; ++level)
-                {
-                    std::vector<size_t> next_level;
-                    for (auto const &cell_id : current_level)
-                    {
-                        auto neighbors = m_surfaceMesh.getNeighborCells(cell_id);
-                        for (auto const &n_id : neighbors)
-                        {
-                            if (expanded_neighbors.insert(n_id).second)
-                            {
-                                next_level.push_back(n_id);
-                            }
-                        }
-                    }
-                    current_level = next_level;
-                    if (current_level.empty())
-                        break;
-                }
-
-                // Convert to vector
-                std::vector<size_t> target_cells(expanded_neighbors.begin(), expanded_neighbors.end());
-
-                // Calculate average cell size for adaptive sigma
-                double avg_cell_size = 0.0;
-                double total_area = 0.0;
-                for (auto const &cell_id : target_cells) {
-                    auto const &target_cell = triangleMap.at(cell_id);
-                    total_area += target_cell.area;
-                }
-                avg_cell_size = std::sqrt(total_area / target_cells.size());
-                double sigma = avg_cell_size * 10.0;
-                if (sigma < 0.5) sigma = 0.5;
-                
-                // Calculate total area and distance-based weights
-                double total_weight = 0.0;
-                std::unordered_map<size_t, double> cell_weights;
-
-                Point source_centroid = TriangleCell::compute_centroid(cell.triangle);
-
-                for (auto const &cell_id : target_cells)
-                {
-                    auto const &target_cell = triangleMap.at(cell_id);
-                    Point target_centroid = TriangleCell::compute_centroid(target_cell.triangle);
-
-                    // Calculate distance between centroids
-                    double distance = std::sqrt(
-                        std::pow(source_centroid.x() - target_centroid.x(), 2) +
-                        std::pow(source_centroid.y() - target_centroid.y(), 2) +
-                        std::pow(source_centroid.z() - target_centroid.z(), 2));
-
-                    // Weight based on area and distance (gaussian-like falloff)
-                    double weight_factor;
-                    if (cell_id == id)
-                    {
-                        // Source triangle gets extra weight
-                        weight_factor = target_cell.area * 2.0;
-                    }
-                    else
-                    {
-                        // Distance-based Gaussian falloff
-                        weight_factor = target_cell.area * std::exp(-(distance * distance) / (2 * sigma * sigma));
-                    }
-
-                    cell_weights[cell_id] = weight_factor;
-                    total_weight += weight_factor;
-                }
-
-                // Calculate particles for each cell
-                for (auto const &cell_id : target_cells)
-                {
-                    auto const &target_cell = triangleMap.at(cell_id);
-                    double ratio = cell_weights[cell_id] / total_weight;
-
-                    // Calculate number of particles for this cell
-                    size_t num_particles = std::max(size_t(1),
-                                                    static_cast<size_t>(std::round(cell.count * weight * ratio)));
-
-#pragma omp critical
-                    {
-                        localCounts[cell_id] += num_particles;
-                    }
-
-                    // Get triangle vertices for proper distribution
-                    Point v0 = target_cell.triangle.vertex(0);
-                    Point v1 = target_cell.triangle.vertex(1);
-                    Point v2 = target_cell.triangle.vertex(2);
-
-                    // Generate particles using correct method for uniform distribution
-                    double r1, r2;
-                    if (distributionType == 1) {
-                        r1 = uniform_dist(gen);
-                        r2 = uniform_dist(gen);
-                    } else {
-                        r1 = std::abs(normal_dist(gen));
-                        r2 = std::abs(normal_dist(gen));
-                        r1 = std::min(r1, 1.0);
-                        r2 = std::min(r2, 1.0);
-                    }
-
-                    double u = 1.0 - std::sqrt(r1);
-                    double v = std::sqrt(r1) * (1.0 - r2);
-                    double w = 1.0 - u - v;
-
-                    // Compute point using barycentric coordinates
-                    double x = u * v0.x() + v * v1.x() + w * v2.x();
-                    double y = u * v0.y() + v * v1.y() + w * v2.y();
-                    double z = u * v0.z() + v * v1.z() + w * v2.z();
-
-                    // Add small noise to avoid grid-like patterns
-                    // Use edge length for better scale estimation
-                    double e1 = std::sqrt(CGAL::squared_distance(v0, v1));
-                    double e2 = std::sqrt(CGAL::squared_distance(v1, v2));
-                    double e3 = std::sqrt(CGAL::squared_distance(v2, v0));
-                    double avg_edge = (e1 + e2 + e3) / 3.0;
-                    double noise_scale = avg_edge * 0.01;
-
-                    if (distributionType == 1) {
-                        x += (uniform_dist(gen) - 0.5) * noise_scale;
-                        y += (uniform_dist(gen) - 0.5) * noise_scale;
-                        z += (uniform_dist(gen) - 0.5) * noise_scale;
-                    } else {
-                        x += normal_dist(gen) * noise_scale;
-                        y += normal_dist(gen) * noise_scale;
-                        z += normal_dist(gen) * noise_scale;
-                    }
-
-                    local_particles.push_back({x, y, z});
-                }
-            }
-
-#pragma omp critical
-            {
-                realParticles.insert(realParticles.end(), local_particles.begin(), local_particles.end());
-                for (auto const &[cid, cnt] : localCounts)
-                    realCounts[cid] += cnt;
-            }
+            WARNINGMSG("Failed to save settled particles to HDF5 file");
         }
-
-        // Updaing counters in surfaceMesh - make sure the total count is consistent
-        size_t total_model_particles = 0;
-        size_t total_real_particles = 0;
-
-        for (auto const &[id, cell] : triangleMap)
-        {
-            total_model_particles += cell.count;
-        }
-
-        for (auto const &[id, count] : realCounts)
-        {
-            total_real_particles += count;
-        }
-
-        // Apply normalization if needed
-        double normalization_factor = 1.0;
-        if (total_real_particles > 0)
-        {
-            double total_expected = total_model_particles * weight;
-            normalization_factor = total_expected / total_real_particles;
-
-            LOGMSG(util::stringify("Normalization factor for particle distribution: ",
-                                   normalization_factor, " (expected: ", total_expected,
-                                   ", generated: ", total_real_particles, ")"));
-        }
-
-// Update particle counts with normalization
-#pragma omp parallel for
-        for (size_t idx = 0; idx < triangleMap.size(); ++idx)
-        {
-            auto it = std::next(triangleMap.begin(), idx);
-            auto const &[id, cell] = *it;
-
-            if (realCounts.count(id))
-            {
-                // Apply normalization to maintain correct total count
-                const_cast<TriangleCell &>(cell).count =
-                    static_cast<size_t>(realCounts[id] * normalization_factor);
-            }
-        }
-
-        // 2. Check if there are any particles to save
-        if (realParticles.empty())
-        {
-            WARNINGMSG("No particles to save. Skipping HDF5 file creation");
-            return;
-        }
-
-        // 3. Create file with error checking
-        hid_t file_id = H5Fcreate(filepath.data(),
-                                  H5F_ACC_TRUNC,
-                                  H5P_DEFAULT,
-                                  H5P_DEFAULT);
-        if (file_id < 0)
-            throw std::runtime_error("HDF5 file creation failed");
-
-        // 4. Create dataspace
-        hsize_t dims[2] = {realParticles.size(), 3};
-        hid_t dataspace{H5Screate_simple(2, dims, NULL)};
-        if (dataspace < 0)
-        {
-            H5Fclose(file_id);
-            throw std::runtime_error("HDF5 dataspace creation failed");
-        }
-
-        // 5. Create dataset
-        hid_t dataset = H5Dcreate2(file_id,
-                                   "settled_particles",
-                                   H5T_NATIVE_DOUBLE,
-                                   dataspace,
-                                   H5P_DEFAULT,
-                                   H5P_DEFAULT,
-                                   H5P_DEFAULT);
-        if (dataset < 0)
-        {
-            H5Sclose(dataspace);
-            H5Fclose(file_id);
-            throw std::runtime_error("HDF5 dataset creation failed");
-        }
-
-        // 6. Write data
-        herr_t status{H5Dwrite(dataset,
-                               H5T_NATIVE_DOUBLE,
-                               H5S_ALL,
-                               H5S_ALL,
-                               H5P_DEFAULT,
-                               realParticles.data())};
-        if (status < 0)
-        {
-            H5Dclose(dataset);
-            H5Sclose(dataspace);
-            H5Fclose(file_id);
-            throw std::runtime_error("HDF5 data write failed");
-        }
-
-        // 7. Correctly release resources
-        H5Dclose(dataset);
-        H5Sclose(dataspace);
-        H5Fclose(file_id);
-
-        SUCCESSMSG(util::stringify("Successfully saved ", realParticles.size(), " particles to ", filepath));
     }
     catch (const std::exception &e)
     {
-        ERRMSG(util::stringify("Error: ", e.what()));
+        ERRMSG(util::stringify("Error in particle distribution: ", e.what()));
     }
     catch (...)
     {
-        ERRMSG("Unknown error");
+        ERRMSG("Unknown error during particle distribution");
     }
 }
 

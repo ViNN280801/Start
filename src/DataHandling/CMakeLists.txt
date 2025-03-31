@@ -1,6 +1,7 @@
 # src/DataHandling/CMakeLists.txt
 
 set(DATA_HANDLING_SOURCES
+    SettledParticleHDF5Writer.cpp
     TriangleMeshHdf5Manager.cpp
 )
 

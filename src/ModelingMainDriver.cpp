@@ -100,7 +100,7 @@ ModelingMainDriver::ModelingMainDriver(std::string_view config_filename)
     GmshUtils::checkGmshMeshFile(m_config.getMeshFilename());
 
     // Calculating and checking gas concentration.
-    m_gasConcentration = util::calculateConcentration_w(config_filename);
+    m_gasConcentration = util::calculateConcentration(config_filename);
 
     // Global initializator. Initializes stop obervers and spawning particles.
     _ginitialize();

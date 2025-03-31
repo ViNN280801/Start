@@ -7,6 +7,7 @@
 START_DEFINE_EXCEPTION(UtilsBaseException, std::runtime_error)
 START_DEFINE_EXCEPTION(UtilsInvalidArgumentException, std::invalid_argument)
 START_DEFINE_EXCEPTION(UtilsOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(UtilsLogicException, std::logic_error)
 START_DEFINE_EXCEPTION(UtilsUnknownException, UtilsBaseException)
 // ************************************************************************************* //
 
@@ -23,6 +24,7 @@ START_DEFINE_EXCEPTION(UtilsInvalidValueForNodeIDsException, UtilsInvalidArgumen
 
 START_DEFINE_EXCEPTION(UtilsFailedToOpenFileException, UtilsBaseException)
 START_DEFINE_EXCEPTION(UtilsInvalidJSONFileException, UtilsBaseException)
+START_DEFINE_EXCEPTION(UtilsZeroOrNegativeGasConcentrationException, UtilsLogicException)
 // ************************************************************************************* //
 
 // ****************************** Gmsh utils exceptions ************************************** //

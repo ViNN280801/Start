@@ -126,21 +126,24 @@ std::string util::getParticleType(ParticleType ptype)
 double util::calculateConcentration(std::string_view config)
 {
     ConfigParser parser(config);
-
-    // PV = nRT: https://en.wikipedia.org/wiki/Ideal_gas_law.
-    return (parser.getPressure() / (constants::physical_constants::R * parser.getTemperature())) * constants::physical_constants::N_av;
+    return calculateConcentration(parser.getPressure(), parser.getTemperature());
 }
 
-double util::calculateConcentration_w(std::string_view config)
+double util::calculateConcentration(double pressure, double temperature)
 {
-    ConfigParser parser(config);
-
     // PV = nRT: https://en.wikipedia.org/wiki/Ideal_gas_law.
-    double gasConcentration{(parser.getPressure() / (constants::physical_constants::R * parser.getTemperature())) *
+    double gasConcentration{(pressure / (constants::physical_constants::R * temperature)) *
                             constants::physical_constants::N_av};
     if (gasConcentration < constants::gasConcentrationMinimalValue)
     {
-        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
+        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ",
+                                   gasConcentration, ". Simulation might considerably slows down"));
+    }
+    if (gasConcentration < 0)
+    {
+        START_THROW_EXCEPTION(UtilsZeroOrNegativeGasConcentrationException,
+                              util::stringify("Failed to calculate concentration of the gas. Its value is less than 0. Pressure: ",
+                                              pressure, ". Temperature: ", temperature));
     }
     return gasConcentration;
 }
