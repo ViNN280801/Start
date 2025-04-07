@@ -32,7 +32,6 @@ Doxyfile
 *.sty
 
 # Text files
-*.md
 *.rst
 *.tex
 *.pdf
