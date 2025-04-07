@@ -127,7 +127,6 @@ public:
 	 */
 	static ParticleVector fromPointSource(std::vector<point_source_t> const &source);
 
-<<<<<<< HEAD
 	/**
 	 * @brief Creates a vector of particles using particle sources as surfaces.
 	 * @param source A vector of surface particle sources.
@@ -147,27 +146,6 @@ public:
 	 *          5) Creates particles by setting for each type, position, energy and directions (angles theta, phi, expansionAngle).
 	 */
 	static ParticleVector fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle = 0.0);
-=======
-        /**
-         * @brief Creates a vector of particles using particle sources as surfaces.
-         * @param source A vector of surface particle sources.
-         * @param expansionAngle Expansion angle in [rad] for the cone distribution (by default = 0). Assuming that there is no expansion in surface source.
-         * @return A vector of particles created from the given surface particle sources.
-         * @details This function iterates through the provided surface particle sources,
-         *          and for each source, it distributes particles evenly across the
-         *          specified cell centers. If the number of particles does not divide
-         *          evenly among the cells, the remainder is randomly distributed. Each
-         *          particle is assigned its type, position, energy, and direction based
-         *          on the source parameters and cell normals.
-         *
-         *          1) The function passes through each surface source.
-         *          2) Determines the number of cells and the number of particles per cell.
-         *          3) Distributes the remainder of the particles randomly into cells.
-         *          4) For each cell and normal, calculates the angles theta and phi necessary to determine the direction of the particles.
-         *          5) Creates particles by setting for each type, position, energy and directions (angles theta, phi, expansionAngle).
-         */
-        static ParticleVector fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle = 0.0);
->>>>>>> origin/main
 };
 
 #endif // !PARTICLE_GENERATOR_HOST_HPP

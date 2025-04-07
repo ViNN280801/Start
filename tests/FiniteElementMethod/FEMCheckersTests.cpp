@@ -3,14 +3,8 @@
 #include <limits>
 #include <stdexcept>
 
-<<<<<<< HEAD
 #include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Utils/FEMCheckers.hpp"
-=======
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
-#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
-#include "FiniteElementMethod/Utils/FEMUtilsExceptions.hpp"
->>>>>>> origin/main
 #include "Utilities/GmshUtilities/GmshUtils.hpp"
 
 // Test fixture for FEMCheckers

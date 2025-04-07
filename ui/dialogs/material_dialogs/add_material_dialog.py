@@ -186,9 +186,9 @@ class AddMaterialDialog(QDialog):
                                 for component in hint.split(", ")
                             )
                         )
-                        existing_compositions[
-                            composition
-                        ] = self.materials_combobox.itemText(i)
+                        existing_compositions[composition] = (
+                            self.materials_combobox.itemText(i)
+                        )
 
                     name_conflicts = []
                     composition_conflicts = []

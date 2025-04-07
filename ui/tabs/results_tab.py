@@ -145,12 +145,12 @@ class ResultsTab(QWidget):
             callback=self.save_screenshot,
             layout=self.toolbarLayout,
         )
-        
+
         self.uploadMeshButton = self.create_toolbar_button(
             icon_path="",
             tooltip="Test",
             callback=self.upload_mesh,
-            layout=self.toolbarLayout
+            layout=self.toolbarLayout,
         )
 
         self.uploadMeshButton = self.create_toolbar_button(
@@ -173,11 +173,7 @@ class ResultsTab(QWidget):
         self.posFileCheckbox = QCheckBox("Load .pos file")
         self.posFileCheckbox.stateChanged.connect(self.on_posFileCheckbox_state_changed)
         self.toolbarLayout.addWidget(self.posFileCheckbox)
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> origin/main
     def upload_mesh(self):
         # Open a file dialog to select a .msh file
         file_path, _ = QFileDialog.getOpenFileName(
@@ -191,7 +187,6 @@ class ResultsTab(QWidget):
             if actor:
                 add_actor(self.vtkWidget, self.renderer, actor, needResetCamera=True)
             else:
-<<<<<<< HEAD
                 QMessageBox.critical(
                     self, "Error", "Failed to load and render the .vtk file."
                 )
@@ -199,13 +194,6 @@ class ResultsTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred: {e}")
 
-=======
-                QMessageBox.critical(self, "Error", "Failed to load and render the .vtk file.")
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred: {e}")
-        
->>>>>>> origin/main
     def show_animation(self):
         self.particle_animator.show_animation()
 

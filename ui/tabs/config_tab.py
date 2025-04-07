@@ -371,57 +371,57 @@ class ConfigTab(QWidget):
         # Parameters for solvers
         self.solver_parameters = {}
 
-        self.solver_parameters[
-            ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_left, "Max Iterations:", f"{DEFAULT_MAX_ITERATIONS}"
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_ITERATION_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_left, "Max Iterations:", f"{DEFAULT_MAX_ITERATIONS}"
+            )
         )
-        self.solver_parameters[
-            ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_left,
-            "Convergence Tolerance:",
-            f"{DEFAULT_CONVERGENCE_TOLERANCE}",
+        self.solver_parameters[ITERATIVE_SOLVER_CONVERGENCE_TOLERANCE_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_left,
+                "Convergence Tolerance:",
+                f"{DEFAULT_CONVERGENCE_TOLERANCE}",
+            )
         )
-        self.solver_parameters[
-            ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_left, "Num Blocks:", f"{DEFAULT_NUM_BLOCKS}"
+        self.solver_parameters[ITERATIVE_SOLVER_NUM_BLOCKS_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_left, "Num Blocks:", f"{DEFAULT_NUM_BLOCKS}"
+            )
         )
-        self.solver_parameters[
-            ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_left, "Block Size:", f"{DEFAULT_BLOCK_SIZE}"
+        self.solver_parameters[ITERATIVE_SOLVER_BLOCK_SIZE_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_left, "Block Size:", f"{DEFAULT_BLOCK_SIZE}"
+            )
         )
 
-        self.solver_parameters[
-            ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_right, "Max Restarts:", f"{DEFAULT_MAX_RESTARTS}"
+        self.solver_parameters[ITERATIVE_SOLVER_MAX_RESTARTS_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_right, "Max Restarts:", f"{DEFAULT_MAX_RESTARTS}"
+            )
         )
-        self.solver_parameters[
-            ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_right,
-            "Flexible GMRES:",
-            ["false", "true"],
-            is_combobox=True,
+        self.solver_parameters[ITERATIVE_SOLVER_FLEXIBLE_GMRES_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_right,
+                "Flexible GMRES:",
+                ["false", "true"],
+                is_combobox=True,
+            )
         )
-        self.solver_parameters[
-            ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_right,
-            "Orthogonalization:",
-            ["ICGS", "IMGS"],
-            is_combobox=True,
+        self.solver_parameters[ITERATIVE_SOLVER_ORTHOGONALIZATION_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_right,
+                "Orthogonalization:",
+                ["ICGS", "IMGS"],
+                is_combobox=True,
+            )
         )
-        self.solver_parameters[
-            ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME
-        ] = self.create_solver_params_field(
-            additional_layout_right,
-            "Adaptive Block Size:",
-            ["false", "true"],
-            is_combobox=True,
+        self.solver_parameters[ITERATIVE_SOLVER_ADAPTIVE_BLOCK_SIZE_FIELD_NAME] = (
+            self.create_solver_params_field(
+                additional_layout_right,
+                "Adaptive Block Size:",
+                ["false", "true"],
+                is_combobox=True,
+            )
         )
         self.solver_parameters[
             ITERATIVE_SOLVER_CONVERGENCE_TEST_FREQUENCY_FIELD_NAME

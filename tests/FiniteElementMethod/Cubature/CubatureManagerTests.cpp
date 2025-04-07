@@ -2,10 +2,7 @@
 #include <stdexcept>
 
 #include "FiniteElementMethod/Cubature/CubatureManager.hpp"
-<<<<<<< HEAD
 #include "FiniteElementMethod/FEMExceptions.hpp"
-=======
->>>>>>> origin/main
 #include "FiniteElementMethod/Utils/FEMLimits.hpp"
 
 extern void supress_output(std::ostream &stream);

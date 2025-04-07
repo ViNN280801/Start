@@ -409,12 +409,7 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
         }
         else
         {
-<<<<<<< HEAD
             ERRMSG(util::stringify("Belos solver failed to converge, result is ", result));
-=======
-            START_THROW_EXCEPTION(SolversFailedToConvergeException,
-                                  "Belos solver failed to converge.");
->>>>>>> origin/main
         }
     }
     catch (std::exception const &ex)

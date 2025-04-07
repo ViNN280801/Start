@@ -168,10 +168,7 @@ public:
     constexpr double getTemperature() const { return m_config.temperature; }
     constexpr double getPressure() const { return m_config.pressure; }
     constexpr ParticleType getGas() const { return m_config.gas; }
-<<<<<<< HEAD
     constexpr bool isSputtering() const { return m_config.sputtering; }
-=======
->>>>>>> origin/main
     std::string getGasStr() const { return util::getParticleType(m_config.gas); }
     STARTCONSTEXPRFUNC std::string_view getMeshFilename() const { return m_config.mshfilename.data(); }
     STARTCONSTEXPRFUNC std::string_view getScatteringModel() const { return m_config.model.data(); }
