@@ -136,5 +136,6 @@ struct is_matrix<
 /// @brief Convenience variable template for is_matrix
 template <typename MatrixType, typename ValueType>
 constexpr bool is_matrix_v = is_matrix<MatrixType, ValueType>::value;
+
 #endif // __cplusplus >= 202002L
 #endif // !TYPES_HPP

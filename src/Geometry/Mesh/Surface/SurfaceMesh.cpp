@@ -79,7 +79,6 @@ SurfaceMesh::SurfaceMesh(std::string_view meshFilename, std::string_view physica
     if (!GmshUtils::hasPhysicalGroup(physicalGroupName, meshFilename))
         START_THROW_EXCEPTION(GeometryPhysicalGroupNotFoundException,
                               util::stringify("Mesh file '", meshFilename, "' does not contain physical group with name: ", physicalGroupName, '.'));
-
     m_triangleCellMap = GmshUtils::getCellsByPhysicalGroupName(physicalGroupName, meshFilename);
     _initialize();
 }
@@ -174,6 +173,7 @@ std::vector<size_t> SurfaceMesh::getNeighborCells(size_t cellId) const
 {
     if (auto it{m_triangleCellMap.find(cellId)}; it != m_triangleCellMap.end())
         return it->second.neighbor_ids;
+
     START_THROW_EXCEPTION(GeometryCellIdNotFoundException,
                           util::stringify("Cell ID not found: ", cellId));
 }

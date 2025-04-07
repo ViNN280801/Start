@@ -1,0 +1,26 @@
+#ifndef SOLVERS_EXCEPTIONS_HPP
+#define SOLVERS_EXCEPTIONS_HPP
+
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(SolversBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(SolversUnknownException, SolversBaseException)
+START_DEFINE_EXCEPTION(SolversSolutionVectorNotInitializedException, std::logic_error)
+START_DEFINE_EXCEPTION(SolversNodeIDOutOfRangeException, std::out_of_range)
+START_DEFINE_EXCEPTION(SolversCalculatingElectricFieldException, std::logic_error)
+START_DEFINE_EXCEPTION(SolversTimeNegativeException, std::invalid_argument)
+START_DEFINE_EXCEPTION(SolversWritingElectricPotentialsToPosFileException, SolversBaseException)
+START_DEFINE_EXCEPTION(SolversWritingElectricFieldVectorsToPosFileException, SolversBaseException)
+START_DEFINE_EXCEPTION(SolversSettingSolverParametersException, std::invalid_argument)
+START_DEFINE_EXCEPTION(SolversFileDoesNotExistException, std::invalid_argument)
+START_DEFINE_EXCEPTION(SolversFileIsNotJSONException, std::invalid_argument)
+START_DEFINE_EXCEPTION(SolversUnableToOpenFileException, std::invalid_argument)
+START_DEFINE_EXCEPTION(SolversUnsupportedSolverNameException, std::invalid_argument)
+START_DEFINE_EXCEPTION(SolversFailedToSolveEquationException, SolversBaseException)
+START_DEFINE_EXCEPTION(SolversFailedToSetUpLinearProblemException, SolversBaseException)
+START_DEFINE_EXCEPTION(SolversFailedToConvergeException, SolversBaseException)
+
+START_DEFINE_JSON_EXCEPTION(SolversFailedToParseJSONFileException, json::parse_error)
+START_DEFINE_JSON_EXCEPTION(SolversTypeJSONFileException, json::type_error)
+
+#endif // !SOLVERS_EXCEPTIONS_HPP

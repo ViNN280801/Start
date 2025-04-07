@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
 import tempfile
 
 from vtk import vtkRenderer
@@ -231,21 +235,36 @@ def create_secure_tempfile() -> str:
     """
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_file_path = temp_file.name
+<<<<<<< HEAD
     return temp_file_path
+=======
+    return temp_file_path 
+>>>>>>> origin/main
 
 
 def warning_unrealized_or_malfunctionating_function(functionality: str):
     """
     Prints to stdout warning message about breaked or unimplemented functionality.
+<<<<<<< HEAD
 
     Parameters:
     functionality (str): String that presents functionality, for example: "Creating geometry object cone".
 
+=======
+    
+    Parameters:
+    functionality (str): String that presents functionality, for example: "Creating geometry object cone".
+    
+>>>>>>> origin/main
     Raises:
     An exception to prevent breaking program with unimplemented or bad, or dummy functionality.
     """
     if not functionality:
         raise ValueError("'functionality' param is empty, nothing to show")
+<<<<<<< HEAD
     raise Exception(
         f"Warning: {functionality}: is unimplemented or breaken functionality."
     )
+=======
+    raise Exception(f"Warning: {functionality}: is unimplemented or breaken functionality.")
+>>>>>>> origin/main

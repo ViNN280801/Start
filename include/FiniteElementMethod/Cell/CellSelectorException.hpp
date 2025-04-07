@@ -1,0 +1,10 @@
+#ifndef CELL_SELECTOR_EXCEPTION_HPP
+#define CELL_SELECTOR_EXCEPTION_HPP
+
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(CellSelectorBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(CellSelectorUnsupportedCellTypeException, CellSelectorBaseException)
+START_DEFINE_EXCEPTION(CellSelectorInvalidEnumTypeException, CellSelectorBaseException)
+
+#endif // !CELL_SELECTOR_EXCEPTION_HPP

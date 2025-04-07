@@ -1,0 +1,14 @@
+#ifndef CUBATURE_EXCEPTIONS_HPP
+#define CUBATURE_EXCEPTIONS_HPP
+
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(BasisSelectorBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(BasisSelectorUnsupportedCellTypeException, BasisSelectorBaseException)
+START_DEFINE_EXCEPTION(BasisSelectorUnsupportedPolynomOrderException, BasisSelectorBaseException)
+
+START_DEFINE_EXCEPTION(CubatureBaseException, std::runtime_error)
+START_DEFINE_EXCEPTION(CubatureInitializingCubatureException, std::logic_error)
+START_DEFINE_EXCEPTION(CubatureUnknownException, CubatureBaseException)
+
+#endif // !CUBATURE_EXCEPTIONS_HPP

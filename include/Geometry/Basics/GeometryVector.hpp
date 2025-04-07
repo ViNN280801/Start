@@ -306,6 +306,7 @@ public:
             START_THROW_EXCEPTION(GeometryIndexOutOfRangeException,
                                   util::stringify("Requested index ",
                                                   k, " for GeometryVector is out of range. Vector is 3D."));
+
         return (*this)[k];
     }
 

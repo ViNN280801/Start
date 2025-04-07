@@ -1,3 +1,4 @@
+#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsExceptions.hpp"
 #include "FiniteElementMethod/BoundaryConditions/VectorBoundaryConditionManager.hpp"
 #include "FiniteElementMethod/FEMExceptions.hpp"
 #include "Utilities/Utilities.hpp"

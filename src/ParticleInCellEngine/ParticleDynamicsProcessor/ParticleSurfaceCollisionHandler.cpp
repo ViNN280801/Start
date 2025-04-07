@@ -2,7 +2,6 @@
 #include "Geometry/Utils/Intersections/SegmentTriangleIntersection.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleMovementTracker.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleSettler.hpp"
-#include <vector>
 
 std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle_cref particle,
                                                               Segment_cref segment,

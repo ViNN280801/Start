@@ -146,7 +146,6 @@ std::optional<size_t> CubicGrid::getContainingTetrahedron(ParticleTrackerMap_cre
         return std::nullopt;
     }
 #endif
-
     for (auto const &[tetraId, particlesInside] : particleInTetrahedronMapIter->second)
     {
 #if __cplusplus >= 202002L

@@ -53,7 +53,7 @@ public:
      *                     (without explicitly opening a file). If `meshFilename` matches `special_code`, no file is opened.
      *
      * @throw GmshUtilsBaseException If Gmsh is not initialized or if the file validation fails (e.g., file does not exist,
-     *                                incorrect extension, empty file, or inaccessible).
+     *                               incorrect extension, empty file, or inaccessible).
      *
      * @note This function is primarily used internally to ensure mesh files are handled correctly before querying
      *       or modifying the Gmsh model.
@@ -210,7 +210,6 @@ public:
      *         - The third element (`std::string`) is the name of the physical group.
      *
      * @throw GmshUtilsNoPhysicalGroupsException If no physical groups are found or if an error occurs during retrieval.
-     *
      * @see GmshUtils::hasPhysicalGroup()
      * @see checkAndOpenMesh()
      *

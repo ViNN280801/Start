@@ -573,10 +573,15 @@ class GraphicalEditor(QFrame):
                     add_actor(self.vtkWidget, self.renderer, point_actor)
 
                     point_dimtags = GeometryManager.get_dimtags_by_actor(point_actor)
+<<<<<<< HEAD
                     self.add_action(
                         ACTION_ACTOR_CREATING, "point", point_actor, point_dimtags
                     )
 
+=======
+                    self.add_action(ACTION_ACTOR_CREATING, 'point', point_actor, point_dimtags)
+                
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Point", str(e))
 
@@ -591,10 +596,15 @@ class GraphicalEditor(QFrame):
                     add_actor(self.vtkWidget, self.renderer, line_actor)
 
                     line_dimtags = GeometryManager.get_dimtags_by_actor(line_actor)
+<<<<<<< HEAD
                     self.add_action(
                         ACTION_ACTOR_CREATING, "line", line_actor, line_dimtags
                     )
 
+=======
+                    self.add_action(ACTION_ACTOR_CREATING, 'line', line_actor, line_dimtags)
+                
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Line", str(e))
 
@@ -610,6 +620,7 @@ class GraphicalEditor(QFrame):
 
                 if surface_actor:
                     add_actor(self.vtkWidget, self.renderer, surface_actor)
+<<<<<<< HEAD
 
                     surface_dimtags = GeometryManager.get_dimtags_by_actor(
                         surface_actor
@@ -618,6 +629,12 @@ class GraphicalEditor(QFrame):
                         ACTION_ACTOR_CREATING, "surface", surface_actor, surface_dimtags
                     )
 
+=======
+                    
+                    surface_dimtags = GeometryManager.get_dimtags_by_actor(surface_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'surface', surface_actor, surface_dimtags)
+                
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Surface", str(e))
 
@@ -632,10 +649,15 @@ class GraphicalEditor(QFrame):
                     add_actor(self.vtkWidget, self.renderer, sphere_actor)
 
                     sphere_dimtags = GeometryManager.get_dimtags_by_actor(sphere_actor)
+<<<<<<< HEAD
                     self.add_action(
                         ACTION_ACTOR_CREATING, "sphere", sphere_actor, sphere_dimtags
                     )
 
+=======
+                    self.add_action(ACTION_ACTOR_CREATING, 'sphere', sphere_actor, sphere_dimtags)
+                
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Sphere", str(e))
 
@@ -650,10 +672,15 @@ class GraphicalEditor(QFrame):
                     add_actor(self.vtkWidget, self.renderer, box_actor)
 
                     box_dimtags = GeometryManager.get_dimtags_by_actor(box_actor)
+<<<<<<< HEAD
                     self.add_action(
                         ACTION_ACTOR_CREATING, "box", box_actor, box_dimtags
                     )
 
+=======
+                    self.add_action(ACTION_ACTOR_CREATING, 'box', box_actor, box_dimtags)
+            
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Box", str(e))
 
@@ -668,10 +695,15 @@ class GraphicalEditor(QFrame):
                     add_actor(self.vtkWidget, self.renderer, cone_actor)
 
                     cone_dimtags = GeometryManager.get_dimtags_by_actor(cone_actor)
+<<<<<<< HEAD
                     self.add_action(
                         ACTION_ACTOR_CREATING, "cone", cone_actor, cone_dimtags
                     )
 
+=======
+                    self.add_action(ACTION_ACTOR_CREATING, 'cone', cone_actor, cone_dimtags)
+            
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Cone", str(e))
 
@@ -685,6 +717,7 @@ class GraphicalEditor(QFrame):
 
                 if cylinder_actor:
                     add_actor(self.vtkWidget, self.renderer, cylinder_actor)
+<<<<<<< HEAD
 
                     cylinder_dimtags = GeometryManager.get_dimtags_by_actor(
                         cylinder_actor
@@ -696,6 +729,12 @@ class GraphicalEditor(QFrame):
                         cylinder_dimtags,
                     )
 
+=======
+                    
+                    cylinder_dimtags = GeometryManager.get_dimtags_by_actor(cylinder_actor)
+                    self.add_action(ACTION_ACTOR_CREATING, 'cylinder', cylinder_actor, cylinder_dimtags)
+            
+>>>>>>> origin/main
             except Exception as e:
                 QMessageBox.warning(self, "Create Cylinder", str(e))
 
@@ -1621,6 +1660,7 @@ class GraphicalEditor(QFrame):
             dialog = ScaleDialog(self)
             if dialog.exec_() == QDialog.Accepted:
                 x_scale, y_scale, z_scale = dialog.getValues()
+<<<<<<< HEAD
 
                 for actor in self.selected_actors:
                     GeometryManager.scale(actor, x_scale, y_scale, z_scale)
@@ -1633,11 +1673,22 @@ class GraphicalEditor(QFrame):
                         z_scale,
                     )
 
+=======
+                
+                for actor in self.selected_actors:
+                    GeometryManager.scale(actor, x_scale, y_scale, z_scale)
+                    self.add_action(ACTION_ACTOR_TRANSFORMATION, 'scale', actor, x_scale, y_scale, z_scale)
+                
+>>>>>>> origin/main
                 self.deselect()
             warning_unrealized_or_malfunctionating_function(f"Adjusting actor {actor}")
         except Exception as e:
             QMessageBox.warning(self, "Scale Object", str(e))
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> origin/main
     def change_interactor(self, style: str):
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
 

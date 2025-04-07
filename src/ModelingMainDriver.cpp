@@ -127,6 +127,7 @@ void ModelingMainDriver::startModeling()
     double totalTime{m_config.getSimulationTime()};
     auto numThreads{m_config.getNumThreads()};
     /* ======================== End ========================== */
+
 #if __cplusplus >= 202002L
     for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test(); timeMoment += timeStep)
 #else

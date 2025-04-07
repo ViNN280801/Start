@@ -17,10 +17,10 @@ using json = nlohmann::json;
     };
 
 #define START_DEFINE_JSON_EXCEPTION(exception_name, json_exception_type)                     \
-    class exception_name : public json::exception                                \
+    class exception_name : public json::exception                                            \
     {                                                                                        \
     public:                                                                                  \
-        exception_name(std::string_view message) : json::exception(0, message.data()) {} \
+        exception_name(std::string_view message) : json::exception(0, message.data()) {}     \
     };
 
 #define START_THROW_EXCEPTION(exception_name, msg) \
