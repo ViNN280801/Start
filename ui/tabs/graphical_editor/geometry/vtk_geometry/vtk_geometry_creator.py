@@ -1,14 +1,22 @@
 from vtk import (
-    vtkPoints, vtkVertexGlyphFilter,
-    vtkPolyLine, vtkCellArray,
+    vtkPoints,
+    vtkVertexGlyphFilter,
+    vtkPolyLine,
+    vtkCellArray,
     vtkPolygon,
     vtkSphereSource,
     vtkCubeSource,
     vtkConeSource,
     vtkCylinderSource,
-    vtkActor, vtkPolyData, vtkPolyDataMapper, vtkTriangleFilter, 
-    vtkLinearSubdivisionFilter, vtkTransform, vtkTransformFilter,
-    vtkPlane, vtkPlaneSource
+    vtkActor,
+    vtkPolyData,
+    vtkPolyDataMapper,
+    vtkTriangleFilter,
+    vtkLinearSubdivisionFilter,
+    vtkTransform,
+    vtkTransformFilter,
+    vtkPlane,
+    vtkPlaneSource,
 )
 from sys import stderr
 from tabs.graphical_editor.geometry.point import Point
@@ -26,7 +34,6 @@ from util.util import can_create_plane
 
 
 class VTKGeometryCreator:
-    
     @staticmethod
     def remove(vtkWidget, renderer, actor: vtkActor, needResetCamera: bool = True):
         """
@@ -41,10 +48,10 @@ class VTKGeometryCreator:
             The actor to be removed from the renderer.
         needResetCamera : bool, optional
             If True, the camera will be reset after removing the actor (default is True).
-        
+
         """
         remove_actor(vtkWidget, renderer, actor, needResetCamera)
-    
+
     @staticmethod
     def create_point(point: Point) -> vtkActor:
         """
@@ -74,10 +81,12 @@ class VTKGeometryCreator:
             actor.GetProperty().SetPointSize(10)
 
             return actor
-        
+
         except Exception as e:
-            print(f"An error occurred while creating the point with VTK: {e}", file=stderr)
-            
+            print(
+                f"An error occurred while creating the point with VTK: {e}", file=stderr
+            )
+
     @staticmethod
     def create_line(line: Line) -> vtkActor:
         """
@@ -111,10 +120,12 @@ class VTKGeometryCreator:
             actor.SetMapper(mapper)
 
             return actor
-        
+
         except Exception as e:
-            print(f"An error occurred while creating the line with VTK: {e}", file=stderr)
-    
+            print(
+                f"An error occurred while creating the line with VTK: {e}", file=stderr
+            )
+
     @staticmethod
     def create_surface(surface: Surface) -> vtkActor:
         """
@@ -148,12 +159,15 @@ class VTKGeometryCreator:
             actor.SetMapper(mapper)
 
             return actor
-        
+
         except Exception as e:
-            print(f"An error occurred while creating the surface with VTK: {e}", file=stderr)
-    
+            print(
+                f"An error occurred while creating the surface with VTK: {e}",
+                file=stderr,
+            )
+
     @staticmethod
-    def create_plane(p1, p2, axis='z'):
+    def create_plane(p1, p2, axis="z"):
         """
         Create a cutting plane in VTK defined by two points and an axis.
 
@@ -169,17 +183,26 @@ class VTKGeometryCreator:
             ValueError: If the inputs are not valid.
             RuntimeError: If there is an error during the plane creation.
         """
-        if not (isinstance(p1, (list, set, tuple)) and isinstance(p2, (list, set, tuple)) and len(p1) == 3 and len(p2) == 3):
-            raise ValueError("Both points must be lists/sets/tuples of three numerical coordinates.")
+        if not (
+            isinstance(p1, (list, set, tuple))
+            and isinstance(p2, (list, set, tuple))
+            and len(p1) == 3
+            and len(p2) == 3
+        ):
+            raise ValueError(
+                "Both points must be lists/sets/tuples of three numerical coordinates."
+            )
         if not all(isinstance(coord, (int, float)) for coord in p1 + p2):
             raise ValueError("All coordinates must be integers or floats.")
         if axis not in ["x", "y", "z"]:
             raise ValueError("Selected axis must be 'x', 'Y', or 'z'.")
-        
+
         can_create_plane(p1, p2)
 
         try:
-            direction = [p2[i] - p1[i] for i in range(3)]  # Direction vector of the line
+            direction = [
+                p2[i] - p1[i] for i in range(3)
+            ]  # Direction vector of the line
             plane = vtkPlane()
             viewDirection = [0, 0, 0]
 
@@ -194,11 +217,19 @@ class VTKGeometryCreator:
             normal = cross(direction, viewDirection)
             plane.SetOrigin(p1)
             plane.SetNormal(normal)
-            
+
             plane_source = vtkPlaneSource()
             plane_source.SetOrigin(p1)
-            plane_source.SetPoint1(p1[0] + viewDirection[0], p1[1] + viewDirection[1], p1[2] + viewDirection[2])
-            plane_source.SetPoint2(p2[0] + viewDirection[0], p2[1] + viewDirection[1], p2[2] + viewDirection[2])
+            plane_source.SetPoint1(
+                p1[0] + viewDirection[0],
+                p1[1] + viewDirection[1],
+                p1[2] + viewDirection[2],
+            )
+            plane_source.SetPoint2(
+                p2[0] + viewDirection[0],
+                p2[1] + viewDirection[1],
+                p2[2] + viewDirection[2],
+            )
             plane_source.Update()
 
             mapper = vtkPolyDataMapper()
@@ -206,9 +237,9 @@ class VTKGeometryCreator:
 
             actor = vtkActor()
             actor.SetMapper(mapper)
-            
+
             return plane, actor
-            
+
         except Exception as e:
             raise RuntimeError(f"Error creating plane in VTK: {e}")
 
@@ -229,11 +260,11 @@ class VTKGeometryCreator:
             sphere_source.Update()
             sphere_source.SetPhiResolution(sphere.phi_resolution)
             sphere_source.SetThetaResolution(sphere.theta_resolution)
-            
+
             triangle_filter = vtkTriangleFilter()
             triangle_filter.SetInputConnection(sphere_source.GetOutputPort())
             triangle_filter.Update()
-            
+
             subdivision_filter = vtkLinearSubdivisionFilter()
             subdivision_filter.SetInputConnection(triangle_filter.GetOutputPort())
             subdivision_filter.SetNumberOfSubdivisions(sphere.mesh_resolution)
@@ -246,10 +277,13 @@ class VTKGeometryCreator:
             actor.SetMapper(mapper)
 
             return actor
-        
+
         except Exception as e:
-            print(f"An error occurred while creating the sphere with VTK: {e}", file=stderr)
-    
+            print(
+                f"An error occurred while creating the sphere with VTK: {e}",
+                file=stderr,
+            )
+
     @staticmethod
     def create_box(box: Box) -> vtkActor:
         """
@@ -262,14 +296,14 @@ class VTKGeometryCreator:
         """
         try:
             cube_source = vtkCubeSource()
-        
+
             x_min = min(box.x, box.x + box.length)
             x_max = max(box.x, box.x + box.length)
             y_min = min(box.y, box.y + box.width)
             y_max = max(box.y, box.y + box.width)
             z_min = min(box.z, box.z + box.height)
             z_max = max(box.z, box.z + box.height)
-            
+
             cube_source.SetBounds(x_min, x_max, y_min, y_max, z_min, z_max)
             cube_source.Update()
 
@@ -291,9 +325,11 @@ class VTKGeometryCreator:
             return actor
 
         except Exception as e:
-            print(f"An error occurred while creating the box with VTK: {e}", file=stderr)
+            print(
+                f"An error occurred while creating the box with VTK: {e}", file=stderr
+            )
             return None
-    
+
     @staticmethod
     def create_cone(cone: Cone) -> vtkActor:
         """
@@ -303,7 +339,7 @@ class VTKGeometryCreator:
         -------
         vtkActor
             The actor representing the cone.
-        """        
+        """
         try:
             cone_source = vtkConeSource()
             cone_source.SetCenter(cone.x_center, cone.y_center, cone.z_center)
@@ -331,9 +367,11 @@ class VTKGeometryCreator:
             return actor
 
         except Exception as e:
-            print(f"An error occurred while creating the cone with VTK: {e}", file=stderr)
+            print(
+                f"An error occurred while creating the cone with VTK: {e}", file=stderr
+            )
             return None
-        
+
     @staticmethod
     def create_cylinder(cylinder: Cylinder) -> vtkActor:
         """
@@ -351,7 +389,7 @@ class VTKGeometryCreator:
             cylinder_source.SetHeight(cylinder.height)
             cylinder_source.SetResolution(cylinder.resolution)
             cylinder_source.Update()
-            
+
             triangle_filter = vtkTriangleFilter()
             triangle_filter.SetInputConnection(cylinder_source.GetOutputPort())
             triangle_filter.Update()
@@ -366,14 +404,17 @@ class VTKGeometryCreator:
 
             actor = vtkActor()
             actor.SetMapper(mapper)
-            
+
             sync_vtkcylinder_to_gmshcylinder_helper(cylinder, actor)
 
             return actor
-        
+
         except Exception as e:
-            print(f"An error occurred while creating the cylinder with VTK: {e}", file=stderr)
-    
+            print(
+                f"An error occurred while creating the cylinder with VTK: {e}",
+                file=stderr,
+            )
+
 
 def sync_vtkcylinder_to_gmshcylinder_helper(cylinder: Cylinder, actor: vtkActor):
     """
@@ -385,7 +426,7 @@ def sync_vtkcylinder_to_gmshcylinder_helper(cylinder: Cylinder, actor: vtkActor)
         An object containing the cylinder parameters (x, y, z, radius, height, resolution, dx, dy, dz).
     actor : vtkActor
         The VTK actor representing the cylinder to be adjusted.
-    
+
     Notes:
     ------
     This function applies both translation and rotation transformations to align the VTK cylinder with
@@ -397,31 +438,33 @@ def sync_vtkcylinder_to_gmshcylinder_helper(cylinder: Cylinder, actor: vtkActor)
     2. Calculating the necessary rotation to align the default Y-axis with the direction vector.
     3. Applying the rotation and additional translation to position the cylinder correctly.
     4. Updating the actor's transformation matrix and geometry.
-    """    
+    """
     # Calculate the direction and height
     direction = array([cylinder.dx, cylinder.dy, cylinder.dz])
     direction_normalized = direction / cylinder.height
-    
+
     # Translate to the cylinder base
     transform = vtkTransform()
     transform.Translate(cylinder.x, cylinder.y, cylinder.z)
-            
+
     # Calculate the rotation axis and angle
     # Relevant links:
     #        1) https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
     #        2) https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
     #        3) https://en.wikipedia.org/wiki/Euler%27s_rotation_theorem
-    default_direction = array([0, 1, 0]) # Default Y-axis in VTK
+    default_direction = array([0, 1, 0])  # Default Y-axis in VTK
     rotation_axis = cross(default_direction, direction_normalized)
     rotation_angle = arccos(dot(default_direction, direction_normalized)) * 180 / pi
-    
+
     # Apply rotation if the rotation axis is non-zero
     if norm(rotation_axis) > 1e-6:
-        transform.RotateWXYZ(rotation_angle, rotation_axis[0], rotation_axis[1], rotation_axis[2])
-    
+        transform.RotateWXYZ(
+            rotation_angle, rotation_axis[0], rotation_axis[1], rotation_axis[2]
+        )
+
     # Translate along the direction vector to position the cylinder correctly
     transform.Translate(0, cylinder.height / 2, 0)
-    
+
     # Applying transformation not only for te actor, but for its geometry too
     if actor and isinstance(actor, vtkActor):
         mapper = actor.GetMapper()

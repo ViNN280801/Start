@@ -2,6 +2,7 @@
 
 set(PARTICLES_SOURCES
     Particle.cpp
+    ParticleDisplacer.cpp
 )
 
 if(START_CUDA_ON)

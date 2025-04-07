@@ -1,5 +1,5 @@
-#ifndef CUBICGRID_HPP
-#define CUBICGRID_HPP
+#ifndef CUBIC_GRID_HPP
+#define CUBIC_GRID_HPP
 
 #include <CGAL/Bbox_3.h>
 
@@ -118,4 +118,4 @@ public:
 using CubicGrid_ref = CubicGrid &;
 using CubicGrid_cref = CubicGrid const &;
 
-#endif // !CUBICGRID_HPP
+#endif // !CUBIC_GRID_HPP

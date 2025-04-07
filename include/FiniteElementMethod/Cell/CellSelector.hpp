@@ -1,7 +1,7 @@
 #ifndef CELL_SELECTOR_HPP
 #define CELL_SELECTOR_HPP
 
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Cell/CellType.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
 

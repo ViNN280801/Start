@@ -1,7 +1,5 @@
 #include "FiniteElementMethod/Utils/FEMCheckers.hpp"
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
-#include "FiniteElementMethod/Utils/FEMUtilsExceptions.hpp"
-#include "Utilities/GmshUtilities/GmshUtils.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "Utilities/Utilities.hpp"
 
 void FEMCheckers::checkDesiredAccuracy(short desired_accuracy)
@@ -31,22 +29,21 @@ void FEMCheckers::checkPolynomOrder(short polynom_order)
 {
     if (polynom_order < FEM_LIMITS_NULL_VALUE)
     {
-        START_THROW_EXCEPTION(FEMCheckersUnsupportedPolynomOrderException,
-                              "Polynomial order can't be negative");
+        START_THROW_EXCEPTION(FEMCheckersUnderflowPolynomOrderException,
+                              util::stringify("Polynomial order can't be negative, passed: ", polynom_order));
     }
     if (polynom_order == FEM_LIMITS_NULL_VALUE)
     {
         START_THROW_EXCEPTION(FEMCheckersUnsupportedPolynomOrderException,
-                              "Polynomial order can't be 0");
+                              util::stringify("Polynomial order can't be 0, passed: ", polynom_order));
     }
     if (polynom_order > FEM_LIMITS_MAX_POLYNOMIAL_ORDER)
     {
-        START_THROW_EXCEPTION(FEMCheckersUnsupportedPolynomOrderException,
-                              "Polynomial order can't be greater than " +
-                                  std::to_string(FEM_LIMITS_MAX_POLYNOMIAL_ORDER) +
-                                  ". Required range: [" +
-                                  std::to_string(FEM_LIMITS_MIN_POLYNOMIAL_ORDER) + "; " +
-                                  std::to_string(FEM_LIMITS_MAX_POLYNOMIAL_ORDER) + "]");
+        START_THROW_EXCEPTION(FEMCheckersOverflowPolynomOrderException,
+                              util::stringify("Polynomial order can't be greater than ",
+                                              FEM_LIMITS_MAX_POLYNOMIAL_ORDER, ". Required range: [",
+                                              FEM_LIMITS_MIN_POLYNOMIAL_ORDER, "; ",
+                                              FEM_LIMITS_MAX_POLYNOMIAL_ORDER, "]"));
     }
 }
 

@@ -1,5 +1,5 @@
 #include "FiniteElementMethod/Solvers/MatrixEquationSolver.hpp"
-#include "FiniteElementMethod/Solvers/SolversExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "Utilities/Utilities.hpp"
 
 void MatrixEquationSolver::initialize()
@@ -409,8 +409,7 @@ void MatrixEquationSolver::solve(std::string_view solverName, Teuchos::RCP<Teuch
         }
         else
         {
-            START_THROW_EXCEPTION(SolversFailedToConvergeException,
-                                  "Belos solver failed to converge.");
+            ERRMSG(util::stringify("Belos solver failed to converge, result is ", result));
         }
     }
     catch (std::exception const &ex)

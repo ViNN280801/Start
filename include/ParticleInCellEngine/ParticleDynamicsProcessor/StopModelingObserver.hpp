@@ -1,5 +1,5 @@
-#ifndef STOPMODELINGOBSERVER_HPP
-#define STOPMODELINGOBSERVER_HPP
+#ifndef STOP_MODELING_OBSERVER_HPP
+#define STOP_MODELING_OBSERVER_HPP
 
 #include <atomic>
 #include <memory>
@@ -97,4 +97,4 @@ public:
     void onStopRequested() override;
 };
 
-#endif // !STOPMODELINGOBSERVER_HPP
+#endif // !STOP_MODELING_OBSERVER_HPP

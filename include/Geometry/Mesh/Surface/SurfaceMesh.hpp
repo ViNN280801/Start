@@ -3,6 +3,7 @@
 
 #include "Geometry/Mesh/Surface/AABBTree/AABBTree.hpp"
 #include "Geometry/Mesh/Surface/TriangleCell.hpp"
+#include "Particle/Particle.hpp"
 
 /**
  * @class SurfaceMesh
@@ -63,7 +64,8 @@ private:
      * - Degenerate triangles are **logged** and **skipped**.
      * - If all triangles are degenerate, an exception is thrown.
      *
-     * @throws std::runtime_error If no valid triangles are found after filtering.
+     * @throw GeometryTriangleCellMapEmptyException If `m_triangleCellMap` is empty.
+     * @throw GeometryTrianglesVectorEmptyException If no valid triangles are found after filtering.
      */
     void _fillTriangles();
 
@@ -79,7 +81,8 @@ private:
      * - If `m_triangles` is empty, an exception is thrown.
      * - If the constructed AABB tree is empty after insertion, an exception is thrown.
      *
-     * @throws std::runtime_error If `m_triangles` is empty or if the AABB tree cannot be built.
+     * @throw GeometryTrianglesVectorEmptyException If `m_triangles` is empty.
+     * @throw GeometryAABBTreeEmptyException If the AABB tree cannot be built.
      */
     void _constructAABB();
 
@@ -95,8 +98,6 @@ private:
      * This method calls `_fillTriangles()` and `_constructAABB()` in sequence, ensuring that:
      * - The triangle vector is correctly populated.
      * - A valid AABB tree is constructed.
-     *
-     * @throws std::runtime_error If any step in the initialization fails.
      */
     void _initialize();
 
@@ -110,7 +111,7 @@ public:
      * - Initializes the **AABB tree** for spatial queries.
      *
      * @param meshFilename The path to the Gmsh `.msh` file.
-     * @throw std::runtime_error If the file is missing, invalid, or contains no valid triangles.
+     * @throw GeometryInitializationException If the file is missing, invalid, or contains no valid triangles.
      */
     explicit SurfaceMesh(std::string_view meshFilename);
 
@@ -122,7 +123,7 @@ public:
      * - Automatically filters degenerate triangles and builds the **AABB tree**.
      *
      * @param triangleCells A `TriangleCellMap` containing triangle definitions.
-     * @throw std::invalid_argument If `triangleCells` is empty.
+     * @throw GeometryTriangleCellMapEmptyException If `triangleCells` is empty.
      */
     explicit SurfaceMesh(TriangleCellMap_cref triangleCells);
 
@@ -135,7 +136,7 @@ public:
      *
      * @param meshFilename The path to the Gmsh `.msh` file.
      * @param physicalGroupName The name of the physical group containing the desired triangles.
-     * @throw std::runtime_error If the physical group does not exist or contains no valid triangles.
+     * @throw GeometryPhysicalGroupNotFoundException If the physical group does not exist or contains no valid triangles.
      */
     explicit SurfaceMesh(std::string_view meshFilename, std::string_view physicalGroupName);
 
@@ -225,10 +226,30 @@ public:
     size_t getTotalCountOfSettledParticles() const noexcept;
 
     /**
+     * @brief Gets the global bounding box of the entire surface mesh.
+     * @return CGAL::Bbox_3 Global bounding box enclosing all triangles.
+     */
+    CGAL::Bbox_3 getGlobalBoundingBox() const;
+
+    /**
+     * @brief Checks if a particle is within the modeling space
+     *
+     * Determines if a particle is within the modeling space by checking if
+     * it's inside or near the global bounding box of the surface mesh.
+     * The check includes a small margin around the bounding box to avoid
+     * prematurely skipping particles that might still interact with the surface.
+     *
+     * @param particle The particle to check
+     * @param expansionFactor Optional factor to expand the bounding box (default: 1.2)
+     * @return bool True if the particle is within the modeling space, false otherwise
+     */
+    bool isParticleWithinModelingSpace(Particle_cref particle, double expansionFactor = constants::global_bounding_box_expansion_factor::expansion_factor) const;
+
+    /**
      * @brief Gets the IDs of neighboring cells for a given triangle.
      * @param cellId ID of the target cell.
      * @return Vector of IDs of neighboring cells.
-     * @throw std::out_of_range If cellId does not exist.
+     * @throw GeometryCellIdNotFoundException If cellId does not exist.
      */
     std::vector<size_t> getNeighborCells(size_t cellId) const;
 };

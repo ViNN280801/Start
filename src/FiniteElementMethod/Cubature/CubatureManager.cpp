@@ -1,7 +1,7 @@
 #include "FiniteElementMethod/Cubature/CubatureManager.hpp"
 #include "FiniteElementMethod/Cell/CellSelector.hpp"
 #include "FiniteElementMethod/Cubature/BasisSelector.hpp"
-#include "FiniteElementMethod/Cubature/CubatureExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
 #include "FiniteElementMethod/Utils/FEMCheckers.hpp"
 #include "FiniteElementMethod/Utils/FEMLimits.hpp"

@@ -1,6 +1,7 @@
 #include "ParticleInCellEngine/ChargeDensityEquationSolver.hpp"
-#include "FiniteElementMethod/Utils/FEMLimits.hpp"
 #include "FiniteElementMethod/Solvers/MatrixEquationSolver.hpp"
+#include "FiniteElementMethod/Utils/FEMLimits.hpp"
+#include "ParticleInCellEngine/PICExceptions.hpp"
 
 void ChargeDensityEquationSolver::solve(double timeMoment,
                                         std::string_view configFilename,
@@ -46,10 +47,12 @@ void ChargeDensityEquationSolver::solve(double timeMoment,
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(util::stringify("Can't solve the equation: ", ex.what()));
+        START_THROW_EXCEPTION(PICChargeDensityEquationSolverSolvingException,
+                              util::stringify("Can't solve the equation: ", ex.what()));
     }
     catch (...)
     {
-        ERRMSG("Some error occured while solving the matrix equation Ax=b");
+        START_THROW_EXCEPTION(PICChargeDensityEquationSolverUnknownException,
+                              util::stringify("Some error occured while solving the matrix equation Ax=b"));
     }
 }

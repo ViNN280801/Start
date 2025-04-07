@@ -1,5 +1,5 @@
-#ifndef THREADEDPROCESSOR_HPP
-#define THREADEDPROCESSOR_HPP
+#ifndef THREADED_PROCESSOR_HPP
+#define THREADED_PROCESSOR_HPP
 
 #include <functional>
 #include <future>
@@ -68,4 +68,4 @@ public:
     }
 };
 
-#endif // THREADEDPROCESSOR_HPP
+#endif // !THREADED_PROCESSOR_HPP

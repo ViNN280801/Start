@@ -27,16 +27,18 @@ class Cylinder:
         The triangle vtkLinearSubdivisionFilter count of the subdivisions.
     """
 
-    def __init__(self,
-                 x: float,
-                 y: float,
-                 z: float,
-                 radius: float,
-                 dx: float,
-                 dy: float,
-                 dz: float,
-                 mesh_resolution: int,
-                 resolution: int = DEFAULT_CYLINDER_RESOLUTION):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        radius: float,
+        dx: float,
+        dy: float,
+        dz: float,
+        mesh_resolution: int,
+        resolution: int = DEFAULT_CYLINDER_RESOLUTION,
+    ):
         """
         Constructs all the necessary attributes for the cylinder object.
 
@@ -63,7 +65,7 @@ class Cylinder:
         self.y = y
         self.z = z
         self.radius = radius
-        self.height = (dx**2 + dy**2 + dz**2)**0.5
+        self.height = (dx**2 + dy**2 + dz**2) ** 0.5
         self.dx = dx
         self.dy = dy
         self.dz = dz
@@ -80,8 +82,8 @@ class Cylinder:
             A string representation of the cylinder.
         """
         cylinder_data_str = []
-        cylinder_data_str.append(f'Primary Point: ({self.x}, {self.y}, {self.z})')
-        cylinder_data_str.append(f'Radius: {self.radius}')
-        cylinder_data_str.append(f'Direction vector: [{self.dx} {self.dy} {self.dz}]')
-        cylinder_data_str.append(f'Height: {self.height}')
-        return '\n'.join(cylinder_data_str)
+        cylinder_data_str.append(f"Primary Point: ({self.x}, {self.y}, {self.z})")
+        cylinder_data_str.append(f"Radius: {self.radius}")
+        cylinder_data_str.append(f"Direction vector: [{self.dx} {self.dy} {self.dz}]")
+        cylinder_data_str.append(f"Height: {self.height}")
+        return "\n".join(cylinder_data_str)

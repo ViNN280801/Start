@@ -1,5 +1,5 @@
 #include "FiniteElementMethod/Utils/FEMPrinter.hpp"
-#include "FiniteElementMethod/Utils/FEMUtilsExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 
 void FEMPrinter::printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
 {
@@ -35,7 +35,7 @@ void FEMPrinter::printGraph(Teuchos::RCP<Tpetra::CrsGraph<>> const &graph)
     {
         std::string errorMessage{"Unknown error was occured while printing graph"};
         ERRMSG(errorMessage);
-        START_THROW_EXCEPTION(FEMUtilsUnknownException, errorMessage);
+        START_THROW_EXCEPTION(FEMPrinterUnknownException, errorMessage);
     }
 }
 
@@ -130,6 +130,6 @@ void FEMPrinter::printMatrix(Teuchos::RCP<TpetraMatrixType> matrix)
     {
         std::string errorMessage{"Unknown error was occured while printing global stiffness matrix"};
         ERRMSG(errorMessage);
-        START_THROW_EXCEPTION(FEMUtilsUnknownException, errorMessage);
+        START_THROW_EXCEPTION(FEMPrinterUnknownException, errorMessage);
     }
 }

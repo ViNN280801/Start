@@ -42,34 +42,35 @@ void ParticleDynamicsProcessor::_process_stdver__helper(size_t start_index,
                           if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
                               return;
 
-                          // 2. Apply electromagnetic forces to the particle.
+                          // 2. Skip particles with velocity close to zero
+                          if (particle.getVelocityModule() < constants::physical_limitations::min_velocity)
+                              return;
+
+                          // 3. Skip particles that are too far from the modeling space
+                          if (!surfaceMesh.isParticleWithinModelingSpace(particle))
+                              return;
+
+                          // 4. Apply electromagnetic forces to the particle.
                           if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
                               ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
-                          // 3. Record the particle's previous position for movement tracking.
+                          // 5. Record the particle's previous position for movement tracking.
                           Point const &prev{particle.getCentre()};
                           ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
-                          // 4. Update the particle's position.
+                          // 6. Update the particle's position.
                           particle.updatePosition(timeStep);
                           Segment segment(prev, particle.getCentre());
                           if (segment.is_degenerate())
                               return;
 
-                          // 5. Simulate collisions between the particle and gas molecules.
+                          // 7. Simulate collisions between the particle and gas molecules.
                           ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-                          // 6. Handle collisions between the particle and the surface mesh.
-                          auto collision{ParticleSurfaceCollisionHandler::handle(
+                          // 8. Handle collisions between the particle and the surface mesh.
+                          ParticleSurfaceCollisionHandler::handle(
                               particle, segment, particles.size(), surfaceMesh, sh_mutex_settledParticlesCounterMap,
-                              mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject)};
-
-                          // 7. If we collided and settled with a tetrahedron or triangle, we need to update collision counter.
-                          if (collision)
-                          {
-                              if (stopSubject.isStopRequested())
-                                  return;
-                          }
+                              mutex_particlesMovementMap, particleMovementMap, settledParticlesIds, stopSubject);
                       });
     }
     catch (std::exception const &e)
@@ -166,28 +167,32 @@ void ParticleDynamicsProcessor::_process_ompver__(double timeMoment,
             if (ParticleSettler::isSettled(particle.getId(), settledParticlesIds, sh_mutex_settledParticlesCounterMap))
                 continue;
 
-            // 2. Electromagnetic push.
+            // 2. Skip particles with velocity close to zero
+            if (particle.getVelocityModule() < constants::physical_limitations::min_velocity)
+                continue;
+
+            // 3. Skip particles that are too far from the modeling space
+            if (!surfaceMesh.isParticleWithinModelingSpace(particle))
+                continue;
+
+            // 4. Electromagnetic push.
             if (auto tetraId{CubicGrid::getContainingTetrahedron(particleTracker, particle, timeMoment)})
                 ParticlePhysicsUpdater::doElectroMagneticPush(particle, gsmAssembler, *tetraId, timeStep);
 
-            // 3. Record previous position.
+            // 5. Record previous position.
             Point prev{particle.getCentre()};
             ParticleMovementTracker::recordMovement(particleMovementMap, mutex_particlesMovementMap, particle.getId(), prev);
 
-            // 4. Update position.
+            // 6. Update position.
             particle.updatePosition(timeStep);
             Segment segment(prev, particle.getCentre());
             if (segment.is_degenerate())
                 continue;
 
-            // 5. Gas collision.
+            // 7. Gas collision.
             ParticlePhysicsUpdater::collideWithGas(particle, scatteringModel, gasName, gasConcentration, timeStep);
 
-            // 6. Skip surface collision checks if t == 0.
-            if (timeMoment == 0.0)
-                continue;
-
-            // 7. Surface collision.
+            // 8. Surface collision.
             ParticleSurfaceCollisionHandler::handle(particle, segment, particles.size(),
                                                     surfaceMesh, sh_mutex_settledParticlesCounterMap,
                                                     mutex_particlesMovementMap,
@@ -224,7 +229,7 @@ void ParticleDynamicsProcessor::process(std::string_view config_filename,
                                         double gasConcentration)
 {
     // Implement a fallback mechanism: first OpenMP, then standard multi-threading
-    bool processing_success = false;
+    bool processing_success{};
 
 #ifdef USE_OMP
     // Try OpenMP if CUDA failed

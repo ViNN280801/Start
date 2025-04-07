@@ -1,5 +1,5 @@
 #include "FiniteElementMethod/BoundaryConditions/MatrixBoundaryConditionsManager.hpp"
-#include "FiniteElementMethod/BoundaryConditions/BoundaryConditionsExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "Utilities/Utilities.hpp"
 
 void _setBoundaryConditionForNode(Teuchos::RCP<TpetraMatrixType> matrix, LocalOrdinal nodeID, Scalar value)

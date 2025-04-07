@@ -14,8 +14,7 @@ class Surface:
         The list of points defining the surface.
     """
 
-    def __init__(self,
-                 points: list):
+    def __init__(self, points: list):
         """
         Constructs all the necessary attributes for the surface object.
 
@@ -36,7 +35,6 @@ class Surface:
             A string representation of the surface.
         """
         points_str = [
-            f'Point{i + 1}: ({x}, {y}, {z})'
-            for i, (x, y, z) in enumerate(self.points)
+            f"Point{i + 1}: ({x}, {y}, {z})" for i, (x, y, z) in enumerate(self.points)
         ]
-        return '\n'.join(points_str)
+        return "\n".join(points_str)

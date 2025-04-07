@@ -38,7 +38,8 @@ namespace util
     std::string getParticleType(ParticleType ptype);
 
     /**
-     * @brief Calculating concentration from the configuration file.
+     * @brief Calculating concentration from the configuration file with printing error msg,
+     *        when calculated gas concentration is too small according to the constants.
      * @param config Name of the configuration file.
      * @return Concentration. [N] (count).
      * `-1` if smth went wrong.
@@ -48,11 +49,12 @@ namespace util
     /**
      * @brief Calculating concentration from the configuration file with printing error msg,
      *        when calculated gas concentration is too small according to the constants.
-     * @param config Name of the configuration file.
+     * @param pressure Pressure. [Pa].
+     * @param temperature Temperature. [K].
      * @return Concentration. [N] (count).
      * `-1` if smth went wrong.
      */
-    double calculateConcentration_w(std::string_view config);
+    double calculateConcentration(double pressure, double temperature);
 
     /**
      * @brief Checker for file on existence.

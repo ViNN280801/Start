@@ -5,6 +5,7 @@
 
 #include "Utilities/ConfigParser.hpp"
 #include "Utilities/Utilities.hpp"
+#include "Utilities/UtilitiesExceptions.hpp"
 
 using json = nlohmann::json;
 
@@ -125,21 +126,24 @@ std::string util::getParticleType(ParticleType ptype)
 double util::calculateConcentration(std::string_view config)
 {
     ConfigParser parser(config);
-
-    // PV = nRT: https://en.wikipedia.org/wiki/Ideal_gas_law.
-    return (parser.getPressure() / (constants::physical_constants::R * parser.getTemperature())) * constants::physical_constants::N_av;
+    return calculateConcentration(parser.getPressure(), parser.getTemperature());
 }
 
-double util::calculateConcentration_w(std::string_view config)
+double util::calculateConcentration(double pressure, double temperature)
 {
-    ConfigParser parser(config);
-
     // PV = nRT: https://en.wikipedia.org/wiki/Ideal_gas_law.
-    double gasConcentration{(parser.getPressure() / (constants::physical_constants::R * parser.getTemperature())) *
+    double gasConcentration{(pressure / (constants::physical_constants::R * temperature)) *
                             constants::physical_constants::N_av};
     if (gasConcentration < constants::gasConcentrationMinimalValue)
     {
-        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
+        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ",
+                                   gasConcentration, ". Simulation might considerably slows down"));
+    }
+    if (gasConcentration < 0)
+    {
+        START_THROW_EXCEPTION(UtilsZeroOrNegativeGasConcentrationException,
+                              util::stringify("Failed to calculate concentration of the gas. Its value is less than 0. Pressure: ",
+                                              pressure, ". Temperature: ", temperature));
     }
     return gasConcentration;
 }
@@ -183,8 +187,10 @@ void util::check_json_validity(std::string_view json_filename)
 
         // Check if the file contains null or is incorrectly formatted.
         if (loadedJson.is_null() || loadedJson.empty() || !loadedJson.is_object())
-            throw std::runtime_error(util::stringify("Json file '", json_filename, "' is invalid. Check the formatting or content."));
+            START_THROW_EXCEPTION(UtilsInvalidJSONFileException,
+                                  util::stringify("Json file '", json_filename, "' is invalid. Check the formatting or content."));
     }
     else
-        throw std::ios_base::failure("Failed to open file for reading back and check its content.");
+        START_THROW_EXCEPTION(UtilsFailedToOpenFileException,
+                              util::stringify("Failed to open file for reading back and check its content."));
 }

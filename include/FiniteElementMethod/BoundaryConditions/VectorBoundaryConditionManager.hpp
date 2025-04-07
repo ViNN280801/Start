@@ -1,5 +1,5 @@
-#ifndef VECTORBOUNDARYCONDITIONSMANAGER_HPP
-#define VECTORBOUNDARYCONDITIONSMANAGER_HPP
+#ifndef VECTOR_BOUNDARY_CONDITIONS_MANAGER_HPP
+#define VECTOR_BOUNDARY_CONDITIONS_MANAGER_HPP
 
 #include <map>
 
@@ -29,4 +29,4 @@ public:
     static void set(Teuchos::RCP<TpetraVectorType> vector, short polynom_order, std::map<GlobalOrdinal, Scalar> const &boundary_conditions);
 };
 
-#endif // !VECTORBOUNDARYCONDITIONSMANAGER_HPP
+#endif // !VECTOR_BOUNDARY_CONDITIONS_MANAGER_HPP

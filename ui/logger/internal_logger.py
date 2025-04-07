@@ -1,5 +1,4 @@
 class InternalLogger:
-    
     @staticmethod
     def pretty_function_details() -> str:
         """
@@ -7,7 +6,7 @@ class InternalLogger:
         <file name>: line[<line number>]: <func name>(<args>)
         """
         from inspect import currentframe, getargvalues
-        
+
         stack_details = []
         current_frame = currentframe()
         caller_frame = current_frame.f_back
@@ -18,8 +17,10 @@ class InternalLogger:
             args, _, _, values = getargvalues(caller_frame)
             function_file = caller_frame.f_code.co_filename
             function_line_no = caller_frame.f_lineno
-            formatted_args = ', '.join([f"{arg}={values[arg]}" for arg in args])
-            stack_details.append(f"Call {idx}: {function_file}: line[{function_line_no}]: {function_name}({formatted_args})")
+            formatted_args = ", ".join([f"{arg}={values[arg]}" for arg in args])
+            stack_details.append(
+                f"Call {idx}: {function_file}: line[{function_line_no}]: {function_name}({formatted_args})"
+            )
             caller_frame = caller_frame.f_back
             idx += 1
 

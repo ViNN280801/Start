@@ -1,7 +1,11 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLineEdit,
-    QLabel, QPushButton, QHBoxLayout,
-    QMessageBox
+    QDialog,
+    QVBoxLayout,
+    QLineEdit,
+    QLabel,
+    QPushButton,
+    QHBoxLayout,
+    QMessageBox,
 )
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
@@ -13,16 +17,16 @@ class CustomMaterialDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle('Custom Material')
+        self.setWindowTitle("Custom Material")
         self.setMinimumWidth(180)
         self.layout = QVBoxLayout()
-        self.ok_button = QPushButton('OK')
+        self.ok_button = QPushButton("OK")
 
-        self.name_label = QLabel('Name:')
+        self.name_label = QLabel("Name:")
         self.name_edit = QLineEdit()
         self.name_edit.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
 
-        self.add_element_button = QPushButton('[+] Add Element')
+        self.add_element_button = QPushButton("[+] Add Element")
         self.add_element_button.clicked.connect(self.add_element_input)
 
         self.layout.addWidget(self.name_label)
@@ -31,7 +35,7 @@ class CustomMaterialDialog(QDialog):
         self.element_layout = QVBoxLayout()
         self.layout.addLayout(self.element_layout)
 
-        self.remaining_percentage_label = QLabel('Remaining percentage: 100%')
+        self.remaining_percentage_label = QLabel("Remaining percentage: 100%")
         self.layout.addWidget(self.remaining_percentage_label)
         self.remaining_percentage = 100.0
 
@@ -40,7 +44,7 @@ class CustomMaterialDialog(QDialog):
         self.layout.addWidget(self.add_element_button)
         self.button_box = QHBoxLayout()
         self.ok_button.clicked.connect(self.validate_and_accept)
-        self.cancel_button = QPushButton('Cancel')
+        self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
 
         self.button_box.addWidget(self.ok_button)
@@ -51,20 +55,19 @@ class CustomMaterialDialog(QDialog):
 
     def add_element_input(self):
         element_layout = QHBoxLayout()
-        select_element_button = QPushButton('Select Element')
-        element_label = QLabel('None')
+        select_element_button = QPushButton("Select Element")
+        element_label = QLabel("None")
         element_percentage = QLineEdit()
         element_percentage.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         element_percentage.setValidator(QDoubleValidator(0, 100, 3))
-        element_percentage.textChanged.connect(
-            self.update_remaining_percentage)
+        element_percentage.textChanged.connect(self.update_remaining_percentage)
 
-        delete_button = QPushButton('Delete')
-        delete_button.clicked.connect(
-            lambda: self.remove_element_input(element_layout))
+        delete_button = QPushButton("Delete")
+        delete_button.clicked.connect(lambda: self.remove_element_input(element_layout))
 
         select_element_button.clicked.connect(
-            lambda: self.open_periodic_table(element_label))
+            lambda: self.open_periodic_table(element_label)
+        )
 
         element_layout.addWidget(select_element_button)
         element_layout.addWidget(element_label)
@@ -77,13 +80,15 @@ class CustomMaterialDialog(QDialog):
     def open_periodic_table(self, element_label):
         self.periodic_table = PeriodicTableWindow()
         self.periodic_table.element_selected.connect(
-            lambda element: self.set_element(element_label, element))
+            lambda element: self.set_element(element_label, element)
+        )
         self.periodic_table.exec_()
 
     def remove_element_input(self, element_layout):
         if self.element_layout.count() <= 1:
-            QMessageBox.warning(self, 'Invalid Operation',
-                                'Cannot remove the last remaining element.')
+            QMessageBox.warning(
+                self, "Invalid Operation", "Cannot remove the last remaining element."
+            )
             return
 
         for i in reversed(range(element_layout.count())):
@@ -99,8 +104,9 @@ class CustomMaterialDialog(QDialog):
             layout = self.element_layout.itemAt(i).layout()
             existing_label = layout.itemAt(1).widget()
             if existing_label.text() == element:
-                QMessageBox.warning(self, 'Invalid Input',
-                                    'Duplicate elements are not allowed.')
+                QMessageBox.warning(
+                    self, "Invalid Input", "Duplicate elements are not allowed."
+                )
                 return
         element_label.setText(element)
         self.update_remaining_percentage()
@@ -117,7 +123,10 @@ class CustomMaterialDialog(QDialog):
             element_label = layout.itemAt(1).widget()
             current_element = element_label.text()
             available_elements = [
-                e for e in CHEMICAL_ELEMENTS if e not in selected_elements or e == current_element]
+                e
+                for e in CHEMICAL_ELEMENTS
+                if e not in selected_elements or e == current_element
+            ]
 
     def update_remaining_percentage(self):
         try:
@@ -132,13 +141,13 @@ class CustomMaterialDialog(QDialog):
 
             self.remaining_percentage = 100 - total_percentage
             self.remaining_percentage_label.setText(
-                f'Remaining percentage: {self.remaining_percentage:.2f}%')
+                f"Remaining percentage: {self.remaining_percentage:.2f}%"
+            )
 
             # Enable or disable the add element button and change its color
             if self.remaining_percentage <= 0:
                 self.add_element_button.setDisabled(True)
-                self.add_element_button.setStyleSheet(
-                    DEFAULT_DISABLED_BUTTON_STYLE)
+                self.add_element_button.setStyleSheet(DEFAULT_DISABLED_BUTTON_STYLE)
             else:
                 self.add_element_button.setDisabled(False)
                 self.add_element_button.setStyleSheet("")
@@ -152,47 +161,55 @@ class CustomMaterialDialog(QDialog):
                 self.ok_button.setStyleSheet("")
 
         except Exception as e:
-            QMessageBox.critical(self, 'Error', f'An error occurred: {e}')
+            QMessageBox.critical(self, "Error", f"An error occurred: {e}")
 
     def validate_and_accept(self):
         try:
             material_name = self.name_edit.text().strip()
 
             if not material_name:
-                QMessageBox.warning(self, 'Invalid Input',
-                                    'The name field cannot be empty.')
+                QMessageBox.warning(
+                    self, "Invalid Input", "The name field cannot be empty."
+                )
                 return
 
             parent_dialog = self.parent()
             if material_name in parent_dialog.material_names:
-                QMessageBox.warning(self, 'Invalid Input', f'The name "{material_name}" is already taken.')
+                QMessageBox.warning(
+                    self,
+                    "Invalid Input",
+                    f'The name "{material_name}" is already taken.',
+                )
                 return
 
             total_percentage = 0
             for i in range(self.element_layout.count()):
                 layout = self.element_layout.itemAt(i).layout()
                 element_label = layout.itemAt(1).widget()
-                if element_label.text() == 'None':
+                if element_label.text() == "None":
                     QMessageBox.warning(
-                        self, 'Invalid Input', 'Element cannot be "None". Please select a valid element.')
+                        self,
+                        "Invalid Input",
+                        'Element cannot be "None". Please select a valid element.',
+                    )
                     return
                 percentage_edit = layout.itemAt(2).widget()
                 total_percentage += float(percentage_edit.text())
 
             if total_percentage != 100:
-                QMessageBox.warning(self, 'Invalid Input',
-                                    'Total percentage must be exactly 100%.')
+                QMessageBox.warning(
+                    self, "Invalid Input", "Total percentage must be exactly 100%."
+                )
                 return
 
             self.accept()
         except ValueError:
-            QMessageBox.warning(self, 'Invalid Input',
-                                'Please enter valid percentages')
+            QMessageBox.warning(self, "Invalid Input", "Please enter valid percentages")
         except Exception as e:
-            QMessageBox.critical(self, 'Error', f'An error occurred: {e}')
+            QMessageBox.critical(self, "Error", f"An error occurred: {e}")
 
     def get_material(self):
-        material = {'name': self.name_edit.text()}
+        material = {"name": self.name_edit.text()}
         for i in range(self.element_layout.count()):
             layout = self.element_layout.itemAt(i).layout()
             element_label = layout.itemAt(1).widget()

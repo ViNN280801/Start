@@ -45,6 +45,16 @@ namespace constants
         static STARTCONSTINIT const double Ag_radius{160e-12};
     }
 
+    namespace physical_limitations
+    {
+        static STARTCONSTINIT const double min_velocity{10}; ///< [m/s].
+    }
+
+    namespace global_bounding_box_expansion_factor
+    {
+        static STARTCONSTINIT const double expansion_factor{1.01}; ///< 1% expansion factor of the global bounding box.
+    }
+
     // Book: The DSMC method G. A. Bird Version 1.2; 2013. 286 p. (Table A.1) - omega
     namespace viscosity_temperature_index
     {

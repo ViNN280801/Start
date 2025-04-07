@@ -1,5 +1,5 @@
-#ifndef NODECHARGEDENSITYPROCESSOR_HPP
-#define NODECHARGEDENSITYPROCESSOR_HPP
+#ifndef NODE_CHARGE_DENSITY_PROCESSOR_HPP
+#define NODE_CHARGE_DENSITY_PROCESSOR_HPP
 
 #include <mutex>
 #include <shared_mutex>
@@ -46,4 +46,4 @@ public:
                        NodeChargeDensitiesMap &nodeChargeDensityMap);
 };
 
-#endif // !NODECHARGEDENSITYPROCESSOR_HPP
+#endif // !NODE_CHARGE_DENSITY_PROCESSOR_HPP

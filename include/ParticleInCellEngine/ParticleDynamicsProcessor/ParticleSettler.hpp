@@ -1,5 +1,5 @@
-#ifndef PARTICLESETTLER_HPP
-#define PARTICLESETTLER_HPP
+#ifndef PARTICLE_SETTLER_HPP
+#define PARTICLE_SETTLER_HPP
 
 #include <shared_mutex>
 
@@ -126,4 +126,4 @@ public:
     void onStopRequested() override {}
 };
 
-#endif // !PARTICLESETTLER_HPP
+#endif // !PARTICLE_SETTLER_HPP

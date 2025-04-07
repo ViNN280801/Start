@@ -25,7 +25,7 @@ INTERMEDIATE_FILE=""           # No intermediate file by default
 INTERMEDIATE_REBUILD=false     # No need to recompile from scratch intermediate results
 COMPILE_TESTS=false            # No need to compile all the tests
 NEED_VERBOSE=false             # No need to compile with verbose output
-COMPILE_SPUTTERING_MODEL=false # No need to compile the sputtering model by default
+COMPILE_SPUTTERING_MODEL=true  # By default compile the sputtering model
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in

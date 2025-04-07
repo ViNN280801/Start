@@ -1,8 +1,7 @@
-#ifndef PARTICLEDEVICE_CUH
-#define PARTICLEDEVICE_CUH
+#ifndef PARTICLE_DEVICE_CUH
+#define PARTICLE_DEVICE_CUH
 
 #ifdef USE_CUDA
-
 #include <cuda_runtime.h>
 #include <vector>
 
@@ -159,5 +158,4 @@ public:
 };
 
 #endif // !USE_CUDA
-
-#endif // !PARTICLEDEVICE_CUH
+#endif // !PARTICLE_DEVICE_CUH

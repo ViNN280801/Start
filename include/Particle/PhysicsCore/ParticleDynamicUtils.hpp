@@ -1,5 +1,5 @@
-#ifndef PARTICLEDYNAMICUTILS_HPP
-#define PARTICLEDYNAMICUTILS_HPP
+#ifndef PARTICLE_DYNAMIC_UTILS_HPP
+#define PARTICLE_DYNAMIC_UTILS_HPP
 
 #include "Generators/Host/RealNumberGeneratorHost.hpp"
 #include "Geometry/Basics/GeometryVector.hpp"
@@ -140,4 +140,4 @@ public:
     }
 };
 
-#endif
+#endif // !PARTICLE_DYNAMIC_UTILS_HPP

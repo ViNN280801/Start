@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#include "Particle/ParticleExceptions.hpp"
 #include "Utilities/CUDA/DeviceUtils.cuh"
 
 ParticleDevice_t *ParticleDeviceMemoryConverter::allocateDeviceMemory(ParticleDevice_t const &particle)
@@ -23,7 +24,8 @@ ParticleDeviceArray ParticleDeviceMemoryConverter::allocateDeviceArrayMemory(std
 Particle ParticleDeviceMemoryConverter::copyToHost(ParticleDevice_t const *d_particle)
 {
     if (!d_particle)
-        throw std::runtime_error("Device particle pointer is null");
+        START_THROW_EXCEPTION(ParticleDevicePointerNullException,
+                              util::stringify("Device particle pointer is null"));
     ParticleDevice_t hostDeviceParticle;
     cuda_utils::check_cuda_err(cudaMemcpy(&hostDeviceParticle, d_particle, sizeof(ParticleDevice_t), cudaMemcpyDeviceToHost),
                                "CUDA memcpy device to host failed");
@@ -38,7 +40,8 @@ ParticleVector ParticleDeviceMemoryConverter::copyToHost(ParticleDeviceArray con
         return {}; // Return an empty vector if no particles exist
 
     if (!deviceArray.get())
-        throw std::runtime_error("Device particle array pointer is null");
+        START_THROW_EXCEPTION(ParticleDeviceArrayPointerNullException,
+                              util::stringify("Device particle array pointer is null"));
 
     START_CHECK_CUDA_ERROR(cudaDeviceSynchronize(), "cudaDeviceSynchronize failed during copyToHost");
 
@@ -68,9 +71,9 @@ ParticleVector ParticleDeviceMemoryConverter::copyToHost(ParticleDeviceArray con
         }
         catch (const std::exception &e)
         {
-            throw std::runtime_error(
-                "Failed to convert device particle " + std::to_string(i) +
-                " to host particle: " + e.what());
+            START_THROW_EXCEPTION(ParticleDeviceMemoryConversionException,
+                                  util::stringify("Failed to convert device particle ", i,
+                                                  " to host particle: ", e.what()));
         }
     }
 

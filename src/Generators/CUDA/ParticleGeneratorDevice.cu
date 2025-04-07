@@ -1,4 +1,5 @@
 #include "Generators/CUDA/ParticleGeneratorDevice.cuh"
+#include "Generators/GeneratorsExceptions.hpp"
 #include "Particle/CUDA/ParticleDevice.cuh"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
 #include "Particle/Particle.hpp"
@@ -91,16 +92,21 @@ START_CUDA_GLOBAL void generateParticlesFromPointSourceKernel(ParticleDevice_t *
                                        // and energy.
 }
 
-ParticleVector ParticleGeneratorDevice::fromPointSource(const std::vector<point_source_t> &source)
+ParticleVector ParticleGeneratorDevice::fromPointSource(std::vector<point_source_t> const &source)
 {
     if (source.empty())
-        throw std::logic_error("Point source list is empty");
+    {
+        START_THROW_EXCEPTION(ParticleGeneratorsDeviceZeroCountException, "Point source list is empty");
+    }
 
     size_t totalParticles = 0;
     for (const auto &sourceData : source)
     {
         if (sourceData.count == 0)
-            throw std::logic_error("Cannot generate 0 particles from a point source");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsDeviceZeroCountException,
+                                  "Cannot generate 0 particles from a point source");
+        }
         totalParticles += sourceData.count;
     }
 
@@ -188,10 +194,12 @@ START_CUDA_GLOBAL void generateParticlesFromSurfaceSourceKernel(ParticleDevice_t
                                        // and energy.
 }
 
-ParticleVector ParticleGeneratorDevice::fromSurfaceSource(const std::vector<surface_source_t> &source, double expansionAngle)
+ParticleVector ParticleGeneratorDevice::fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle)
 {
     if (source.empty())
-        throw std::logic_error("Surface source list is empty");
+    {
+        START_THROW_EXCEPTION(ParticleGeneratorsDeviceZeroCountException, "Surface source list is empty");
+    }
 
     ParticleDeviceArray deviceParticles;
     std::vector<double3> cellCentersExpanded, normalsExpanded;
@@ -203,11 +211,17 @@ ParticleVector ParticleGeneratorDevice::fromSurfaceSource(const std::vector<surf
     for (const auto &sourceData : source)
     {
         if (sourceData.count == 0)
-            throw std::logic_error("Cannot generate 0 particles from a surface source");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsDeviceZeroCountException,
+                                  "Cannot generate 0 particles from a surface source");
+        }
 
         ParticleType type = util::getParticleTypeFromStrRepresentation(sourceData.type);
         if (type == ParticleType::Unknown)
-            throw std::invalid_argument("Unknown particle type received");
+        {
+            START_THROW_EXCEPTION(ParticleGeneratorsDeviceUnknownParticleTypeException,
+                                  "Unknown particle type received");
+        }
 
         size_t num_cells = sourceData.baseCoordinates.size();
         size_t particles_per_cell = sourceData.count / num_cells;

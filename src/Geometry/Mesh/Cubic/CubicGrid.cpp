@@ -4,6 +4,7 @@
 #include <ranges>
 #endif
 
+#include "Geometry/GeometryExceptions.hpp"
 #include "Geometry/Mesh/Cubic/CubicGrid.hpp"
 
 CubicGrid::CubicGrid(VolumetricMesh_cref meshData, double edgeSize)
@@ -128,9 +129,11 @@ std::optional<size_t> CubicGrid::getContainingTetrahedron(ParticleTrackerMap_cre
 
 #ifdef USE_SERIAL
     if (timeMoment < 0)
-        throw std::logic_error("Time moment can't be negative, but you passed: " + std::to_string(timeMoment));
+        START_THROW_EXCEPTION(GeometryTimeMomentException,
+                              util::stringify("Time moment can't be negative, but you passed: ", timeMoment));
     if (particleTracker.empty())
-        throw std::invalid_argument("Particle tracker map is empty. Cannot search for tetrahedrons.");
+        START_THROW_EXCEPTION(GeometryParticleTrackerEmptyException,
+                              util::stringify("Particle tracker map is empty. Cannot search for tetrahedrons."));
 #else
     if (timeMoment < 0)
     {
@@ -143,7 +146,6 @@ std::optional<size_t> CubicGrid::getContainingTetrahedron(ParticleTrackerMap_cre
         return std::nullopt;
     }
 #endif
-
     for (auto const &[tetraId, particlesInside] : particleInTetrahedronMapIter->second)
     {
 #if __cplusplus >= 202002L

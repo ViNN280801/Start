@@ -4,9 +4,9 @@
 #include <ranges>
 #endif
 
-#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
-#include "FiniteElementMethod/LinearAlgebraManagers/LinearAlgebraManagersExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/LinearAlgebraManagers/MatrixManager.hpp"
+#include "FiniteElementMethod/Utils/FEMCheckers.hpp"
 
 #if __cplusplus >= 202002L
 MatrixManager::MatrixManager(std::span<MatrixEntry const> matrix_entries) : m_entries(matrix_entries.begin(), matrix_entries.end())

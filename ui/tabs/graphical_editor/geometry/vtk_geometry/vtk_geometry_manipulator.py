@@ -1,11 +1,16 @@
-from vtk import vtkTransform, vtkTransformFilter, vtkActor, vtkPlane, vtkBooleanOperationPolyDataFilter
+from vtk import (
+    vtkTransform,
+    vtkTransformFilter,
+    vtkActor,
+    vtkPlane,
+    vtkBooleanOperationPolyDataFilter,
+)
 from util.vtk_helpers import object_operation_executor_helper, cut_actor
 from sys import stderr
 from logger.internal_logger import InternalLogger
 
 
 class VTKGeometryManipulator:
-    
     @staticmethod
     def apply_transformation(actor: vtkActor, transform: vtkTransform):
         """
@@ -32,7 +37,7 @@ class VTKGeometryManipulator:
                 mapper.SetInputConnection(transform_filter.GetOutputPort())
                 mapper.Update()
             actor.Modified()
-    
+
     @staticmethod
     def move(actor: vtkActor, x_offset: float, y_offset: float, z_offset: float):
         """
@@ -54,8 +59,11 @@ class VTKGeometryManipulator:
             transform.Translate(x_offset, y_offset, z_offset)
             VTKGeometryManipulator.apply_transformation(actor, transform)
         except Exception as e:
-            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Error moving geometry with VTK: {e}", file=stderr)
-    
+            raise RuntimeError(
+                f"{InternalLogger.pretty_function_details()}: Error moving geometry with VTK: {e}",
+                file=stderr,
+            )
+
     @staticmethod
     def rotate(actor, angle_x: float, angle_y: float, angle_z: float):
         """
@@ -73,6 +81,7 @@ class VTKGeometryManipulator:
         Exception: If an error occurs during the transformation process.
         """
         from math import degrees
+
         try:
             transform = vtkTransform()
             transform.RotateX(degrees(angle_x))
@@ -80,7 +89,10 @@ class VTKGeometryManipulator:
             transform.RotateZ(degrees(angle_z))
             VTKGeometryManipulator.apply_transformation(actor, transform)
         except Exception as e:
-            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Error rotating geometry with VTK: {e}", file=stderr)
+            raise RuntimeError(
+                f"{InternalLogger.pretty_function_details()}: Error rotating geometry with VTK: {e}",
+                file=stderr,
+            )
 
     @staticmethod
     def scale(actor, x_scale: float, y_scale: float, z_scale: float):
@@ -103,8 +115,11 @@ class VTKGeometryManipulator:
             transform.Scale(x_scale, y_scale, z_scale)
             VTKGeometryManipulator.apply_transformation(actor, transform)
         except Exception as e:
-            raise RuntimeError(f"{InternalLogger.pretty_function_details()}: Error scaling geometry with VTK: {e}", file=stderr)
-    
+            raise RuntimeError(
+                f"{InternalLogger.pretty_function_details()}: Error scaling geometry with VTK: {e}",
+                file=stderr,
+            )
+
     @staticmethod
     def subtract(obj_from: vtkActor, obj_to: vtkActor) -> vtkActor:
         booleanOperation = vtkBooleanOperationPolyDataFilter()

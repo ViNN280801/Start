@@ -10,11 +10,16 @@ from styles import *
 from util import *
 from dialogs import ShortcutsInfoDialog
 from PyQt5.QtWidgets import (
-    QMainWindow, QTabWidget,
-    QVBoxLayout, QWidget,
-    QMessageBox, QFileDialog,
-    QProgressBar, QScrollArea,
-    QApplication, QColorDialog
+    QMainWindow,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+    QMessageBox,
+    QFileDialog,
+    QProgressBar,
+    QScrollArea,
+    QApplication,
+    QColorDialog,
 )
 from PyQt5.QtGui import QColor, QTextCharFormat
 from PyQt5.QtCore import QProcess, pyqtSlot
@@ -46,10 +51,12 @@ class WindowApp(QMainWindow):
         self.config_tab = ConfigTab(self.log_console)
         self.config_tab.requestToMoveToTheNextTab.connect(self.switch_tab)
         self.config_tab.requestToStartSimulation.connect(self.start_simulation)
-        self.config_tab.selectBoundaryConditionsSignal.connect(self.handle_select_boundary_conditions)
+        self.config_tab.selectBoundaryConditionsSignal.connect(
+            self.handle_select_boundary_conditions
+        )
         self.mesh_tab = GraphicalEditorTab(self.config_tab, self.log_console)
         self.geditor = self.mesh_tab.geditor
-        self.results_tab = ResultsTab(self.log_console)
+        self.results_tab = ResultsTab(self.log_console, self.config_tab)
 
         # Connecting signal to detect the selection of mesh file
         self.config_tab.meshFileSelected.connect(self.geditor.upload_mesh_file)
@@ -85,16 +92,15 @@ class WindowApp(QMainWindow):
         self.setCentralWidget(scroll_area)
 
         # Add the dock widget to the main window
-        self.addDockWidget(Qt.BottomDockWidgetArea,
-                           self.log_console.log_dock_widget)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.log_console.log_dock_widget)
 
         # Setting default app style and backgrounds of the graphical editors
-        self.change_style('dark')
-        self.change_background_color('white')
+        self.change_style("dark")
+        self.change_background_color("white")
 
         # Setting by default axes alignment by center
-        self.geditor.align_view_by_axis('center')
-        self.results_tab.align_view_by_axis('center')
+        self.geditor.align_view_by_axis("center")
+        self.results_tab.align_view_by_axis("center")
 
     def read_stderr(self):
         try:
@@ -103,31 +109,31 @@ class WindowApp(QMainWindow):
             errout = str(self.process.readAllStandardError().data())
         segments = ansi_to_segments(errout)
         for segment, color in segments:
-            self.insert_colored_text('', segment, color)
+            self.insert_colored_text("", segment, color)
 
     def read_stdout(self):
         try:
             out = str(self.process.readAllStandardOutput().data().decode())
         except UnicodeDecodeError:
             out = str(self.process.readAllStandardOutput().data())
-        
+
         # Increment the progress bar
         new_value = self.last_progress_value + self.progress_increment
         if new_value > 100:
             new_value = 100  # Cap it at 100
         self.progress_bar.setValue(new_value)
         self.last_progress_value = new_value
-        
+
         # Optionally adjust the increment size as more data is received
         # For example, decrease the increment size as you approach 100
         if new_value < 90:
             self.progress_increment += 0.1  # Increase the increment
         else:
             self.progress_increment = 0.075  # Smaller increments near the end
-        
+
         segments = ansi_to_segments(out)
         for segment, color in segments:
-            self.insert_colored_text('', segment, color)
+            self.insert_colored_text("", segment, color)
 
     def insert_colored_text(self, prefix: str, message: str, color: str):
         """
@@ -160,106 +166,129 @@ class WindowApp(QMainWindow):
     def on_process_finished(self, exitCode, exitStatus):
         self.progress_bar.setValue(100)
         self.progress_bar.setHidden(True)
-        
+
         exec_time = time() - self.start_time
 
         if exitStatus == QProcess.NormalExit and exitCode == 0:
             if not is_file_valid(self.hdf5_filename):
-                QMessageBox.warning(self,
-                                    "Invalid HDF5 File",
-                                    "Something wrong with HDF5 file. Can't update results. Check the name of the file, try to rename it. Going back...")
+                QMessageBox.warning(
+                    self,
+                    "Invalid HDF5 File",
+                    "Something wrong with HDF5 file. Can't update results. Check the name of the file, try to rename it. Going back...",
+                )
                 self.stop_simulation()
                 return
 
             self.results_tab.update_plot(self.hdf5_filename)
             self.log_console.printSuccess(
-                f'The simulation has completed in {exec_time:.3f}s')
+                f"The simulation has completed in {exec_time:.3f}s"
+            )
 
             # Moving to the results tab after finishing
             self.tab_widget.setCurrentIndex(2)
-            QMessageBox.information(self,
-                                    "Process Finished",
-                                    f"The simulation has completed in {exec_time:.3f}s\n\nScalar bar:\nLeft side - particles count.\nRight side - normalized value.\n\n*Normalized Value = (Scalar Value - Range Min) / (Range Max - Range Min)")
+            QMessageBox.information(
+                self,
+                "Process Finished",
+                f"The simulation has completed in {exec_time:.3f}s\n\nScalar bar:\nLeft side - particles count.\nRight side - normalized value.\n\n*Normalized Value = (Scalar Value - Range Min) / (Range Max - Range Min)",
+            )
 
         elif exitStatus == QProcess.CrashExit and exitCode == 11:
             self.results_tab.clear_plot()
 
-            QMessageBox.information(self,
-                                    "Error",
-                                    f"Something went wrong at the start of the simulation. Program stops the simulation. See log console to have details")
+            QMessageBox.information(
+                self,
+                "Error",
+                f"Something went wrong at the start of the simulation. Program stops the simulation. See log console to have details",
+            )
         else:
             self.results_tab.clear_plot()
 
             try:
                 signal_name = signal.Signals(exitCode).name
             except ValueError:
-                QMessageBox.warning(self,
-                                    "Simulation Stopped",
-                                    f"Got signal {exitCode} which is undefined!")
+                QMessageBox.warning(
+                    self,
+                    "Simulation Stopped",
+                    f"Got signal {exitCode} which is undefined!",
+                )
                 signal_name = "Undefined"
 
-            self.log_console.printError(f'The simulation has been forcibly stopped with a code {exitCode} <{signal_name}>')
-            QMessageBox.information(self,
-                                    "Simulation Stopped",
-                                    f"The simulation has been forcibly stopped with a code {exitCode} <{signal_name}>")
+            self.log_console.printError(
+                f"The simulation has been forcibly stopped with a code {exitCode} <{signal_name}>"
+            )
+            QMessageBox.information(
+                self,
+                "Simulation Stopped",
+                f"The simulation has been forcibly stopped with a code {exitCode} <{signal_name}>",
+            )
 
     def setup_menu_bar(self):
         menu_bar = self.menuBar()
 
         # File Menu
-        file_menu = menu_bar.addMenu('&File')
-        file_menu.addAction(
-            'New project', self.create_project, shortcut='Ctrl+N')
-        file_menu.addAction(
-            'Open project', self.open_project, shortcut='Ctrl+O')
-        file_menu.addAction(
-            'Save project', self.save_project, shortcut='Ctrl+S')
+        file_menu = menu_bar.addMenu("&File")
+        file_menu.addAction("New project", self.create_project, shortcut="Ctrl+N")
+        file_menu.addAction("Open project", self.open_project, shortcut="Ctrl+O")
+        file_menu.addAction("Save project", self.save_project, shortcut="Ctrl+S")
         file_menu.addSeparator()
-        exit_action = file_menu.addAction('Exit', self.close)
-        exit_action.setShortcuts(['Ctrl+Q', 'Ctrl+W'])
+        exit_action = file_menu.addAction("Exit", self.close)
+        exit_action.setShortcuts(["Ctrl+Q", "Ctrl+W"])
 
         # Edit Menu
-        edit_menu = menu_bar.addMenu('&Edit')
-        style_menu = edit_menu.addMenu('Application Style')
-        style_menu.addAction('Default', lambda: self.change_style('default'))
-        style_menu.addAction('Dark', lambda: self.change_style('dark'))
-        style_menu.addAction('Light', lambda: self.change_style('light'))
-        style_menu.addAction('Night', lambda: self.change_style('night'))
-        style_menu.addAction('Classic', lambda: self.change_style('classic'))
-        style_menu.addAction('Bright', lambda: self.change_style('bright'))
-        style_menu.addAction('Custom', lambda: self.change_style('custom'))
+        edit_menu = menu_bar.addMenu("&Edit")
+        style_menu = edit_menu.addMenu("Application Style")
+        style_menu.addAction("Default", lambda: self.change_style("default"))
+        style_menu.addAction("Dark", lambda: self.change_style("dark"))
+        style_menu.addAction("Light", lambda: self.change_style("light"))
+        style_menu.addAction("Night", lambda: self.change_style("night"))
+        style_menu.addAction("Classic", lambda: self.change_style("classic"))
+        style_menu.addAction("Bright", lambda: self.change_style("bright"))
+        style_menu.addAction("Custom", lambda: self.change_style("custom"))
 
-        bg_color_menu = edit_menu.addMenu('Background Color')
-        bg_color_menu.addAction('Default', lambda: self.change_background_color('default'))
-        bg_color_menu.addAction('White', lambda: self.change_background_color('white'))
-        bg_color_menu.addAction('Light Gray', lambda: self.change_background_color('light gray'))
-        bg_color_menu.addAction('Gray', lambda: self.change_background_color('gray'))
-        bg_color_menu.addAction(self.setupFontColor, lambda: self.change_background_color(self.setupFontColor))
-        bg_color_menu.addAction('Black', lambda: self.change_background_color('black'))
-        bg_color_menu.addAction('Custom', lambda: self.change_background_color('custom'))
+        bg_color_menu = edit_menu.addMenu("Background Color")
+        bg_color_menu.addAction(
+            "Default", lambda: self.change_background_color("default")
+        )
+        bg_color_menu.addAction("White", lambda: self.change_background_color("white"))
+        bg_color_menu.addAction(
+            "Light Gray", lambda: self.change_background_color("light gray")
+        )
+        bg_color_menu.addAction("Gray", lambda: self.change_background_color("gray"))
+        bg_color_menu.addAction(
+            self.setupFontColor,
+            lambda: self.change_background_color(self.setupFontColor),
+        )
+        bg_color_menu.addAction("Black", lambda: self.change_background_color("black"))
+        bg_color_menu.addAction(
+            "Custom", lambda: self.change_background_color("custom")
+        )
 
-        edit_menu.addAction('Show Shortcuts', self.show_shortcuts)
-        edit_menu.addAction('Change FPS (for animation)', self.results_tab.edit_fps)
+        edit_menu.addAction("Show Shortcuts", self.show_shortcuts)
+        edit_menu.addAction("Change FPS (for animation)", self.results_tab.edit_fps)
 
         # Configurations Menu
-        configurations_menu = menu_bar.addMenu('&Configurations')
-        configurations_menu.addAction('Upload Configuration',
-                                      self.config_tab.upload_config,
-                                      shortcut='Ctrl+Shift+U')  # Upload config
-        configurations_menu.addAction('Save Configuration',
-                                      self.config_tab.save_config_to_file,
-                                      shortcut='Ctrl+Shift+S')  # Save config
+        configurations_menu = menu_bar.addMenu("&Configurations")
+        configurations_menu.addAction(
+            "Upload Configuration",
+            self.config_tab.upload_config,
+            shortcut="Ctrl+Shift+U",
+        )  # Upload config
+        configurations_menu.addAction(
+            "Save Configuration",
+            self.config_tab.save_config_to_file,
+            shortcut="Ctrl+Shift+S",
+        )  # Save config
         configurations_menu.addSeparator()
-        configurations_menu.addAction('Upload Mesh',
-                                      self.upload_mesh_file,
-                                      shortcut='Ctrl+Shift+M')  # Upload mesh file
+        configurations_menu.addAction(
+            "Upload Mesh", self.upload_mesh_file, shortcut="Ctrl+Shift+M"
+        )  # Upload mesh file
 
         # Solution Menu
-        solution_menu = menu_bar.addMenu('&Simulation')
+        solution_menu = menu_bar.addMenu("&Simulation")
+        solution_menu.addAction("Run", self.start_simulation, shortcut="Ctrl+R")  # Run
         solution_menu.addAction(
-            'Run', self.start_simulation, shortcut='Ctrl+R')  # Run
-        solution_menu.addAction(
-            'Stop', self.stop_simulation, shortcut='Ctrl+T')  # Terminate
+            "Stop", self.stop_simulation, shortcut="Ctrl+T"
+        )  # Terminate
 
         # Help Menu: *No need help on this stage
         # help_menu = menu_bar.addMenu('&Help')
@@ -270,76 +299,83 @@ class WindowApp(QMainWindow):
         self.config_tab.upload_mesh_file()
 
     def change_style(self, style):
-        if style == 'dark':
-            self.setupFontColor = 'white'
+        if style == "dark":
+            self.setupFontColor = "white"
             self.setStyleSheet(APPSTYLE_DARK)
-            self.log_console.setDefaultTextColor(QColor('white'))
-        elif style == 'light':
-            self.setupFontColor = 'black'
+            self.log_console.setDefaultTextColor(QColor("white"))
+        elif style == "light":
+            self.setupFontColor = "black"
             self.setStyleSheet(APPSTYLE_LIGHT)
-            self.log_console.setDefaultTextColor(QColor('black'))
-        elif style == 'night':
-            self.setupFontColor = 'green'
+            self.log_console.setDefaultTextColor(QColor("black"))
+        elif style == "night":
+            self.setupFontColor = "green"
             self.setStyleSheet(APPSTYLE_NIGHT)
-            self.log_console.setDefaultTextColor(QColor('white'))
-        elif style == 'classic':
-            self.setupFontColor = 'black'
+            self.log_console.setDefaultTextColor(QColor("white"))
+        elif style == "classic":
+            self.setupFontColor = "black"
             self.setStyleSheet(APPSTYLE_CLASSIC)
-            self.log_console.setDefaultTextColor(QColor('black'))
-        elif style == 'bright':
-            self.setupFontColor = 'white'
+            self.log_console.setDefaultTextColor(QColor("black"))
+        elif style == "bright":
+            self.setupFontColor = "white"
             self.setStyleSheet(APPSTYLE_BRIGHT)
-            self.log_console.setDefaultTextColor(QColor('black'))
-        elif style == 'default':
+            self.log_console.setDefaultTextColor(QColor("black"))
+        elif style == "default":
             self.setStyleSheet(APPSTYLE_DEFAULT)
             self.log_console.setDefaultTextColor(QColor(self.setupFontColor))
-        elif style == 'custom':
+        elif style == "custom":
             QMessageBox.information(
-                self, 'Application Color', 'Choose application color')
+                self, "Application Color", "Choose application color"
+            )
             appColor = QColorDialog.getColor()
 
             QMessageBox.information(
-                self, 'Application Fonr Color', 'Choose font color of the application')
+                self, "Application Fonr Color", "Choose font color of the application"
+            )
             appFontColor = QColorDialog.getColor()
             if appColor.isValid() and appFontColor.isValid():
                 appColorHex = appColor.name()
                 appFontColorHex = appFontColor.name()
                 self.setStyleSheet(
-                    f'QWidget {{ background-color: {appColorHex}; color: {appFontColorHex}; }}')
+                    f"QWidget {{ background-color: {appColorHex}; color: {appFontColorHex}; }}"
+                )
             else:
                 return
 
             QMessageBox.information(
-                self, 'Logger Font Color', 'Choose font color in the logger')
+                self, "Logger Font Color", "Choose font color in the logger"
+            )
             logFontColor = QColorDialog.getColor()
             if appColor.isValid():
                 self.log_console.setDefaultTextColor(logFontColor)
             else:
                 return
         else:
-            self.setStyleSheet('')
+            self.setStyleSheet("")
             self.log_console.setDefaultTextColor(QColor(self.setupFontColor))
 
     def change_background_color(self, color):
-        if color == 'default':
+        if color == "default":
             bgColor = [0.1, 0.2, 0.2]
-        elif color == 'black':
+        elif color == "black":
             bgColor = [0, 0, 0]
-        elif color == 'gray':
+        elif color == "gray":
             bgColor = [0.5, 0.5, 0.5]
-        elif color == 'white':
+        elif color == "white":
             bgColor = [1, 1, 1]
-        elif color == 'light gray':
+        elif color == "light gray":
             bgColor = [0.75, 0.75, 0.75]
         elif color == self.setupFontColor:
             bgColor = [0.25, 0.25, 0.25]
-        elif color == 'custom':
+        elif color == "custom":
             # Open a color dialog to let the user choose a color
             qColor = QColorDialog.getColor()
             if qColor.isValid():
                 # Convert QColor to a list of normalized RGB values
-                bgColor = [qColor.red() / 255.0, qColor.green() /
-                           255.0, qColor.blue() / 255.0]
+                bgColor = [
+                    qColor.red() / 255.0,
+                    qColor.green() / 255.0,
+                    qColor.blue() / 255.0,
+                ]
             else:
                 return
 
@@ -352,7 +388,8 @@ class WindowApp(QMainWindow):
     def create_project(self):
         options = QFileDialog.Options()
         project_dir = QFileDialog.getExistingDirectory(
-            self, 'Choose Project Directory', options=options)
+            self, "Choose Project Directory", options=options
+        )
 
         if not project_dir:
             return
@@ -361,13 +398,13 @@ class WindowApp(QMainWindow):
             rmtree(project_dir)
         os.makedirs(project_dir, exist_ok=True)
 
-        self.log_console.printSuccess(
-            f'Created new project directory: {project_dir}')
+        self.log_console.printSuccess(f"Created new project directory: {project_dir}")
 
     def open_project(self):
         options = QFileDialog.Options()
         project_dir = QFileDialog.getExistingDirectory(
-            self, 'Choose Project Directory', options=options)
+            self, "Choose Project Directory", options=options
+        )
 
         if not project_dir:
             return
@@ -376,17 +413,26 @@ class WindowApp(QMainWindow):
         paths = [os.path.join(project_dir, file) for file in files]
         paths.sort()
 
-        self.geditor.load_scene(self.log_console, self.setupFontColor, actors_file=paths[1], camera_file=paths[2])
+        self.geditor.load_scene(
+            self.log_console,
+            self.setupFontColor,
+            actors_file=paths[1],
+            camera_file=paths[2],
+        )
         # self.results_tab.load_scene(self.log_console, self.setupFontColor, actors_file=paths[1], camera_file=paths[4], colorbar_file=paths[5])
         self.config_tab.upload_config(paths[0])
 
     def save_project(self):
         QMessageBox.warning(
-            self, "Saving project", "WARNING: Preferably you need to choose empty directory without any files (especially if there are your personal files or any other important ones there).")
+            self,
+            "Saving project",
+            "WARNING: Preferably you need to choose empty directory without any files (especially if there are your personal files or any other important ones there).",
+        )
 
         options = QFileDialog.Options()
         project_dir = QFileDialog.getExistingDirectory(
-            self, 'Choose Project Directory', options=options)
+            self, "Choose Project Directory", options=options
+        )
 
         if not project_dir:
             return
@@ -400,7 +446,12 @@ class WindowApp(QMainWindow):
 
         # Check if the directory exists. If yes, remove it and create a fresh one
         if os.path.exists(project_dir):
-            choose = QMessageBox.warning(self, "Remove Directory", f"Are you sure that you want to remove all existing files in the directory {project_dir}? It needed for updating project configuration files.", QMessageBox.Yes | QMessageBox.No)
+            choose = QMessageBox.warning(
+                self,
+                "Remove Directory",
+                f"Are you sure that you want to remove all existing files in the directory {project_dir}? It needed for updating project configuration files.",
+                QMessageBox.Yes | QMessageBox.No,
+            )
             if choose == QMessageBox.Yes:
                 rmtree(project_dir)
             else:
@@ -408,10 +459,8 @@ class WindowApp(QMainWindow):
         os.makedirs(project_dir, exist_ok=True)
 
         try:
-            original_files = ['scene_actors_meshTab.vtk',
-                              'scene_camera_meshTab.json']
-            original_files.append(os.path.basename(
-                self.config_tab.config_file_path))
+            original_files = ["scene_actors_meshTab.vtk", "scene_camera_meshTab.json"]
+            original_files.append(os.path.basename(self.config_tab.config_file_path))
 
             # Move the generated files to the chosen project directory
             for filename in original_files:
@@ -420,51 +469,51 @@ class WindowApp(QMainWindow):
                 copy(src, dst)
 
             # Deleting unnecessary .vtks and .jsons except the config file
-            files_to_remove = ['scene_actors_meshTab.vtk',
-                              'scene_camera_meshTab.json']
+            files_to_remove = ["scene_actors_meshTab.vtk", "scene_camera_meshTab.json"]
             for filename in files_to_remove:
                 os.remove(filename)
 
         except Exception as e:
             self.log_console.printError(
-                f'Message: {e}: Nothing to save or any file error occured')
+                f"Message: {e}: Nothing to save or any file error occured"
+            )
             return
-        self.log_console.printSuccess(f'Project had been saved into {project_dir} directory')
+        self.log_console.printSuccess(
+            f"Project had been saved into {project_dir} directory"
+        )
 
     def setup_tabs(self):
-        self.tab_widget.addTab(self.mesh_tab, 'Mesh')
-        self.tab_widget.addTab(self.config_tab, 'Configurations')
-        self.tab_widget.addTab(self.results_tab, 'Results')
+        self.tab_widget.addTab(self.mesh_tab, "Mesh")
+        self.tab_widget.addTab(self.config_tab, "Configurations")
+        self.tab_widget.addTab(self.results_tab, "Results")
 
     def start_simulation_from_CLI(self, configFile):
         self.config_tab.upload_config(configFile)
-        if self.config_tab.mesh_file.endswith('.msh'):
-            self.hdf5_filename = self.config_tab.mesh_file.replace(
-                '.msh', '.hdf5')
-        elif self.config_tab.mesh_file.endswith('.vtk'):
-            self.hdf5_filename = self.config_tab.mesh_file.replace(
-                '.vtk', '.hdf5')
-        args = f'{self.config_tab.config_file_path}'
+        if self.config_tab.mesh_file.endswith(".msh"):
+            self.hdf5_filename = self.config_tab.mesh_file.replace(".msh", ".hdf5")
+        elif self.config_tab.mesh_file.endswith(".vtk"):
+            self.hdf5_filename = self.config_tab.mesh_file.replace(".vtk", ".hdf5")
+        args = f"{self.config_tab.config_file_path}"
         self.run_cpp(args)
         self.progress_bar.setRange(0, 100)
 
     def start_simulation(self):
         if not is_file_valid(self.config_tab.config_file_path):
-            QMessageBox.warning(self,
-                                "Save Configurataion",
-                                "You need to save the configuration before start the simulation. Checking your input in config tab...")
+            QMessageBox.warning(
+                self,
+                "Save Configurataion",
+                "You need to save the configuration before start the simulation. Checking your input in config tab...",
+            )
             self.config_tab.save_config_to_file()
             return
         else:
             if self.config_tab.sync_config_with_ui() != 1:
                 return
 
-        if self.config_tab.mesh_file.endswith('.msh'):
-            self.hdf5_filename = self.config_tab.mesh_file.replace(
-                '.msh', '.hdf5')
-        elif self.config_tab.mesh_file.endswith('.vtk'):
-            self.hdf5_filename = self.config_tab.mesh_file.replace(
-                '.vtk', '.hdf5')
+        if self.config_tab.mesh_file.endswith(".msh"):
+            self.hdf5_filename = self.config_tab.mesh_file.replace(".msh", ".hdf5")
+        elif self.config_tab.mesh_file.endswith(".vtk"):
+            self.hdf5_filename = self.config_tab.mesh_file.replace(".vtk", ".hdf5")
         args = f"{self.config_tab.config_file_path}"
 
         self.progress_bar.setRange(0, 100)
@@ -485,14 +534,21 @@ class WindowApp(QMainWindow):
                 self.kill_application()
 
     def kill_application(self):
-        for proc in psutil.process_iter(['pid', 'name']):
+        for proc in psutil.process_iter(["pid", "name"]):
             try:
-                if proc.info['name'].startswith(EXECUTABLE_NAME):
+                if proc.info["name"].startswith(EXECUTABLE_NAME):
                     proc.kill()
-                    self.log_console.printInfo(f"Process {proc.info['name']} with PID {proc.info['pid']} killed")
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+                    self.log_console.printInfo(
+                        f"Process {proc.info['name']} with PID {proc.info['pid']} killed"
+                    )
+            except (
+                psutil.NoSuchProcess,
+                psutil.AccessDenied,
+                psutil.ZombieProcess,
+            ) as e:
                 self.log_console.printError(
-                    f"An error occurred while attempting to kill the process: {e}")
+                    f"An error occurred while attempting to kill the process: {e}"
+                )
 
     def switch_tab(self):
         # Iterating by tabs
@@ -503,20 +559,33 @@ class WindowApp(QMainWindow):
 
     def keyPressEvent(self, event):
         # Main bindings
-        if (event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Q) or \
-                event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_W:
+        if (
+            (event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Q)
+            or event.modifiers() == Qt.ControlModifier
+            and event.key() == Qt.Key_W
+        ):
             self.close()
         elif event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_R:
             self.start_simulation()
         elif event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_T:
             self.stop_simulation()
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_U:
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_U
+        ):
             self.config_tab.upload_config()
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_S:
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_S
+        ):
             self.config_tab.save_config_to_file()
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_M:
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_M
+        ):
             self.config_tab.upload_mesh_file()
         elif event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_L:
+
             def show_hide_instruction_message():
                 message = (
                     "You just pressed Ctrl+L to hide the log widget located at the bottom.\n"
@@ -527,29 +596,41 @@ class WindowApp(QMainWindow):
 
             is_visible = self.log_console.log_dock_widget.isVisible()
             self.log_console.log_dock_widget.setVisible(not is_visible)
-            
+
             # If the widget was visible and is now hidden, show the message
             if not self.log_console.log_dock_widget.isVisible():
                 show_hide_instruction_message()
-            
+
         elif event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Tab:
             self.switch_tab()
         elif event.key() == Qt.Key_F1:
             self.show_help()
 
         # Aligning by axes
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_X:
-            self.geditor.align_view_by_axis('x')
-            self.results_tab.align_view_by_axis('x')
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_Y:
-            self.geditor.align_view_by_axis('y')
-            self.results_tab.align_view_by_axis('y')
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_Z:
-            self.geditor.align_view_by_axis('z')
-            self.results_tab.align_view_by_axis('z')
-        elif event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_C:
-            self.geditor.align_view_by_axis('center')
-            self.results_tab.align_view_by_axis('center')
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_X
+        ):
+            self.geditor.align_view_by_axis("x")
+            self.results_tab.align_view_by_axis("x")
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_Y
+        ):
+            self.geditor.align_view_by_axis("y")
+            self.results_tab.align_view_by_axis("y")
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_Z
+        ):
+            self.geditor.align_view_by_axis("z")
+            self.results_tab.align_view_by_axis("z")
+        elif (
+            event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier
+            and event.key() == Qt.Key_C
+        ):
+            self.geditor.align_view_by_axis("center")
+            self.results_tab.align_view_by_axis("center")
 
         # History bindings
         elif event.modifiers() & Qt.ControlModifier and event.key() == Qt.Key_Z:
@@ -566,17 +647,21 @@ class WindowApp(QMainWindow):
 
     def run_cpp(self, args: str) -> None:
         # Checking OS
-        if os.name == 'nt':
-            executable_path = f'{EXECUTABLE_NAME}.exe'
+        if os.name == "nt":
+            executable_path = f"{EXECUTABLE_NAME}.exe"
         else:
-            executable_path = f'./{EXECUTABLE_NAME}'
-            
+            executable_path = f"./{EXECUTABLE_NAME}"
+
         # Check if the executable file exists and is a file
         if os.path.isfile(executable_path):
             self.process.start(executable_path, args.split())
         else:
-            QMessageBox.critical(self, "Path check", f"Executable not found: {executable_path}")
-            self.log_console.printError(f"Can't find path for the executable: {executable_path}")
+            QMessageBox.critical(
+                self, "Path check", f"Executable not found: {executable_path}"
+            )
+            self.log_console.printError(
+                f"Can't find path for the executable: {executable_path}"
+            )
             return
 
     @pyqtSlot()
@@ -593,20 +678,44 @@ class WindowApp(QMainWindow):
             ("Run Simulation", "Ctrl+R", "Starts the simulation."),
             ("Stop Simulation", "Ctrl+T", "Stops the currently running simulation."),
             ("Tab Switch", "Ctrl+Tab", "Switches current tab to the next one."),
-            ("Hide/Show Log Console", "Ctrl+L",
-             "Toggles visibility of the log console"),
+            (
+                "Hide/Show Log Console",
+                "Ctrl+L",
+                "Toggles visibility of the log console",
+            ),
             ("Upload Config", "Ctrl+Shift+U", "Uploads a configuration file."),
-            ("Save Config", "Ctrl+Shift+S",
-             "Saves the current configuration to a file."),
+            (
+                "Save Config",
+                "Ctrl+Shift+S",
+                "Saves the current configuration to a file.",
+            ),
             ("Upload Mesh", "Ctrl+Shift+M", "Uploads a mesh file."),
-            ("Reset View Size", "R",
-             "Resets the size of the view in the render window. Works only within the editor."),
-            ("Remove Fill", "W", "Removes the fill from the all shapes. Shows the mesh structure. Works only within the editor."),
-            ("Restore Fill", "S",
-             "Retores the fill from the all shapes. Works only within the editor."),
+            (
+                "Reset View Size",
+                "R",
+                "Resets the size of the view in the render window. Works only within the editor.",
+            ),
+            (
+                "Remove Fill",
+                "W",
+                "Removes the fill from the all shapes. Shows the mesh structure. Works only within the editor.",
+            ),
+            (
+                "Restore Fill",
+                "S",
+                "Retores the fill from the all shapes. Works only within the editor.",
+            ),
             ("About", "F1", "Shows information about the application."),
-            ("Undo", "Ctrl+Z", "Reverses the most recent action, allowing you to step back through your changes one at a time."),
-            ("Redo", "Ctrl+Y", "Reapplies actions that were previously undone using the Undo function, letting you move forward after reversing changes."),
+            (
+                "Undo",
+                "Ctrl+Z",
+                "Reverses the most recent action, allowing you to step back through your changes one at a time.",
+            ),
+            (
+                "Redo",
+                "Ctrl+Y",
+                "Reapplies actions that were previously undone using the Undo function, letting you move forward after reversing changes.",
+            ),
             ("Search", "Ctrl+F", "Toggles on search mode within the log console."),
             ("Align by X axis", "Ctrl+Shift+X", "Make an alignment by X axis."),
             ("Align by Y axis", "Ctrl+Shift+Y", "Make an alignment by Y axis."),
@@ -625,12 +734,34 @@ class WindowApp(QMainWindow):
 
     def exit(self):
         exit(0)
-        
+
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Closing the app', "Are you sure you want to quit?", 
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            "Closing the app",
+            "Are you sure you want to quit?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
 
         if reply == QMessageBox.Yes:
+            # Clean up VTK and animation resources to prevent segfaults
+            if hasattr(self, "results_tab") and hasattr(
+                self.results_tab, "particle_animator"
+            ):
+                self.results_tab.particle_animator.cleanup()
+
+            # Finalize the VTK window to prevent segfaults
+            if hasattr(self, "results_tab") and hasattr(self.results_tab, "vtkWidget"):
+                self.results_tab.vtkWidget.GetRenderWindow().Finalize()
+
+            if (
+                hasattr(self, "mesh_tab")
+                and hasattr(self.mesh_tab, "geditor")
+                and hasattr(self.mesh_tab.geditor, "vtkWidget")
+            ):
+                self.mesh_tab.geditor.vtkWidget.GetRenderWindow().Finalize()
+
             event.accept()
         else:
             event.ignore()

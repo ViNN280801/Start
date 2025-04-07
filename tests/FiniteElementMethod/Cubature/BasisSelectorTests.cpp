@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "FiniteElementMethod/Cubature/BasisSelector.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 
 extern void supress_output(std::ostream &stream);
 extern void restore_output(std::ostream &stream);
@@ -28,15 +29,15 @@ TEST_F(BasisSelectorTest, UnsupportedCellType)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(static_cast<CellType>(999), 2);
-        FAIL() << "Expected CellSelectorException";
+        FAIL() << "Expected BasisSelectorUnsupportedCellTypeException";
     }
-    catch (const CellSelectorException &e)
+    catch (const BasisSelectorUnsupportedCellTypeException &e)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorException, but got: " << typeid(e).name();
+        FAIL() << "Expected BasisSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -46,15 +47,15 @@ TEST_F(BasisSelectorTest, InvalidNegativePolynomOrder)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(CellType::Triangle, -1);
-        FAIL() << "Expected std::runtime_error";
+        FAIL() << "Expected FEMCheckersUnsupportedPolynomOrderException";
     }
-    catch (const std::runtime_error &e)
+    catch (const FEMCheckersUnderflowPolynomOrderException &e)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected std::runtime_error, but got: " << typeid(e).name();
+        FAIL() << "Expected FEMCheckersUnderflowPolynomOrderException, but got: " << typeid(e).name();
     }
 }
 
@@ -64,15 +65,15 @@ TEST_F(BasisSelectorTest, ZeroPolynomOrder)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(CellType::Triangle, 0);
-        FAIL() << "Expected std::invalid_argument";
+        FAIL() << "Expected FEMCheckersUnsupportedPolynomOrderException";
     }
-    catch (const std::invalid_argument &e)
+    catch (const FEMCheckersUnsupportedPolynomOrderException &e)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected std::invalid_argument, but got: " << typeid(e).name();
+        FAIL() << "Expected FEMCheckersUnderflowPolynomOrderException, but got: " << typeid(e).name();
     }
 }
 
@@ -82,15 +83,15 @@ TEST_F(BasisSelectorTest, LargePolynomOrder)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(CellType::Triangle, 1000);
-        FAIL() << "Expected std::overflow_error due to large polynomial order";
+        FAIL() << "Expected FEMCheckersOverflowPolynomOrderException due to large polynomial order";
     }
-    catch (const std::overflow_error &e)
+    catch (const FEMCheckersOverflowPolynomOrderException &e)
     {
         SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::overflow_error due to large polynomial order";
+        FAIL() << "Expected FEMCheckersOverflowPolynomOrderException due to large polynomial order";
     }
 }
 
@@ -100,15 +101,15 @@ TEST_F(BasisSelectorTest, ExtremeNegativeCellType)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(static_cast<CellType>(std::numeric_limits<int>::min()), 2);
-        FAIL() << "Expected CellSelectorException";
+        FAIL() << "Expected CellSelectorInvalidEnumTypeException";
     }
-    catch (const CellSelectorException &e)
+    catch (const BasisSelectorUnsupportedCellTypeException &e)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorException, but got: " << typeid(e).name();
+        FAIL() << "Expected CellSelectorInvalidEnumTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -118,15 +119,15 @@ TEST_F(BasisSelectorTest, ExtremeLargeCellType)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(static_cast<CellType>(std::numeric_limits<int>::max()), 2);
-        FAIL() << "Expected CellSelectorException";
+        FAIL() << "Expected BasisSelectorUnsupportedCellTypeException";
     }
-    catch (const CellSelectorException &e)
+    catch (const BasisSelectorUnsupportedCellTypeException &e)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorException, but got: " << typeid(e).name();
+        FAIL() << "Expected BasisSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -136,15 +137,15 @@ TEST_F(BasisSelectorTest, InvalidPolynomOrderForPyramid)
     try
     {
         auto basis = BasisSelector::get<Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>>(CellType::Pyramid, 2);
-        FAIL() << "Expected std::runtime_error for invalid polynomial order on Pyramid";
+        FAIL() << "Expected BasisSelectorUnsupportedPolynomOrderException for invalid polynomial order on Pyramid";
     }
-    catch (const std::runtime_error &e)
+    catch (const BasisSelectorUnsupportedPolynomOrderException &e)
     {
-        EXPECT_STREQ(e.what(), "Pyramid cells only support 1st polynomial order.");
+        SUCCEED();
     }
     catch (...)
     {
-        FAIL() << "Expected std::runtime_error for invalid polynomial order on Pyramid";
+        FAIL() << "Expected BasisSelectorUnsupportedPolynomOrderException for invalid polynomial order on Pyramid";
     }
 }
 
@@ -171,7 +172,7 @@ TEST_F(BasisSelectorTest, NullPointerCheck)
     {
         SUCCEED();
     }
-    catch (const std::exception &e)
+    catch (std::exception const &e)
     {
         FAIL() << "Expected std::runtime_error, but got: " << typeid(e).name();
     }

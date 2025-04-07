@@ -2,10 +2,12 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+#include "DataHandling/SettledParticleHDF5Writer.hpp"
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
 #include "Generators/ParticleGenerator.hpp"
 #include "Geometry/Utils/Overlaps/TriangleOverlapCalculator.hpp"
 #include "Particle/CUDA/ParticleDeviceMemoryConverter.cuh"
+#include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDistributor.hpp"
 #include "ParticleInCellEngine/ParticleDynamicsProcessor/ParticleDynamicsProcessor.hpp"
 #include "SputteringModel/SputteringModel.hpp"
 #include "SputteringModel/TwoPlatesCreator.hpp"
@@ -38,7 +40,7 @@ void SputteringModel::_updateSurfaceMesh()
     hdf5handler.saveMeshToHDF5(m_surfaceMesh.getTriangleCellMap());
 }
 
-void _readParticlePositionsHdf5(const std::string &filepath = "results/particles_movements.hdf5", int particleID = -1)
+void _readParticlePositionsHdf5(std::string const &filepath = "results/particles_movements.hdf5", int particleID = -1)
 {
     try
     {
@@ -178,7 +180,7 @@ void _saveParticleMovementsHdf5(ParticleMovementMap const &particlesMovement)
     }
 }
 
-void SputteringModel::_writeHistogramToFile()
+void SputteringModel::_writeHistogramToFile(std::string_view filepath)
 {
     // =============================================
     // === 4. Writing the histogram to the file  ===
@@ -251,14 +253,9 @@ void SputteringModel::_writeHistogramToFile()
     }
 }
 
-void SputteringModel::_gfinalize()
+void SputteringModel::_writeKDEToFile(std::string_view filepath)
 {
-    _updateSurfaceMesh();
-    _saveParticleMovementsHdf5(m_particlesMovement);
-    _distributeSettledParticles();
-    _writeHistogramToFile();
-
-    std::ofstream hist("results/kde.dat");
+    std::ofstream hist(filepath.data());
     if (!hist.is_open())
     {
         ERRMSG("Failed to open histogram.dat for writing.");
@@ -277,6 +274,16 @@ void SputteringModel::_gfinalize()
     hist.close();
 }
 
+void SputteringModel::_gfinalize()
+{
+    _updateSurfaceMesh();
+    _saveParticleMovementsHdf5(m_particlesMovement);
+    if (m_particleWeight != 1)
+        _distributeSettledParticles();
+    _writeHistogramToFile();
+    _writeKDEToFile();
+}
+
 SputteringModel::SputteringModel(std::string_view mesh_filename, std::string_view physicalGroupName)
     : m_mesh_filename(mesh_filename) { _ginitialize(); }
 
@@ -285,8 +292,11 @@ SputteringModel::~SputteringModel() { _gfinalize(); }
 void SputteringModel::startModeling(unsigned int numThreads)
 {
     [[maybe_unused]] std::string sputteringMaterialName("Ti"), gasName("Ar"), scatteringModel("VSS");
-    [[maybe_unused]] double targetMaterialDensity{4500.0}, targetMaterialMolarMass{0.048}, cellSize = 0.0, mm = 1.0;
-    [[maybe_unused]] int meshTypeInt;
+    [[maybe_unused]] double targetMaterialDensity{4500.0},
+        targetMaterialMolarMass{0.048},
+        cellSize{},
+        mm{1};
+    [[maybe_unused]] int meshTypeInt{};
 
     int choiceInt{};
     std::cout << "Manual input (1)/Automatic (2): ";
@@ -319,7 +329,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
     tpc.setSubstrateSurface();
 
     // 1.4. Generating mesh to the .msh file.
-    tpc.generateMeshfile();
+    tpc.generateMeshfile(3);
 
     // 1.5. Constructing AABB tree to the surface mesh (with triangle cells). It construct inside SputteringModel instance.
     m_surfaceMesh = SurfaceMesh(tpc.kdefault_mesh_filename, tpc.kdefault_substrate_name);
@@ -345,16 +355,24 @@ void SputteringModel::startModeling(unsigned int numThreads)
     double N{tpc.calculateCountOfParticlesOnTargetSurface(targetMaterialDensity, targetMaterialMolarMass)};
     std::cout << "The number of atoms on the target surface: " << N << '\n';
 
-    std::cout << "Enter the weight of the 1st simulated particle: ";
-    std::cin >> m_particleWeight;
-    if (m_particleWeight <= 1)
+    std::cout << "Do you want to change particle count? (1 - yes, 0 - no): ";
+    std::cin >> choiceInt;
+    if (choiceInt == 1)
     {
-        ERRMSG("The weight of the particle cannot be less than 1");
+        std::cout << "Enter the new particle count: ";
+        std::cin >> N;
+        std::cout << "Now particle count is " << N << '\n';
+    }
+
+    std::cout << "Enter the weight of the one modeling particle (1 modeling particle = 10^m_particleWeight real particles): ";
+    std::cin >> m_particleWeight;
+    if (m_particleWeight < 0)
+    {
+        ERRMSG("The weight of the particle cannot be less than 0");
         return;
     }
 
     // 2.4. Calculating model count of particles on this surface.
-    N = 100'000'000;
     double N_model{std::ceil(N / std::pow(10, m_particleWeight))};
     std::cout << "Thus, " << N << " real particles = " << N_model << " simulated particles\n";
 
@@ -370,12 +388,9 @@ void SputteringModel::startModeling(unsigned int numThreads)
     double J_model{N_model / (S * totalTime)};
     std::cout << "The flux of the simulated particles: " << J_model << " [N/(m2⋅c)]\n";
 
-    double energy_eV{10};
-    if (inputMode == InputMode::Manual)
-    {
-        std::cout << "Enter the energy of the particles that leave the surface [eV]: ";
-        std::cin >> energy_eV;
-    }
+    double energy_eV{};
+    std::cout << "Enter the energy of the particles that leave the surface [eV]: ";
+    std::cin >> energy_eV;
 
     // 2.6. Collecting cell centers and forcing direction [0,0,-1] from target plate to substrate
     //      and building surface source data for properly generating particles.
@@ -411,11 +426,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
         std::cin >> temperature;
     }
 
-    double gasConcentration{(pressure / (constants::physical_constants::R * temperature)) * constants::physical_constants::N_av};
-    if (gasConcentration < constants::gasConcentrationMinimalValue)
-    {
-        WARNINGMSG(util::stringify("Something wrong with the concentration of the gas. Its value is ", gasConcentration, ". Simulation might considerably slows down"));
-    }
+    double gasConcentration{util::calculateConcentration(pressure, temperature)};
 
 #if __cplusplus >= 202002L
     for (double timeMoment{}; timeMoment <= totalTime && !m_stop_processing.test(); timeMoment += timeStep)
@@ -451,8 +462,8 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
                 // 4. Update position.
                 particle.updatePosition(timeStep);
-                Ray ray(prev, particle.getCentre());
-                if (ray.is_degenerate())
+                Segment segment(prev, particle.getCentre());
+                if (segment.is_degenerate())
                     continue;
 
                 // 5. Gas collision.
@@ -464,7 +475,7 @@ void SputteringModel::startModeling(unsigned int numThreads)
 
                 // 7. Surface collision.
                 ParticleSurfaceCollisionHandler::handle(particle,
-                                                        ray,
+                                                        segment,
                                                         particles.size(),
                                                         m_surfaceMesh,
                                                         m_settledParticlesMutex,
@@ -492,173 +503,47 @@ void SputteringModel::startModeling(unsigned int numThreads)
             SUCCESSMSG(util::stringify("All particles are settled. Stop requested by observers, terminating the simulation loop. ",
                                        "Last time moment is: ", timeMoment, "s."));
         }
-        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ", m_settledParticlesIds.size(), "/", particles.size(), " particles."));
+        SUCCESSMSG(util::stringify("Time = ", timeMoment, "s. Totally settled: ",
+                                   m_settledParticlesIds.size(), "/",
+                                   particles.size(), " particles."));
     }
 }
 
-void SputteringModel::_distributeSettledParticles()
+void SputteringModel::_distributeSettledParticles(std::string_view filepath)
 {
     try
     {
-        double const weight{std::pow(10, m_particleWeight)};
-        auto const &triangleMap{m_surfaceMesh.getTriangleCellMap()};
+        // 1. Ask user about distribution type
+        int distributionTypeInt{};
+        std::cout << "Which of the following options do you want to use for particle distribution? (1 - uniform, 2 - gaussian): ";
+        std::cin >> distributionTypeInt;
 
-        std::vector<std::array<double, 3>> realParticles;
-        std::unordered_map<size_t, size_t> realCounts;
+        auto distributionType = static_cast<ParticleDistributor::DistributionType>(distributionTypeInt);
 
-#pragma omp parallel
+        // 2. Distribute particles across the mesh
+        auto distributionResult = ParticleDistributor::distributeParticles(
+            m_surfaceMesh,
+            m_particleWeight,
+            distributionType);
+
+        // 4. Save the distributed particles to HDF5 file
+        std::string outputFilePath = filepath.empty() ? "results/settled_particles.hdf5" : std::string(filepath);
+        bool saveResult = SettledParticleHDF5Writer::saveParticlesToHDF5(
+            distributionResult.positions,
+            outputFilePath);
+
+        if (!saveResult)
         {
-            // Thread-safe random number generator: each thread has its own
-            // to avoid generating the same random numbers.
-            std::random_device rd;
-            std::mt19937 gen(rd() + omp_get_thread_num());
-            std::normal_distribution<> dist(0.0, 0.1);
-
-            std::vector<std::array<double, 3>> local_particles;
-            std::unordered_map<size_t, size_t> localCounts;
-
-#pragma omp for schedule(dynamic)
-            for (size_t idx = 0; idx < triangleMap.size(); ++idx)
-            {
-                auto it = std::next(triangleMap.begin(), idx);
-                auto const &[id, cell] = *it;
-
-                if (cell.count == 0)
-                    continue;
-
-                // Get related cells
-                std::vector<size_t> target_cells{id};
-                auto neighbors = m_surfaceMesh.getNeighborCells(id);
-                target_cells.insert(target_cells.end(), neighbors.begin(), neighbors.end());
-
-                // Calculate the total area
-                double total_area = 0.0;
-                for (auto const &cell_id : target_cells)
-                    total_area += triangleMap.at(cell_id).area;
-
-                // Calculate the real particles for each related cell
-                for (auto const &cell_id : target_cells)
-                {
-                    auto const &target_cell = triangleMap.at(cell_id);
-                    double ratio = target_cell.area / total_area;
-                    size_t num_particles = static_cast<size_t>(cell.count * weight * ratio);
-
-#pragma omp critical
-                    {
-                        localCounts[cell_id] += num_particles;
-                    }
-
-                    Point centroid{TriangleCell::compute_centroid(target_cell.triangle)};
-
-                    for (size_t i = 0; i < num_particles; ++i)
-                    {
-                        double dx{dist(gen) * target_cell.area};
-                        double dy{dist(gen) * target_cell.area};
-
-                        local_particles.push_back({centroid.x() + dx,
-                                                   centroid.y() + dy,
-                                                   centroid.z()});
-                    }
-                }
-            }
-
-#pragma omp critical
-            {
-                realParticles.insert(realParticles.end(), local_particles.begin(), local_particles.end());
-                for (auto const &[cid, cnt] : localCounts)
-                    realCounts[cid] += cnt;
-            }
+            WARNINGMSG("Failed to save settled particles to HDF5 file");
         }
-
-// Updaing counters in surfaceMesh
-#pragma omp parallel for
-        for (size_t idx = 0; idx < triangleMap.size(); ++idx)
-        {
-            auto it = std::next(triangleMap.begin(), idx);
-            auto const &[id, cell] = *it;
-
-            if (realCounts.count(id))
-                const_cast<TriangleCell &>(cell).count = realCounts[id];
-        }
-
-        // 2. Check if it's directory and has write permissions
-        std::string const dir_path{"results"};
-        if (!std::filesystem::is_directory(dir_path) ||
-            (std::filesystem::status(dir_path).permissions() &
-             std::filesystem::perms::owner_write) == std::filesystem::perms::none)
-        {
-            throw std::runtime_error("No write permissions for results directory");
-        }
-
-        // 2. Check if there are any particles to save
-        if (realParticles.empty())
-        {
-            WARNINGMSG("No particles to save. Skipping HDF5 file creation");
-            return;
-        }
-
-        // 3. Create file with error checking
-        std::string const filepath = dir_path + "/settled_particles.hdf5";
-        hid_t file_id = H5Fcreate(filepath.c_str(),
-                                  H5F_ACC_TRUNC,
-                                  H5P_DEFAULT,
-                                  H5P_DEFAULT);
-        if (file_id < 0)
-            throw std::runtime_error("HDF5 file creation failed");
-
-        // 4. Create dataspace
-        hsize_t dims[2] = {realParticles.size(), 3};
-        hid_t dataspace{H5Screate_simple(2, dims, NULL)};
-        if (dataspace < 0)
-        {
-            H5Fclose(file_id);
-            throw std::runtime_error("HDF5 dataspace creation failed");
-        }
-
-        // 5. Create dataset
-        hid_t dataset = H5Dcreate2(file_id,
-                                   "settled_particles",
-                                   H5T_NATIVE_DOUBLE,
-                                   dataspace,
-                                   H5P_DEFAULT,
-                                   H5P_DEFAULT,
-                                   H5P_DEFAULT);
-        if (dataset < 0)
-        {
-            H5Sclose(dataspace);
-            H5Fclose(file_id);
-            throw std::runtime_error("HDF5 dataset creation failed");
-        }
-
-        // 6. Write data
-        herr_t status{H5Dwrite(dataset,
-                               H5T_NATIVE_DOUBLE,
-                               H5S_ALL,
-                               H5S_ALL,
-                               H5P_DEFAULT,
-                               realParticles.data())};
-        if (status < 0)
-        {
-            H5Dclose(dataset);
-            H5Sclose(dataspace);
-            H5Fclose(file_id);
-            throw std::runtime_error("HDF5 data write failed");
-        }
-
-        // 7. Correctly release resources
-        H5Dclose(dataset);
-        H5Sclose(dataspace);
-        H5Fclose(file_id);
-
-        SUCCESSMSG(util::stringify("Successfully saved ", realParticles.size(), " particles to ", filepath));
     }
     catch (const std::exception &e)
     {
-        ERRMSG(util::stringify("Error: ", e.what()));
+        ERRMSG(util::stringify("Error in particle distribution: ", e.what()));
     }
     catch (...)
     {
-        ERRMSG("Unknown error");
+        ERRMSG("Unknown error during particle distribution");
     }
 }
 

@@ -1,5 +1,11 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-                             QDialogButtonBox, QMessageBox)
+from PyQt5.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMessageBox,
+)
 from field_validators import CustomIntValidator, CustomSignedDoubleValidator
 from PyQt5.QtGui import QDoubleValidator
 from styles import *
@@ -9,7 +15,6 @@ from tabs.graphical_editor.geometry.sphere import Sphere
 
 
 class SphereDialog(QDialog):
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Create Sphere")
@@ -31,30 +36,48 @@ class SphereDialog(QDialog):
 
         self.xInput.setValidator(
             CustomSignedDoubleValidator(
-                GEOMETRY_SPHERE_XMIN, GEOMETRY_SPHERE_XMAX,
-                GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_XMIN,
+                GEOMETRY_SPHERE_XMAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION,
+            )
+        )
         self.yInput.setValidator(
             CustomSignedDoubleValidator(
-                GEOMETRY_SPHERE_YMIN, GEOMETRY_SPHERE_YMAX,
-                GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_YMIN,
+                GEOMETRY_SPHERE_YMAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION,
+            )
+        )
         self.zInput.setValidator(
             CustomSignedDoubleValidator(
-                GEOMETRY_SPHERE_ZMIN, GEOMETRY_SPHERE_ZMAX,
-                GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_ZMIN,
+                GEOMETRY_SPHERE_ZMAX,
+                GEOMETRY_SPHERE_FIELD_PRECISION,
+            )
+        )
         self.radiusInput.setValidator(
             CustomSignedDoubleValidator(
                 GEOMETRY_SPHERE_RADIUS_MIN,
                 GEOMETRY_SPHERE_RADIUS_MAX,
-                GEOMETRY_SPHERE_FIELD_PRECISION))
+                GEOMETRY_SPHERE_FIELD_PRECISION,
+            )
+        )
         self.phiResolutionInput.setValidator(
-            CustomIntValidator(GEOMETRY_SPHERE_MIN_PHI_RESOLUTION,
-                               GEOMETRY_SPHERE_MAX_PHI_RESOLUTION))
+            CustomIntValidator(
+                GEOMETRY_SPHERE_MIN_PHI_RESOLUTION, GEOMETRY_SPHERE_MAX_PHI_RESOLUTION
+            )
+        )
         self.thetaResolutionInput.setValidator(
-            CustomIntValidator(GEOMETRY_SPHERE_MIN_THETA_RESOLUTION,
-                               GEOMETRY_SPHERE_MAX_THETA_RESOLUTION))
+            CustomIntValidator(
+                GEOMETRY_SPHERE_MIN_THETA_RESOLUTION,
+                GEOMETRY_SPHERE_MAX_THETA_RESOLUTION,
+            )
+        )
         self.meshResolutionInput.setValidator(
-            CustomIntValidator(GEOMETRY_BOX_MESH_RESOLUTION_MIN,
-                               GEOMETRY_BOX_MESH_RESOLUTION_MAX))
+            CustomIntValidator(
+                GEOMETRY_BOX_MESH_RESOLUTION_MIN, GEOMETRY_BOX_MESH_RESOLUTION_MAX
+            )
+        )
 
         self.xInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.yInput.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
@@ -79,7 +102,9 @@ class SphereDialog(QDialog):
         layout.addLayout(formLayout)
 
         # Dialog buttons
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
         self.buttons.accepted.connect(self.validate_and_accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -87,21 +112,31 @@ class SphereDialog(QDialog):
 
     def validate_and_accept(self):
         inputs = [
-            self.xInput, self.yInput, self.zInput, self.radiusInput,
-            self.phiResolutionInput, self.thetaResolutionInput
+            self.xInput,
+            self.yInput,
+            self.zInput,
+            self.radiusInput,
+            self.phiResolutionInput,
+            self.thetaResolutionInput,
         ]
         all_valid = True
 
         for input_field in inputs:
             validator = input_field.validator()
             if isinstance(validator, CustomSignedDoubleValidator):
-                if validator.validate(input_field.text(), 0)[0] != QDoubleValidator.Acceptable:
+                if (
+                    validator.validate(input_field.text(), 0)[0]
+                    != QDoubleValidator.Acceptable
+                ):
                     input_field.setStyleSheet(INVALID_QLINEEDIT_STYLE)
                     all_valid = False
                 else:
                     input_field.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
             elif isinstance(validator, CustomIntValidator):
-                if validator.validate(input_field.text(), 0)[0] != QDoubleValidator.Acceptable:
+                if (
+                    validator.validate(input_field.text(), 0)[0]
+                    != QDoubleValidator.Acceptable
+                ):
                     input_field.setStyleSheet(INVALID_QLINEEDIT_STYLE)
                     all_valid = False
                 else:
@@ -110,17 +145,32 @@ class SphereDialog(QDialog):
         if all_valid:
             self.accept()
         else:
-            QMessageBox.warning(self, "Invalid input",
-                                "Please correct the highlighted fields.")
+            QMessageBox.warning(
+                self, "Invalid input", "Please correct the highlighted fields."
+            )
 
     def getValues(self):
-        values = (float(self.xInput.text()), float(self.yInput.text()), float(self.zInput.text()), 
-                  float(self.radiusInput.text()),
-                  int(self.meshResolutionInput.text()),
-                  int(self.phiResolutionInput.text()),
-                  int(self.thetaResolutionInput.text()))
+        values = (
+            float(self.xInput.text()),
+            float(self.yInput.text()),
+            float(self.zInput.text()),
+            float(self.radiusInput.text()),
+            int(self.meshResolutionInput.text()),
+            int(self.phiResolutionInput.text()),
+            int(self.thetaResolutionInput.text()),
+        )
         return values
 
     def getSphere(self):
-        x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution = self.getValues()
-        return Sphere(x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution)
+        (
+            x,
+            y,
+            z,
+            radius,
+            mesh_resolution,
+            phi_resolution,
+            theta_resolution,
+        ) = self.getValues()
+        return Sphere(
+            x, y, z, radius, mesh_resolution, phi_resolution, theta_resolution
+        )

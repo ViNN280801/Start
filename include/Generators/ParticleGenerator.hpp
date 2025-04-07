@@ -1,5 +1,5 @@
-#ifndef PARTICLEGENERATOR_HPP
-#define PARTICLEGENERATOR_HPP
+#ifndef PARTICLE_GENERATOR_HPP
+#define PARTICLE_GENERATOR_HPP
 
 /**
  * @file ParticleGenerator.hpp
@@ -26,4 +26,4 @@
     #define ParticleGenerator ParticleGeneratorHost ///< Alias for the host implementation.
 #endif // !USE_CUDA
 
-#endif // !PARTICLEGENERATOR_HPP
+#endif // !PARTICLE_GENERATOR_HPP

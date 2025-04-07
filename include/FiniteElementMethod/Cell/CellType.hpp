@@ -1,5 +1,5 @@
-#ifndef CELLTYPE_HPP
-#define CELLTYPE_HPP
+#ifndef CELL_TYPE_HPP
+#define CELL_TYPE_HPP
 
 /**
  * @enum CellType
@@ -21,4 +21,4 @@ enum class CellType
     Hexahedron,  ///< 3D Hexahedron with 8 nodes.
 };
 
-#endif // !CELLTYPE_HPP
+#endif // !CELL_TYPE_HPP

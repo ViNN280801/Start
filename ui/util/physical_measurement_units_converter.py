@@ -22,8 +22,7 @@ class PhysicalMeasurementUnitsConverter:
         if not is_positive_real_number(value):
             return 0.0
         value = float(value)
-        unit_factors = {"ns": 1e-9, "μs": 1e-6,
-                        "ms": 1e-3, "s": 1.0, "min": 60}
+        unit_factors = {"ns": 1e-9, "μs": 1e-6, "ms": 1e-3, "s": 1.0, "min": 60}
         return value * unit_factors.get(unit, 0)
 
     @staticmethod
@@ -61,10 +60,10 @@ class PhysicalMeasurementUnitsConverter:
         # Conversion factors to joules
         unit_factors = {
             "eV": 1.602176634e-19,  # 1 eV to Joules
-            "keV": 1.602176634e-16, # 1 keV to Joules
-            "J": 1.,                # 1 Joule to Joules
-            "kJ": 1e3,              # 1 kilojoule to Joules
-            "cal": 4.184,           # 1 calorie to Joules
+            "keV": 1.602176634e-16,  # 1 keV to Joules
+            "J": 1.0,  # 1 Joule to Joules
+            "kJ": 1e3,  # 1 kilojoule to Joules
+            "cal": 4.184,  # 1 calorie to Joules
         }
 
         # Default to 0 if unit is unsupported

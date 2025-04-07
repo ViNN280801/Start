@@ -11,32 +11,31 @@ from .gmsh_geometry import GMSHGeometryCreator
 
 
 class GeometryCreator:
-    
     @staticmethod
     def remove(vtkWidget, renderer, actor, needResetCamera, dimtags):
         VTKGeometryCreator.remove(vtkWidget, renderer, actor, needResetCamera)
         GMSHGeometryCreator.remove(dimtags)
-    
+
     @staticmethod
     def create_point(point: Point):
         out_actor = VTKGeometryCreator.create_point(point)
         out_tag = GMSHGeometryCreator.create_point(point)
         return out_actor, out_tag
-    
+
     @staticmethod
     def create_line(line: Line):
         out_actor = VTKGeometryCreator.create_line(line)
         out_tag = GMSHGeometryCreator.create_line(line)
         return out_actor, out_tag
-    
+
     @staticmethod
     def create_surface(surface: Surface):
         out_actor = VTKGeometryCreator.create_surface(surface)
         out_tag = GMSHGeometryCreator.create_surface(surface)
         return out_actor, out_tag
-    
+
     @staticmethod
-    def create_plane(p1, p2, axis='z'):
+    def create_plane(p1, p2, axis="z"):
         out_vtkplane, out_plane_actor = VTKGeometryCreator.create_plane(p1, p2, axis)
         out_tag = GMSHGeometryCreator.create_plane(p1, p2, axis)
         return out_vtkplane, out_plane_actor, out_tag
@@ -58,7 +57,7 @@ class GeometryCreator:
         out_actor = VTKGeometryCreator.create_cone(cone)
         out_tag = GMSHGeometryCreator.create_cone(cone)
         return out_actor, out_tag
-    
+
     @staticmethod
     def create_cylinder(cylinder: Cylinder):
         out_actor = VTKGeometryCreator.create_cylinder(cylinder)

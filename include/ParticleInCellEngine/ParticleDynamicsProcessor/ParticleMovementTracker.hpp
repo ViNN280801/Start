@@ -1,5 +1,5 @@
-#ifndef PARTICLEMOVEMENTTRACKER_HPP
-#define PARTICLEMOVEMENTTRACKER_HPP
+#ifndef PARTICLE_MOVEMENT_TRACKER_HPP
+#define PARTICLE_MOVEMENT_TRACKER_HPP
 
 #include "Particle/Particle.hpp"
 #include "ParticleInCellEngine/PICTypes.hpp"
@@ -40,7 +40,7 @@
 class ParticleMovementTracker
 {
 private:
-    constexpr static size_t kdefault_max_particles_to_record{5'000ul}; ///< Default number of the particles to record them.
+    constexpr static size_t kdefault_max_particles_to_record{200'000ul}; ///< Default number of the particles to record them.
 
 public:
     /**
@@ -86,11 +86,20 @@ public:
      * If too many particles are recorded, memory consumption can become excessive. The function
      * prevents this by enforcing a maximum number of tracked particles.
      */
-    static void recordMovement(ParticleMovementMap &particlesMovementMap,
+    static void recordMovement(ParticleMovementMap_ref particlesMovementMap,
                                std::mutex &mutex_particlesMovement,
                                size_t particleId,
-                               Point const &position,
+                               Point_cref position,
                                size_t maxParticles = kdefault_max_particles_to_record) noexcept;
+
+    /**
+     * @brief Saves the particle movements to a JSON file.
+     *
+     * This function saves the contents of `particlesMovementMap` to a JSON file named `filepath`.
+     * It handles exceptions and provides a warning message if the map is empty.
+     */
+    static void saveMovementsToJson(ParticleMovementMap_cref particlesMovementMap,
+                                    std::string_view filepath = "results/particles_movements.json");
 };
 
-#endif // PARTICLEMOVEMENTTRACKER_HPP
+#endif // !PARTICLE_MOVEMENT_TRACKER_HPP

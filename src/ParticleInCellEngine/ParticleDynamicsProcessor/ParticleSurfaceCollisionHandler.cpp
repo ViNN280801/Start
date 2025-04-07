@@ -22,53 +22,121 @@ std::optional<size_t> ParticleSurfaceCollisionHandler::handle(Particle_cref part
     if (!intersection)
         return std::nullopt;
 
-    // 2. Getting triangle with which ray intersected.
-    auto triangle{*intersection->second};
-    if (triangle.is_degenerate())
-        return std::nullopt;
+    // 2. Find all intersections to determine the closest one
+    std::vector<std::pair<Point, size_t>> intersections;
 
-// 3. If this triangle is really in surface mesh, getting triangle iterator to get it Id.
-#if __cplusplus >= 202002L
-    auto triangleIdIter{std::ranges::find_if(surfaceMesh.getTriangleCellMap(), [triangle](auto const &entry)
-                                             {
-        auto const &[id, cellData]{entry};
-        return cellData.triangle == triangle; })};
-#else
-    auto triangleIdIter{std::find_if(surfaceMesh.getTriangleCellMap().cbegin(), surfaceMesh.getTriangleCellMap().cend(), [triangle](auto const &entry)
-                                     {
-        auto const &[id, cellData]{entry};
-        return cellData.triangle == triangle; })};
-#endif
+    // Using a temporary vector to collect all AABB intersections
+    std::vector<typename AABBTree::Primitive::Id> primitives;
+    surfaceMesh.getAABBTree().all_intersected_primitives(segment, std::back_inserter(primitives));
 
-    // 4. If there is no such triangle in mesh, just skip all further processing.
-    if (triangleIdIter == surfaceMesh.getTriangleCellMap().cend())
-        return std::nullopt;
+    for (const auto &primId : primitives)
+    {
+        // Get the triangle from the primitive ID
+        auto triangle{*primId};
+        if (triangle.is_degenerate())
+            continue;
 
-    // 5. Getting triangle ID as a 'size_t'.
-    size_t triangleId{triangleIdIter->first};
+        // Find the triangle in the mesh to get its ID
+        auto triangleIdIter{std::find_if(
+            surfaceMesh.getTriangleCellMap().cbegin(),
+            surfaceMesh.getTriangleCellMap().cend(),
+            [&triangle](auto const &entry)
+            {
+                auto const &[id, cellData] = entry;
+                return cellData.triangle == triangle;
+            })};
 
-    // 6. Settling particle.
+        if (triangleIdIter == surfaceMesh.getTriangleCellMap().cend())
+            continue;
+
+        size_t triangleId{triangleIdIter->first};
+
+        // Calculate the actual intersection point
+        auto intersectionPoint{SegmentTriangleIntersection::getIntersectionPoint(segment, triangle)};
+        if (!intersectionPoint.has_value())
+            continue;
+
+        // Store both the intersection point and triangle ID
+        intersections.emplace_back(*intersectionPoint, triangleId);
+    }
+
+    // If no valid intersections were found (unlikely but possible)
+    if (intersections.empty())
+    {
+        // Fallback to the original behavior using any_intersection
+        auto triangle{*intersection->second};
+        if (triangle.is_degenerate())
+            return std::nullopt;
+
+        auto triangleIdIter{std::find_if(surfaceMesh.getTriangleCellMap().cbegin(),
+                                         surfaceMesh.getTriangleCellMap().cend(),
+                                         [triangle](auto const &entry)
+                                         {
+                                             auto const &[id, cellData]{entry};
+                                             return cellData.triangle == triangle;
+                                         })};
+
+        if (triangleIdIter == surfaceMesh.getTriangleCellMap().cend())
+            return std::nullopt;
+
+        size_t triangleId{triangleIdIter->first};
+        ParticleSettler::settle(particle.getId(),
+                                triangleId,
+                                totalParticles,
+                                surfaceMesh,
+                                sh_mutex_settledParticlesCounterMap,
+                                settledParticlesIds,
+                                stopSubject);
+
+        // Calculate intersection point
+        auto intersectionPoint{SegmentTriangleIntersection::getIntersectionPoint(segment, triangle)};
+        if (intersectionPoint.has_value())
+        {
+            ParticleMovementTracker::recordMovement(particleMovementMap,
+                                                    mutex_particlesMovementMapMutex,
+                                                    particle.getId(),
+                                                    intersectionPoint.value());
+        }
+
+        return triangleId;
+    }
+
+    // 3. Find the closest intersection to the starting point
+    Point startPoint{segment.source()};
+    double minDistance{std::numeric_limits<double>::max()};
+    size_t closestTriangleId{};
+    Point closestIntersection;
+
+    for (const auto &[point, triangleId] : intersections)
+    {
+        double dist{std::sqrt(
+            std::pow(point.x() - startPoint.x(), 2) +
+            std::pow(point.y() - startPoint.y(), 2) +
+            std::pow(point.z() - startPoint.z(), 2))};
+
+        if (dist < minDistance)
+        {
+            minDistance = dist;
+            closestTriangleId = triangleId;
+            closestIntersection = point;
+        }
+    }
+
+    // 4. Settling particle on the closest intersection
     ParticleSettler::settle(particle.getId(),
-                            triangleId,
+                            closestTriangleId,
                             totalParticles,
                             surfaceMesh,
                             sh_mutex_settledParticlesCounterMap,
                             settledParticlesIds,
                             stopSubject);
 
-    // 7. Recording particle movement.
-    // 7.1. Calculating intersection point.
-    auto intersectionPoint{SegmentTriangleIntersection::getIntersectionPoint(segment, triangle)};
+    // 5. Record the particle movement at the intersection point
+    ParticleMovementTracker::recordMovement(particleMovementMap,
+                                            mutex_particlesMovementMapMutex,
+                                            particle.getId(),
+                                            closestIntersection);
 
-    // 7.2. If optional is not empty - add it to the particle movement map.
-    if (intersectionPoint.has_value())
-    {
-        ParticleMovementTracker::recordMovement(particleMovementMap,
-                                                mutex_particlesMovementMapMutex,
-                                                particle.getId(),
-                                                intersectionPoint.value());
-    }
-
-    // 8. Returning triangle ID with which ray intersected.
-    return triangleId;
+    // 6. Return the triangle ID of the intersection
+    return closestTriangleId;
 }

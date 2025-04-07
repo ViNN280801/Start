@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 
-#include "../include/FiniteElementMethod/Cell/CellSelector.hpp"
-#include "../include/FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/Cell/CellSelector.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 
 class CellSelectorTest : public ::testing::Test
 {
@@ -71,15 +71,15 @@ TEST_F(CellSelectorTest, InvalidNumericValue)
     try
     {
         CellSelector::get(static_cast<CellType>(1000)); // Out of bounds enum value
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException";
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException";
     }
-    catch (CellSelectorInvalidEnumTypeException const &e)
+    catch (CellSelectorUnsupportedCellTypeException const &e)
     {
         SUCCEED();
     }
     catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException, but got: " << typeid(e).name();
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -89,15 +89,15 @@ TEST_F(CellSelectorTest, EnumUnderflow)
     try
     {
         CellSelector::get(static_cast<CellType>(-100)); // Underflowing enum value
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException";
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException";
     }
-    catch (CellSelectorInvalidEnumTypeException const &e)
+    catch (CellSelectorUnsupportedCellTypeException const &e)
     {
         SUCCEED();
     }
     catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException, but got: " << typeid(e).name();
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -107,15 +107,15 @@ TEST_F(CellSelectorTest, EnumOverflow)
     try
     {
         CellSelector::get(static_cast<CellType>(std::numeric_limits<int>::max())); // Overflow enum value
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException";
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException";
     }
-    catch (CellSelectorInvalidEnumTypeException const &e)
+    catch (CellSelectorUnsupportedCellTypeException const &e)
     {
         SUCCEED();
     }
     catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException, but got: " << typeid(e).name();
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -125,15 +125,15 @@ TEST_F(CellSelectorTest, ExtremeNegativeEnumValue)
     try
     {
         CellSelector::get(static_cast<CellType>(std::numeric_limits<int>::min())); // Extremely negative value
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException";
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException";
     }
-    catch (CellSelectorInvalidEnumTypeException const &e)
+    catch (CellSelectorUnsupportedCellTypeException const &e)
     {
         SUCCEED();
     }
     catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException, but got: " << typeid(e).name();
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }
 
@@ -144,14 +144,14 @@ TEST_F(CellSelectorTest, CustomEnumValue)
     {
         CellType customCellType = static_cast<CellType>(999); // Custom, unsupported enum value
         CellSelector::get(customCellType);
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException";
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException";
     }
-    catch (CellSelectorInvalidEnumTypeException const &e)
+    catch (CellSelectorUnsupportedCellTypeException const &e)
     {
         SUCCEED();
     }
     catch (std::exception const &e)
     {
-        FAIL() << "Expected CellSelectorInvalidEnumTypeException, but got: " << typeid(e).name();
+        FAIL() << "Expected CellSelectorUnsupportedCellTypeException, but got: " << typeid(e).name();
     }
 }

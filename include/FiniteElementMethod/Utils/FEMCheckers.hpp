@@ -1,7 +1,7 @@
-#ifndef FEMCHECKERS_HPP
-#define FEMCHECKERS_HPP
+#ifndef FEM_CHECKERS_HPP
+#define FEM_CHECKERS_HPP
 
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Cell/CellType.hpp"
 #include "FiniteElementMethod/Utils/FEMLimits.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
@@ -102,4 +102,4 @@ public:
     static void checkIndex(GlobalOrdinal index, size_t upper_bound, std::string_view prefix = "");
 };
 
-#endif // !FEMCHECKERS_HPP
+#endif // !FEM_CHECKERS_HPP

@@ -22,7 +22,7 @@ def is_path_accessible(path: str) -> bool:
     """
     if not path:
         return False
-    
+
     try:
         with open(path) as _:
             pass
@@ -44,6 +44,6 @@ def check_path(path: str):
     """
     if not is_file_valid(path):
         raise ValueError(f"The path '{path}' is not valid.")
-    
+
     if not is_path_accessible(path):
         raise IOError(f"The path '{path}' is not accessible.")

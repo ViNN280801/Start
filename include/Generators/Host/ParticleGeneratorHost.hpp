@@ -1,5 +1,5 @@
-#ifndef PARTICLEGENERATORHOST_HPP
-#define PARTICLEGENERATORHOST_HPP
+#ifndef PARTICLE_GENERATOR_HOST_HPP
+#define PARTICLE_GENERATOR_HOST_HPP
 
 #if __cplusplus < 202002L
 #include <type_traits>
@@ -8,6 +8,7 @@
 
 #include "Particle/Particle.hpp"
 #include "Utilities/ConfigParser.hpp"
+#include "Generators/GeneratorsExceptions.hpp"
 
 #if __cplusplus >= 202002L
 /**
@@ -81,70 +82,70 @@ public:
  * @endcode
  */
 #if __cplusplus >= 202002L
-        template <ParticleGeneratorHostConcept Gen>
+	template <ParticleGeneratorHostConcept Gen>
 #else
-        template <typename Gen, typename = ParticleGeneratorHostConcept<Gen>>
+	template <typename Gen, typename = ParticleGeneratorHostConcept<Gen>>
 #endif
-        static ParticleVector generate(size_t count, Gen gen)
-        {
-                if (count == 0)
-                        throw std::logic_error("There is no need to generate 0 objects");
+	static ParticleVector generate(size_t count, Gen gen)
+	{
+		if (count == 0)
+			START_THROW_EXCEPTION(ParticleGeneratorsZeroCountException, "There is no need to generate 0 objects");
 
-                ParticleVector particles(count);
+		ParticleVector particles(count);
 
 #ifdef USE_OMP
-                // Selecting chunk size to correctly handle different cases.
-                size_t chunkSize{1000};
-                if (count <= 5000)
-                        chunkSize = 500;
-                else if (count <= 1000)
-                        chunkSize = 100;
-                else if (count <= 100)
-                        chunkSize = 10;
-                else
-                        chunkSize = 1;
+		// Selecting chunk size to correctly handle different cases.
+		size_t chunkSize{1000};
+		if (count <= 5000)
+			chunkSize = 500;
+		else if (count <= 1000)
+			chunkSize = 100;
+		else if (count <= 100)
+			chunkSize = 10;
+		else
+			chunkSize = 1;
 
 #pragma omp parallel for simd schedule(static, chunkSize)
 #endif
-                for (size_t i = 0; i < count; ++i)
-                        particles[i] = gen();
-                return particles;
-        }
+		for (size_t i = 0; i < count; ++i)
+			particles[i] = gen();
+		return particles;
+	}
 
-        /**
-         * @brief Creates a vector of particles using particle sources as points.
-         * @param source A vector of point particle sources.
-         * @return A vector of particles created from the given point particle sources.
-         * @details This function iterates through the provided point particle sources,
-         *          and for each source, it generates the specified number of particles.
-         *          Each particle is assigned its type, position, energy, and direction
-         *          angles (theta, phi, expansionAngle) based on the source parameters.
-         *
-         *          1) The function goes through each source.
-         *          2) Creates a set number of particles for each source, setting the type, position, energy and directions
-         *             for each (angles theta, phi, expansionAngle).
-         */
-        static ParticleVector fromPointSource(std::vector<point_source_t> const &source);
+	/**
+	 * @brief Creates a vector of particles using particle sources as points.
+	 * @param source A vector of point particle sources.
+	 * @return A vector of particles created from the given point particle sources.
+	 * @details This function iterates through the provided point particle sources,
+	 *          and for each source, it generates the specified number of particles.
+	 *          Each particle is assigned its type, position, energy, and direction
+	 *          angles (theta, phi, expansionAngle) based on the source parameters.
+	 *
+	 *          1) The function goes through each source.
+	 *          2) Creates a set number of particles for each source, setting the type, position, energy and directions
+	 *             for each (angles theta, phi, expansionAngle).
+	 */
+	static ParticleVector fromPointSource(std::vector<point_source_t> const &source);
 
-        /**
-         * @brief Creates a vector of particles using particle sources as surfaces.
-         * @param source A vector of surface particle sources.
-         * @param expansionAngle Expansion angle in [rad] for the cone distribution (by default = 0). Assuming that there is no expansion in surface source.
-         * @return A vector of particles created from the given surface particle sources.
-         * @details This function iterates through the provided surface particle sources,
-         *          and for each source, it distributes particles evenly across the
-         *          specified cell centers. If the number of particles does not divide
-         *          evenly among the cells, the remainder is randomly distributed. Each
-         *          particle is assigned its type, position, energy, and direction based
-         *          on the source parameters and cell normals.
-         *
-         *          1) The function passes through each surface source.
-         *          2) Determines the number of cells and the number of particles per cell.
-         *          3) Distributes the remainder of the particles randomly into cells.
-         *          4) For each cell and normal, calculates the angles theta and phi necessary to determine the direction of the particles.
-         *          5) Creates particles by setting for each type, position, energy and directions (angles theta, phi, expansionAngle).
-         */
-        static ParticleVector fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle = 0.0);
+	/**
+	 * @brief Creates a vector of particles using particle sources as surfaces.
+	 * @param source A vector of surface particle sources.
+	 * @param expansionAngle Expansion angle in [rad] for the cone distribution (by default = 0). Assuming that there is no expansion in surface source.
+	 * @return A vector of particles created from the given surface particle sources.
+	 * @details This function iterates through the provided surface particle sources,
+	 *          and for each source, it distributes particles evenly across the
+	 *          specified cell centers. If the number of particles does not divide
+	 *          evenly among the cells, the remainder is randomly distributed. Each
+	 *          particle is assigned its type, position, energy, and direction based
+	 *          on the source parameters and cell normals.
+	 *
+	 *          1) The function passes through each surface source.
+	 *          2) Determines the number of cells and the number of particles per cell.
+	 *          3) Distributes the remainder of the particles randomly into cells.
+	 *          4) For each cell and normal, calculates the angles theta and phi necessary to determine the direction of the particles.
+	 *          5) Creates particles by setting for each type, position, energy and directions (angles theta, phi, expansionAngle).
+	 */
+	static ParticleVector fromSurfaceSource(std::vector<surface_source_t> const &source, double expansionAngle = 0.0);
 };
 
-#endif // !PARTICLEGENERATORHOST_HPP
+#endif // !PARTICLE_GENERATOR_HOST_HPP

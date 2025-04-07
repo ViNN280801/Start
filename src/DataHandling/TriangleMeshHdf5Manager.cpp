@@ -6,8 +6,8 @@
 #include <ranges>
 #endif
 
+#include "DataHandling/DataHandlingExceptions.hpp"
 #include "DataHandling/TriangleMeshHdf5Manager.hpp"
-#include "DataHandling/TriangleMeshHdf5ManagerExceptions.hpp"
 
 void TriangleMeshHdf5Manager::_findMinTriangleId(TriangleCellMap_cref triangleCells)
 {
@@ -61,7 +61,7 @@ void TriangleMeshHdf5Manager::_createGroup(std::string_view groupName)
 }
 
 void TriangleMeshHdf5Manager::_writeDataset(std::string_view groupName, std::string_view datasetName,
-                                hid_t type, void const *data, hsize_t dims)
+                                            hid_t type, void const *data, hsize_t dims)
 {
     hid_t grp_id{H5Gopen2(m_file_id, groupName.data(), H5P_DEFAULT)},
         dataspace{H5Screate_simple(1, std::addressof(dims), NULL)},
@@ -79,7 +79,7 @@ void TriangleMeshHdf5Manager::_writeDataset(std::string_view groupName, std::str
 }
 
 void TriangleMeshHdf5Manager::_readDataset(std::string_view groupName, std::string_view datasetName,
-                               hid_t type, void *data)
+                                           hid_t type, void *data)
 {
     hid_t grp_id{H5Gopen2(m_file_id, groupName.data(), H5P_DEFAULT)},
         dataset{H5Dopen2(grp_id, datasetName.data(), H5P_DEFAULT)};

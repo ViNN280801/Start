@@ -1,5 +1,5 @@
-#ifndef PREPROCESSORUTILS_HPP
-#define PREPROCESSORUTILS_HPP
+#ifndef PREPROCESSOR_UTILS_HPP
+#define PREPROCESSOR_UTILS_HPP
 
 #include "Utilities/VersionCheck.hpp"
 
@@ -133,4 +133,4 @@
     #define START_UNLIKELY(x) (x)
 #endif
 
-#endif // !PREPROCESSORUTILS_HPP
+#endif // !PREPROCESSOR_UTILS_HPP

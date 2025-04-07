@@ -12,43 +12,45 @@ class CustomTestResult(TextTestResult):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.failed_tests = []
-    
+
     def startTest(self, test):
-        test_file = relpath(test.__module__.replace('.', '/') + '.py', start=abspath('.'))
+        test_file = relpath(
+            test.__module__.replace(".", "/") + ".py", start=abspath(".")
+        )
         self.stream.write(f"{test_file}: ")
         super().startTest(test)
 
     def addSuccess(self, test):
-        self.stream.write('\033[92m')
+        self.stream.write("\033[92m")
         super().addSuccess(test)
-        self.stream.write('\033[0m')
+        self.stream.write("\033[0m")
 
     def addFailure(self, test, err):
         self.failed_tests.append(test.id())
-        self.stream.write('\033[91m')
+        self.stream.write("\033[91m")
         super().addFailure(test, err)
-        self.stream.write('\033[0m')
+        self.stream.write("\033[0m")
 
     def addError(self, test, err):
         self.failed_tests.append(test.id())
-        self.stream.write('\033[91m')
+        self.stream.write("\033[91m")
         super().addError(test, err)
-        self.stream.write('\033[0m')
+        self.stream.write("\033[0m")
 
     def addSkip(self, test, reason):
-        self.stream.write('\033[93m')
+        self.stream.write("\033[93m")
         super().addSkip(test, reason)
-        self.stream.write('\033[0m')
+        self.stream.write("\033[0m")
 
     def addExpectedFailure(self, test, err):
-        self.stream.write('\033[93m')
+        self.stream.write("\033[93m")
         super().addExpectedFailure(test, err)
-        self.stream.write('\033[0m')
+        self.stream.write("\033[0m")
 
     def addUnexpectedSuccess(self, test):
-        self.stream.write('\033[92m')
+        self.stream.write("\033[92m")
         super().addUnexpectedSuccess(test)
-        self.stream.write('\033[0m')
+        self.stream.write("\033[0m")
 
 
 def discover_and_run_suite(path):
@@ -67,7 +69,7 @@ def discover_and_run_suite(path):
         raise ValueError(f"Path must be a string. Invalid path: {path}")
     if not isdir(abs_path):
         raise ValueError(f"Path does not exist or is not a directory: {abs_path}")
-    
+
     try:
         suite = loader.discover(abs_path, pattern="*_tests.py")
         runner = CustomTextTestRunner(verbosity=2)
@@ -91,9 +93,9 @@ if __name__ == "__main__":
     failed_test_names = []
 
     test_dirs = [
-        join(dirname(__file__), 'tests/field_validators_tests'),
-        join(dirname(__file__), 'tests/logger_tests'),
-        join(dirname(__file__), 'tests/util_tests')
+        join(dirname(__file__), "tests/field_validators_tests"),
+        join(dirname(__file__), "tests/logger_tests"),
+        join(dirname(__file__), "tests/util_tests"),
     ]
 
     all_tests_passed = True

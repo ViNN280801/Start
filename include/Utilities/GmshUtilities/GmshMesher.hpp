@@ -1,5 +1,5 @@
-#ifndef GMSHMESHER_HPP
-#define GMSHMESHER_HPP
+#ifndef GMSH_MESHER_HPP
+#define GMSH_MESHER_HPP
 
 #include <string>
 #include <vector>
@@ -220,4 +220,4 @@ public:
     void generateMeshfile(int dimension) const;
 };
 
-#endif // !GMSHMESHER_HPP
+#endif // !GMSH_MESHER_HPP

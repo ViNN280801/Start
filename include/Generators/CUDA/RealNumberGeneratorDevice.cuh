@@ -1,11 +1,11 @@
-#ifndef REALNUMBERGENERATORDEVICE_CUH
-#define REALNUMBERGENERATORDEVICE_CUH
+#ifndef REAL_NUMBER_GENERATOR_DEVICE_CUH
+#define REAL_NUMBER_GENERATOR_DEVICE_CUH
 
 #ifdef USE_CUDA
-
 #include <curand_kernel.h>
 #include <random>
 
+#include "Generators/GeneratorsExceptions.hpp"
 #include "Utilities/PreprocessorUtils.hpp"
 
 /**
@@ -51,14 +51,30 @@ public:
         double randomValue = curand_uniform_double(m_state);
         return from + randomValue * (to - from);
 #else
-        // Host implementation - use standard library random
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_real_distribution<double> distribution(from, to);
-        return distribution(gen);
+        try
+        {
+            // Host implementation - use standard library random
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_real_distribution<double> distribution(from, to);
+            return distribution(gen);
+        }
+        catch (std::exception const &e)
+        {
+            START_THROW_EXCEPTION(RealNumberGeneratorsDeviceGenerateSequenceException,
+                                  util::stringify("Error generating sequence: ", e.what(),
+                                                  ". Parameters:\nfrom = ", from,
+                                                  "\nto = ", to));
+        }
+        catch (...)
+        {
+            START_THROW_EXCEPTION(RealNumberGeneratorsDeviceUnknownException,
+                                  util::stringify("Unknown exception, parameters:\nfrom = ", from,
+                                                  "\nto = ", to));
+        }
 #endif
     }
 };
 
 #endif // !USE_CUDA
-#endif // !REALNUMBERGENERATORDEVICE_CUH
+#endif // !REAL_NUMBER_GENERATOR_DEVICE_CUH

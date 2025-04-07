@@ -1,5 +1,5 @@
-#ifndef PARTICLEPHYSICSUPDATER_HPP
-#define PARTICLEPHYSICSUPDATER_HPP
+#ifndef PARTICLE_PHYSICS_UPDATER_HPP
+#define PARTICLE_PHYSICS_UPDATER_HPP
 
 #include <memory>
 
@@ -115,4 +115,4 @@ public:
     static void collideWithGas(Particle &particle, std::string_view scatteringModel, std::string_view gasName, double gasConcentration, double timeStep);
 };
 
-#endif // PARTICLEPHYSICSUPDATER_HPP
+#endif // !PARTICLE_PHYSICS_UPDATER_HPP

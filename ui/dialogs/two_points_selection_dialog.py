@@ -16,14 +16,14 @@ class TwoPointSelectionDialog(QDialog):
         self.point2_x = QLineEdit(self)
         self.point2_y = QLineEdit(self)
         self.point2_z = QLineEdit(self)
-        
+
         self.point1_x.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.point1_y.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.point1_z.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.point2_x.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.point2_y.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
         self.point2_z.setStyleSheet(DEFAULT_QLINEEDIT_STYLE)
-        
+
         self.point1_x.setValidator(CustomSignedDoubleValidator(-1e9, 1e9, 9))
         self.point1_y.setValidator(CustomSignedDoubleValidator(-1e9, 1e9, 9))
         self.point1_z.setValidator(CustomSignedDoubleValidator(-1e9, 1e9, 9))
@@ -55,6 +55,14 @@ class TwoPointSelectionDialog(QDialog):
         self.setLayout(layout)
 
     def getPoints(self):
-        point1 = (float(self.point1_x.text()), float(self.point1_y.text()), float(self.point1_z.text()))
-        point2 = (float(self.point2_x.text()), float(self.point2_y.text()), float(self.point2_z.text()))
+        point1 = (
+            float(self.point1_x.text()),
+            float(self.point1_y.text()),
+            float(self.point1_z.text()),
+        )
+        point2 = (
+            float(self.point2_x.text()),
+            float(self.point2_y.text()),
+            float(self.point2_z.text()),
+        )
         return point1, point2

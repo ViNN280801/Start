@@ -1,8 +1,7 @@
-#ifndef SPUTTERINGMODEL_HPP
-#define SPUTTERINGMODEL_HPP
+#ifndef SPUTTERING_MODEL_HPP
+#define SPUTTERING_MODEL_HPP
 
-#include <barrier>
-#include <future>
+#include <atomic>
 #include <mutex>
 #include <shared_mutex>
 
@@ -24,14 +23,15 @@ private:
     SurfaceMesh m_surfaceMesh;                        ///< Surface mesh that contains cell data for all the cells and AABB tree for the surface mesh.
     ParticleMovementMap m_particlesMovement;          ///< Map to store all the particle movements: (Particle ID | All positions).
     ParticlesIDSet m_settledParticlesIds;             ///< Set of the particle IDs that are been settled (need to avoid checking already settled particles).
-    int m_particleWeight;                             ///< Weight of the modeling particle.
+    int m_particleWeight{1};                          ///< Weight of the modeling particle.
 
     void _initializeObservers();
     void _ginitialize();
     void _updateSurfaceMesh();
 
-    void _distributeSettledParticles();
-    void _writeHistogramToFile();
+    void _distributeSettledParticles(std::string_view filepath = "results/settled_particles.hdf5");
+    void _writeHistogramToFile(std::string_view filepath = "results/histogram.dat");
+    void _writeKDEToFile(std::string_view filepath = "results/kde.dat");
 
     void _gfinalize();
 
@@ -44,4 +44,4 @@ public:
     TriangleCellMap const &getCellsWithSettledParticles() const { return m_surfaceMesh.getTriangleCellMap(); }
 };
 
-#endif // !SPUTTERINGMODEL_HPP
+#endif // !SPUTTERING_MODEL_HPP

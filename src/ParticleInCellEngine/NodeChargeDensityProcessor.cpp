@@ -4,6 +4,7 @@
 
 #include "Geometry/Utils/Intersections/SegmentTriangleIntersection.hpp"
 #include "ParticleInCellEngine/NodeChargeDensityProcessor.hpp"
+#include "ParticleInCellEngine/PICExceptions.hpp"
 #include "Utilities/ThreadedProcessor.hpp"
 
 #ifndef USE_OMP
@@ -101,11 +102,13 @@ static void _gather_stdver__helper(
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(util::stringify("Process of the gathering node charge densities failed. Reason: ", ex.what()));
+        START_THROW_EXCEPTION(PICNodeChargeDensityProcessorStdVersionHelperException,
+                              util::stringify("Process of the gathering node charge densities failed. Reason: ", ex.what()));
     }
     catch (...)
     {
-        ERRMSG("Some error occured while gathering node charge densities");
+        START_THROW_EXCEPTION(PICNodeChargeDensityProcessorStdVersionHelperUnknownException,
+                              util::stringify("Some error occured while gathering node charge densities"));
     }
 }
 
@@ -314,11 +317,13 @@ static void _gather_ompver__(
     }
     catch (std::exception const &ex)
     {
-        ERRMSG(util::stringify("Can't finish PIC processing: ", ex.what()));
+        START_THROW_EXCEPTION(PICNodeChargeDensityProcessorOmpVersionHelperException,
+                              util::stringify("Can't finish PIC processing: ", ex.what()));
     }
     catch (...)
     {
-        ERRMSG("Some error occured while PIC processing");
+        START_THROW_EXCEPTION(PICNodeChargeDensityProcessorOmpVersionHelperUnknownException,
+                              util::stringify("Some error occured while PIC processing"));
     }
 }
 #endif // !USE_OMP
@@ -334,7 +339,7 @@ void NodeChargeDensityProcessor::gather(double timeMoment,
 {
     // Check if the requested number of threads exceeds available hardware concurrency.
     ConfigParser configParser(configFilename);
-    auto numThreads{configParser.getNumThreads_s()};
+    auto numThreads{configParser.getNumThreads()};
 
 #ifdef USE_OMP
     _gather_ompver__(numThreads,

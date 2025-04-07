@@ -7,6 +7,7 @@
 #include <ranges>
 #endif
 
+#include "Generators/GeneratorsExceptions.hpp"
 #include "Generators/Host/RealNumberGeneratorHost.hpp"
 
 // `.entropy()` returns 0.0 if random device using a software-based pseudorandom generator
@@ -20,11 +21,11 @@ double RealNumberGeneratorHost::operator()(double from, double to) { return get_
 
 double RealNumberGeneratorHost::get_double(double from, double to) { return std::uniform_real_distribution(from, to)(m_engine); }
 
-void RealNumberGeneratorHost::set_lower_bound(double val) { m_from = val; }
+void RealNumberGeneratorHost::set_lower_bound(double val) noexcept { m_from = val; }
 
-void RealNumberGeneratorHost::set_upper_bound(double val) { m_to = val; }
+void RealNumberGeneratorHost::set_upper_bound(double val) noexcept { m_to = val; }
 
-void RealNumberGeneratorHost::set(double from, double to)
+void RealNumberGeneratorHost::set(double from, double to) noexcept
 {
     m_from = from;
     m_to = to;
@@ -33,18 +34,39 @@ void RealNumberGeneratorHost::set(double from, double to)
 std::vector<double> RealNumberGeneratorHost::get_sequence(size_t count, double from, double to)
 {
     if (count == 0ul)
-        return {};
+    {
+        START_THROW_EXCEPTION(RealNumberGeneratorsZeroCountException,
+                              "There is no sense to generate 0 objects");
+    }
 
-    auto dist{std::uniform_real_distribution<double>(from, to)};
-    auto gen{std::bind(dist, m_engine)};
+    try
+    {
+        auto dist{std::uniform_real_distribution<double>(from, to)};
+        auto gen{std::bind(dist, m_engine)};
 
-    std::vector<double> sequence(count);
+        std::vector<double> sequence(count);
 
 #if __cplusplus >= 202002L
-    std::ranges::generate(sequence, gen);
+        std::ranges::generate(sequence, gen);
 #else
-    std::generate(sequence.begin(), sequence.end(), gen);
+        std::generate(sequence.begin(), sequence.end(), gen);
 #endif
 
-    return sequence;
+        return sequence;
+    }
+    catch (std::exception const &e)
+    {
+        START_THROW_EXCEPTION(RealNumberGeneratorsGenerateSequenceException,
+                              util::stringify("Error generating sequence: ", e.what(),
+                                              ". Parameters:\ncount = ", count,
+                                              "\nfrom = ", from,
+                                              "\nto = ", to));
+    }
+    catch (...)
+    {
+        START_THROW_EXCEPTION(RealNumberGeneratorsUnknownException,
+                              util::stringify("Unknown exception, parameters:\ncount = ", count,
+                                              "\nfrom = ", from,
+                                              "\nto = ", to));
+    }
 }

@@ -3,6 +3,7 @@
 
 #include "Geometry/Basics/BaseTypes.hpp"
 #include "Geometry/Mesh/Surface/AABBTree/AABBTree.hpp"
+
 /**
  * @brief Represents the parameters of a triangle cell in a mesh (for surface modeling).
  *

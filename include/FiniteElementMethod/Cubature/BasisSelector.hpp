@@ -1,5 +1,5 @@
-#ifndef BASISSELECTOR_HPP
-#define BASISSELECTOR_HPP
+#ifndef BASIS_SELECTOR_HPP
+#define BASIS_SELECTOR_HPP
 
 #include <Intrepid2_CellTools.hpp>
 #include <Intrepid2_DefaultCubatureFactory.hpp>
@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "FiniteElementMethod/Cell/CellType.hpp"
-#include "FiniteElementMethod/Cubature/CubatureExceptions.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Utils/FEMCheckers.hpp"
 #include "FiniteElementMethod/FEMTypes.hpp"
 
@@ -43,7 +43,7 @@ public:
      * @throw BasisSelectorUnsupportedCellTypeException If the cell type is not supported.
      * @throw BasisSelectorUnsupportedPolynomOrderException If the polynomial order is not supported.
      */
-    static std::unique_ptr<Intrepid2::Basis<DeviceType>> get(CellType cellType, int polynom_order)
+    static std::unique_ptr<Intrepid2::Basis<DeviceType>> get(CellType cellType, short polynom_order)
     {
         FEMCheckers::checkPolynomOrder(polynom_order);
 
@@ -70,4 +70,4 @@ public:
     }
 };
 
-#endif // !BASISSELECTOR_HPP
+#endif // !BASIS_SELECTOR_HPP

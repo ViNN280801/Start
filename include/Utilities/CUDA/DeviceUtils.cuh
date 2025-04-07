@@ -1,27 +1,31 @@
-#ifndef DEVICEUTILS_HPP
-#define DEVICEUTILS_HPP
+#ifndef DEVICE_UTILS_HPP
+#define DEVICE_UTILS_HPP
 
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
 #include <stdexcept>
 #include <string>
 
+#include "Utilities/ExceptionMacros.hpp"
+
+START_DEFINE_EXCEPTION(CudaErrorException, std::runtime_error)
+
 #ifdef START_DEBUG
-#define START_CHECK_CUDA_ERROR(err, context)                                             \
-    if ((err) != cudaSuccess)                                                            \
-    {                                                                                    \
-        std::cerr << "CUDA Error: " << cudaGetErrorString(err) << "\n"                   \
-                  << "Context: " << (context) << "\n"                                    \
-                  << "Function: " << __FUNCTION__ << "\n"                                \
-                  << "File: " << __FILE__ << "\n"                                        \
-                  << "Line: " << __LINE__ << std::endl;                                  \
-        throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
+#define START_CHECK_CUDA_ERROR(err, context)                                                              \
+    if ((err) != cudaSuccess)                                                                             \
+    {                                                                                                     \
+        std::cerr << "CUDA Error: " << cudaGetErrorString(err) << "\n"                                    \
+                  << "Context: " << (context) << "\n"                                                     \
+                  << "Function: " << __FUNCTION__ << "\n"                                                 \
+                  << "File: " << __FILE__ << "\n"                                                         \
+                  << "Line: " << __LINE__ << std::endl;                                                   \
+        START_THROW_EXCEPTION(CudaErrorException, std::string(context) + ": " + cudaGetErrorString(err)); \
     }
 #elif defined(START_RELEASE)
-#define START_CHECK_CUDA_ERROR(err, context)                                             \
-    if ((err) != cudaSuccess)                                                            \
-    {                                                                                    \
-        throw std::runtime_error(std::string(context) + ": " + cudaGetErrorString(err)); \
+#define START_CHECK_CUDA_ERROR(err, context)                                                              \
+    if ((err) != cudaSuccess)                                                                             \
+    {                                                                                                     \
+        START_THROW_EXCEPTION(CudaErrorException, std::string(context) + ": " + cudaGetErrorString(err)); \
     }
 #endif
 
@@ -58,10 +62,9 @@ namespace cuda_utils
     inline void check_cuda_err(cudaError_t err, char const *message)
     {
         if (err != cudaSuccess)
-            throw std::runtime_error(std::string(message) + ": " + cudaGetErrorString(err));
+            START_THROW_EXCEPTION(CudaErrorException, std::string(message) + ": " + cudaGetErrorString(err));
     }
 }
 
 #endif // !USE_CUDA
-
-#endif // !DEVICEUTILS_HPP
+#endif // !DEVICE_UTILS_HPP

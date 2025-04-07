@@ -7,6 +7,7 @@
 
 #include <CGAL/Bbox_3.h>
 #include <atomic>
+#include <boost/container/stable_vector.hpp>
 
 #include "Geometry/Basics/BaseTypes.hpp"
 #include "Geometry/Basics/GeometryVector.hpp"
@@ -41,6 +42,10 @@ public:
     Particle(ParticleType type_, double x_, double y_, double z_, VelocityVector_rref velvec);
     Particle(ParticleType type_, Point_cref centre, VelocityVector_cref velvec);
     Particle(ParticleType type_, Point_rref centre, VelocityVector_rref velvec);
+    Particle(Particle const &other);
+    Particle(Particle &&other) noexcept;
+    Particle &operator=(Particle const &other);
+    Particle &operator=(Particle &&other) noexcept;
     ~Particle() {}
 
 #ifdef USE_CUDA
@@ -156,7 +161,7 @@ std::ostream &operator<<(std::ostream &os, Particle const &particle);
 using Particle_ref = Particle &;
 using Particle_cref = Particle const &;
 
-using ParticleVector = std::vector<Particle>;
+using ParticleVector = boost::container::stable_vector<Particle>;
 using ParticleVector_ref = ParticleVector &;
 using ParticleVector_cref = ParticleVector const &;
 

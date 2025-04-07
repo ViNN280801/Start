@@ -1,12 +1,12 @@
-#ifndef GMSHUTILS_HPP
-#define GMSHUTILS_HPP
+#ifndef GMSH_UTILS_HPP
+#define GMSH_UTILS_HPP
 
 #include <gmsh.h>
 
 #include "Geometry/Mesh/Surface/TriangleCell.hpp"
-#include "Utilities/ConfigParser.hpp"
-#include "Utilities/GmshUtilities/GmshUtilsExceptions.hpp"
 #include "Geometry/Mesh/Volumetric/VolumetricMesh.hpp"
+#include "Utilities/ConfigParser.hpp"
+#include "Utilities/UtilitiesExceptions.hpp"
 
 class GmshUtils
 {
@@ -17,7 +17,7 @@ public:
      * This function checks whether the Gmsh environment is initialized. If it is not,
      * an error message is logged, and an exception is thrown.
      *
-     * @throws std::runtime_error if Gmsh is not initialized.
+     * @throw GmshUtilsGmshNotInitializedException if Gmsh is not initialized.
      *
      * @note This function must be called before using any Gmsh API functions.
      */
@@ -31,10 +31,10 @@ public:
      *
      * @param mesh_filename The file path of the Gmsh mesh file to check.
      *
-     * @throws std::runtime_error If the file does not exist.
-     * @throws std::runtime_error If the provided path is a directory.
-     * @throws std::runtime_error If the file extension is not ".msh".
-     * @throws std::runtime_error If the file is empty.
+     * @throw GmshUtilsFileDoesNotExistException If the file does not exist.
+     * @throw GmshUtilsFileIsDirectoryException If the provided path is a directory.
+     * @throw GmshUtilsFileExtensionIsNotMshException If the file extension is not ".msh".
+     * @throw GmshUtilsFileIsEmptyException If the file is empty.
      */
     static void checkGmshMeshFile(std::string_view mesh_filename);
 
@@ -52,8 +52,8 @@ public:
      * @param special_code A special identifier indicating that the function is operating within an active Gmsh session
      *                     (without explicitly opening a file). If `meshFilename` matches `special_code`, no file is opened.
      *
-     * @throws GmshUtilsBaseException If Gmsh is not initialized or if the file validation fails (e.g., file does not exist,
-     *                                incorrect extension, empty file, or inaccessible).
+     * @throw GmshUtilsBaseException If Gmsh is not initialized or if the file validation fails (e.g., file does not exist,
+     *                               incorrect extension, empty file, or inaccessible).
      *
      * @note This function is primarily used internally to ensure mesh files are handled correctly before querying
      *       or modifying the Gmsh model.
@@ -77,8 +77,8 @@ public:
      * 2. Extract boundary surfaces for each volume using `gmsh::model::getBoundary`.
      * 3. Store unique surface tags in a vector.
      *
-     * @throws GmshUtilsNoVolumeEntitiesException if there are no volume entities.
-     * @throws GmshUtilsNoBoundaryTagsException if there are no boundary surfaces found.
+     * @throw GmshUtilsNoVolumeEntitiesException if there are no volume entities.
+     * @throw GmshUtilsNoBoundaryTagsException if there are no boundary surfaces found.
      *
      * @warning This function only works with 3D models. It does not retrieve boundaries for 2D elements.
      *
@@ -106,7 +106,7 @@ public:
      *
      * @return int The tag corresponding to the physical group.
      *
-     * @throws GmshUtilsPhysicalGroupNotFoundException If the physical group is not found.
+     * @throw GmshUtilsPhysicalGroupNotFoundException If the physical group is not found.
      *
      * @details
      * **Algorithm:**
@@ -129,7 +129,7 @@ public:
      *
      * @return TriangleCellMap A map of triangle cells.
      *
-     * @throws GmshUtilsNoTriangleCellsException If the mesh does not contain any triangles.
+     * @throw GmshUtilsNoTriangleCellsException If the mesh does not contain any triangles.
      */
     static TriangleCellMap getTriangleCellsMap(std::string_view meshFilename);
 
@@ -146,7 +146,7 @@ public:
      *  - **Key:** Triangle cell ID.
      *  - **Value:** A 3D coordinate array representing the centroid.
      *
-     * @throws GmshUtilsNoTriangleCellsException If the physical group does not contain any triangles.
+     * @throw GmshUtilsNoTriangleCellsException If the physical group does not contain any triangles.
      *
      * @details
      * **Algorithm:**
@@ -172,7 +172,7 @@ public:
      *
      * @return TriangleCellMap A map of triangle cells.
      *
-     * @throws GmshUtilsNoTriangleCellsException If the physical group does not contain any triangles.
+     * @throw GmshUtilsNoTriangleCellsException If the physical group does not contain any triangles.
      *
      * @details
      * **Algorithm:**
@@ -209,8 +209,7 @@ public:
      *         - The second element (`int`) is the unique integer tag assigned to the group.
      *         - The third element (`std::string`) is the name of the physical group.
      *
-     * @throws GmshUtilsNoPhysicalGroupsException If no physical groups are found or if an error occurs during retrieval.
-     *
+     * @throw GmshUtilsNoPhysicalGroupsException If no physical groups are found or if an error occurs during retrieval.
      * @see GmshUtils::hasPhysicalGroup()
      * @see checkAndOpenMesh()
      *
@@ -240,7 +239,7 @@ public:
      *
      * @return `true` if a physical group with the given name exists; otherwise, `false`.
      *
-     * @throws GmshUtilsBaseException If Gmsh is not initialized or the physical groups cannot be retrieved.
+     * @throw GmshUtilsBaseException If Gmsh is not initialized or the physical groups cannot be retrieved.
      *
      * @note This function is compatible with both **C++17** and **C++20**:
      *       - In **C++20**, it utilizes `std::ranges::find_if` for better performance and readability.
@@ -276,7 +275,7 @@ public:
  *
  * @return int The tag of the matching surface, or `-1` if not found.
  *
- * @throws GmshUtilsNoMatchingSurfaceException If no matching surface is found.
+ * @throw GmshUtilsNoMatchingSurfaceException If no matching surface is found.
  *
  * @details
  * **Algorithm:**
@@ -300,10 +299,10 @@ public:
         checkAndOpenMesh(meshFilename);
 
         if (surfaceCoords.empty())
-            throw GmshUtilsNoSurfaceCoordsException("Surface coords are empty.");
+            START_THROW_EXCEPTION(GmshUtilsNoSurfaceCoordsException, "Surface coords are empty.");
         for (auto const &point : surfaceCoords)
             if (point.size() != 3ul)
-                throw GmshUtilsInvalidSurfaceCoordsException(util::stringify("Assuming 3D space, but have point with ", point.size(), " coords"));
+                START_THROW_EXCEPTION(GmshUtilsInvalidSurfaceCoordsException, util::stringify("Assuming 3D space, but have point with ", point.size(), " coords"));
 
         std::vector<std::pair<int, int>> surfaces;
         gmsh::model::getEntities(surfaces, 2);
@@ -345,4 +344,4 @@ public:
     }
 };
 
-#endif // !GMSHUTILS_HPP
+#endif // !GMSH_UTILS_HPP

@@ -1,5 +1,5 @@
-#ifndef REALNUMBERGENERATORHOST_HPP
-#define REALNUMBERGENERATORHOST_HPP
+#ifndef REAL_NUMBER_GENERATOR_HOST_HPP
+#define REAL_NUMBER_GENERATOR_HOST_HPP
 
 #include <random>
 #include <vector>
@@ -90,14 +90,14 @@ public:
      *
      * @param val The lower bound value.
      */
-    void set_lower_bound(double);
+    void set_lower_bound(double) noexcept;
 
     /**
      * @brief Sets the upper bound for random number generation.
      *
      * @param val The upper bound value.
      */
-    void set_upper_bound(double);
+    void set_upper_bound(double) noexcept;
 
     /**
      * @brief Sets the lower and upper bounds for random number generation.
@@ -105,7 +105,7 @@ public:
      * @param from Lower bound for the generated number.
      * @param to Upper bound for the generated number.
      */
-    void set(double from, double to);
+    void set(double from, double to) noexcept;
 
     /**
      * @brief Generates sequence of real numbers in specified interval.
@@ -114,4 +114,4 @@ public:
     std::vector<double> get_sequence(size_t count, double from = 0.0, double to = 1.0);
 };
 
-#endif // !REALNUMBERGENERATORHOST_HPP
+#endif // !REAL_NUMBER_GENERATOR_HOST_HPP

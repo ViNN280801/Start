@@ -1,8 +1,15 @@
 from vtk import (
-    vtkPoints, vtkCellArray, vtkUnstructuredGrid, vtkUnstructuredGridWriter,
-    vtkTriangle, vtkPolyData, vtkPolyDataMapper, vtkActor, vtkVertexGlyphFilter,
+    vtkPoints,
+    vtkCellArray,
+    vtkUnstructuredGrid,
+    vtkUnstructuredGridWriter,
+    vtkTriangle,
+    vtkPolyData,
+    vtkPolyDataMapper,
+    vtkActor,
+    vtkVertexGlyphFilter,
     vtkPolyLine,
-    VTK_TRIANGLE
+    VTK_TRIANGLE,
 )
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QTreeView
@@ -11,9 +18,8 @@ from styles import *
 
 
 class MeshTreeManager:
-    
     @staticmethod
-    def get_tree_dict(mesh_filename: str = None, obj_type: str = 'volume') -> dict:
+    def get_tree_dict(mesh_filename: str = None, obj_type: str = "volume") -> dict:
         """
         Extracts the data from Gmsh and returns it in a structured format.
 
@@ -29,7 +35,7 @@ class MeshTreeManager:
         RuntimeError: If there is an error opening the mesh file or processing the Gmsh data.
         """
         from gmsh import model, open
-        
+
         try:
             if mesh_filename:
                 open(mesh_filename)
@@ -39,91 +45,115 @@ class MeshTreeManager:
             # Getting all the nodes and their coordinates
             all_node_tags, all_node_coords, _ = model.mesh.getNodes()
             node_coords_map = {
-                tag: (all_node_coords[i * 3], all_node_coords[i * 3 + 1],
-                    all_node_coords[i * 3 + 2])
+                tag: (
+                    all_node_coords[i * 3],
+                    all_node_coords[i * 3 + 1],
+                    all_node_coords[i * 3 + 2],
+                )
                 for i, tag in enumerate(all_node_tags)
             }
 
-            if obj_type == 'point':
+            if obj_type == "point":
                 point_map = {
-                    f'Point[{tag}]': coords
-                    for tag, coords in node_coords_map.items()
+                    f"Point[{tag}]": coords for tag, coords in node_coords_map.items()
                 }
                 return point_map
 
-            if obj_type == 'line':
+            if obj_type == "line":
                 lines = model.getEntities(dim=1)
                 line_map = {}
 
                 for line_dim, line_tag in lines:
-                    element_types, element_tags, node_tags = model.mesh.getElements(line_dim, line_tag)
+                    element_types, element_tags, node_tags = model.mesh.getElements(
+                        line_dim, line_tag
+                    )
 
                     for elem_type, elem_tags, elem_node_tags in zip(
-                            element_types, element_tags, node_tags):
+                        element_types, element_tags, node_tags
+                    ):
                         if elem_type == 1:  # 1st type for lines
                             for i in range(len(elem_tags)):
-                                node_indices = elem_node_tags[i * 2:(i + 1) * 2]
-                                line = [(node_indices[0],
-                                        node_coords_map[node_indices[0]]),
-                                        (node_indices[1],
-                                        node_coords_map[node_indices[1]])]
-                                line_map[f'Line[{elem_tags[i]}]'] = line
+                                node_indices = elem_node_tags[i * 2 : (i + 1) * 2]
+                                line = [
+                                    (node_indices[0], node_coords_map[node_indices[0]]),
+                                    (node_indices[1], node_coords_map[node_indices[1]]),
+                                ]
+                                line_map[f"Line[{elem_tags[i]}]"] = line
                 return line_map
 
-            if obj_type == 'surface':
+            if obj_type == "surface":
                 surfaces = model.getEntities(dim=2)
                 surface_map = {}
 
                 for surf_dim, surf_tag in surfaces:
-                    element_types, element_tags, node_tags = model.mesh.getElements(surf_dim, surf_tag)
+                    element_types, element_tags, node_tags = model.mesh.getElements(
+                        surf_dim, surf_tag
+                    )
 
                     triangles = []
                     for elem_type, elem_tags, elem_node_tags in zip(
-                            element_types, element_tags, node_tags):
+                        element_types, element_tags, node_tags
+                    ):
                         if elem_type == 2:  # 2nd type for the triangles
                             for i in range(len(elem_tags)):
-                                node_indices = elem_node_tags[i * 3:(i + 1) * 3]
-                                triangle = [(node_indices[0],
-                                            node_coords_map[node_indices[0]]),
-                                            (node_indices[1],
-                                            node_coords_map[node_indices[1]]),
-                                            (node_indices[2],
-                                            node_coords_map[node_indices[2]])]
+                                node_indices = elem_node_tags[i * 3 : (i + 1) * 3]
+                                triangle = [
+                                    (node_indices[0], node_coords_map[node_indices[0]]),
+                                    (node_indices[1], node_coords_map[node_indices[1]]),
+                                    (node_indices[2], node_coords_map[node_indices[2]]),
+                                ]
                                 triangles.append((elem_tags[i], triangle))
                     surface_map[surf_tag] = triangles
                 return surface_map
 
-            if obj_type == 'volume':
+            if obj_type == "volume":
                 volumes = model.getEntities(dim=3)
                 treedict = {}
 
                 entities = volumes if volumes else model.getEntities(dim=2)
 
                 for dim, tag in entities:
-                    surfaces = model.getBoundary([(dim, tag)], oriented=False, recursive=False) if volumes else [(dim, tag)]
+                    surfaces = (
+                        model.getBoundary([(dim, tag)], oriented=False, recursive=False)
+                        if volumes
+                        else [(dim, tag)]
+                    )
 
                     surface_map = {}
                     for surf_dim, surf_tag in surfaces:
-                        element_types, element_tags, node_tags = model.mesh.getElements(surf_dim, surf_tag)
+                        element_types, element_tags, node_tags = model.mesh.getElements(
+                            surf_dim, surf_tag
+                        )
 
                         triangles = []
                         for elem_type, elem_tags, elem_node_tags in zip(
-                                element_types, element_tags, node_tags):
+                            element_types, element_tags, node_tags
+                        ):
                             if elem_type == 2:  # 2nd type for the triangles
                                 for i in range(len(elem_tags)):
-                                    node_indices = elem_node_tags[i * 3:(i + 1) * 3]
-                                    triangle = [(node_indices[0],
-                                                node_coords_map[node_indices[0]]),
-                                                (node_indices[1],
-                                                node_coords_map[node_indices[1]]),
-                                                (node_indices[2],
-                                                node_coords_map[node_indices[2]])]
+                                    node_indices = elem_node_tags[i * 3 : (i + 1) * 3]
+                                    triangle = [
+                                        (
+                                            node_indices[0],
+                                            node_coords_map[node_indices[0]],
+                                        ),
+                                        (
+                                            node_indices[1],
+                                            node_coords_map[node_indices[1]],
+                                        ),
+                                        (
+                                            node_indices[2],
+                                            node_coords_map[node_indices[2]],
+                                        ),
+                                    ]
                                     triangles.append((elem_tags[i], triangle))
                         surface_map[surf_tag] = triangles
                     treedict[tag] = surface_map
                 return treedict
 
-            raise ValueError("Invalid obj_type. Must be one of 'point', 'line', 'surface', 'volume'.")
+            raise ValueError(
+                "Invalid obj_type. Must be one of 'point', 'line', 'surface', 'volume'."
+            )
 
         except Exception as e:
             raise RuntimeError(f"An error occurred while processing the Gmsh data: {e}")
@@ -141,8 +171,8 @@ class MeshTreeManager:
             bool: True if the file was successfully written, False otherwise.
         """
         try:
-            if not filename.endswith('.vtk'):
-                filename += '.vtk'
+            if not filename.endswith(".vtk"):
+                filename += ".vtk"
 
             points = vtkPoints()
             points.SetDataTypeToDouble()
@@ -197,7 +227,7 @@ class MeshTreeManager:
         """
         actors = []
 
-        if objType == 'volume':
+        if objType == "volume":
             for _, surfaces in treedict.items():
                 for surface_tag, triangles in surfaces.items():
                     points = vtkPoints()
@@ -236,7 +266,7 @@ class MeshTreeManager:
                     # Add the actor to the list
                     actors.append(actor)
 
-        elif objType == 'surface':
+        elif objType == "surface":
             for surface_tag, triangles in treedict.items():
                 points = vtkPoints()
                 triangles_array = vtkCellArray()
@@ -274,7 +304,7 @@ class MeshTreeManager:
                 # Add the actor to the list
                 actors.append(actor)
 
-        elif objType == 'line':
+        elif objType == "line":
             for line_tag, points in treedict.items():
                 vtk_points = vtkPoints()
                 poly_line = vtkPolyLine()
@@ -309,7 +339,7 @@ class MeshTreeManager:
                 # Add the actor to the list
                 actors.append(actor)
 
-        elif objType == 'point':
+        elif objType == "point":
             for point_tag, coords in treedict.items():
                 vtk_points = vtkPoints()
                 vtk_points.InsertNextPoint(coords)
@@ -334,9 +364,13 @@ class MeshTreeManager:
         return actors
 
     @staticmethod
-    def populate_tree_view(treedict: dict, object_idx: int,
-                        tree_model: QStandardItemModel, tree_view: QTreeView,
-                        type: str) -> int:
+    def populate_tree_view(
+        treedict: dict,
+        object_idx: int,
+        tree_model: QStandardItemModel,
+        tree_view: QTreeView,
+        type: str,
+    ) -> int:
         """
         Populate the tree model with the hierarchical structure of the object map.
 
@@ -354,11 +388,11 @@ class MeshTreeManager:
         rows = []
         root_row_index = -1
 
-        if type == 'volume':
+        if type == "volume":
             # Case when treedict contains volumes
             for _, surfaces in treedict.items():
                 # Add the volume node to the tree model
-                volume_item = QStandardItem(f'Volume[{object_idx}]')
+                volume_item = QStandardItem(f"Volume[{object_idx}]")
                 tree_model.appendRow(volume_item)
 
                 # Get the index of the volume item
@@ -367,36 +401,39 @@ class MeshTreeManager:
 
                 for surface_tag, triangles in surfaces.items():
                     # Add the surface node to the tree model under the volume node
-                    surface_item = QStandardItem(f'Surface[{surface_tag}]')
+                    surface_item = QStandardItem(f"Surface[{surface_tag}]")
                     volume_item.appendRow(surface_item)
 
                     for triangle_tag, nodes in triangles:
                         # Add the triangle node to the tree model under the surface node
-                        triangle_item = QStandardItem(f'Triangle[{triangle_tag}]')
+                        triangle_item = QStandardItem(f"Triangle[{triangle_tag}]")
                         surface_item.appendRow(triangle_item)
 
                         # Generate lines for the triangle
-                        lines = [(nodes[0], nodes[1]), (nodes[1], nodes[2]),
-                                (nodes[2], nodes[0])]
+                        lines = [
+                            (nodes[0], nodes[1]),
+                            (nodes[1], nodes[2]),
+                            (nodes[2], nodes[0]),
+                        ]
 
                         for line_idx, (start, end) in enumerate(lines, start=1):
                             # Add the line node under the triangle node
-                            line_item = QStandardItem(f'Line[{line_idx}]')
+                            line_item = QStandardItem(f"Line[{line_idx}]")
                             triangle_item.appendRow(line_item)
 
                             # Add the point data under the line node
-                            start_str = f'Point[{start[0]}]: {start[1]}'
-                            end_str = f'Point[{end[0]}]: {end[1]}'
+                            start_str = f"Point[{start[0]}]: {start[1]}"
+                            end_str = f"Point[{end[0]}]: {end[1]}"
                             start_item = QStandardItem(start_str)
                             end_item = QStandardItem(end_str)
                             line_item.appendRow(start_item)
                             line_item.appendRow(end_item)
 
-        elif type == 'surface':
+        elif type == "surface":
             # Case when treedict contains surfaces directly
             for surface_tag, triangles in treedict.items():
                 # Add the surface node to the tree model
-                surface_item = QStandardItem(f'Surface[{surface_tag}]')
+                surface_item = QStandardItem(f"Surface[{surface_tag}]")
                 tree_model.appendRow(surface_item)
 
                 # Get the index of the surface item
@@ -405,31 +442,34 @@ class MeshTreeManager:
 
                 for triangle_tag, nodes in triangles:
                     # Add the triangle node to the tree model under the surface node
-                    triangle_item = QStandardItem(f'Triangle[{triangle_tag}]')
+                    triangle_item = QStandardItem(f"Triangle[{triangle_tag}]")
                     surface_item.appendRow(triangle_item)
 
                     # Generate lines for the triangle
-                    lines = [(nodes[0], nodes[1]), (nodes[1], nodes[2]),
-                            (nodes[2], nodes[0])]
+                    lines = [
+                        (nodes[0], nodes[1]),
+                        (nodes[1], nodes[2]),
+                        (nodes[2], nodes[0]),
+                    ]
 
                     for line_idx, (start, end) in enumerate(lines, start=1):
                         # Add the line node under the triangle node
-                        line_item = QStandardItem(f'Line[{line_idx}]')
+                        line_item = QStandardItem(f"Line[{line_idx}]")
                         triangle_item.appendRow(line_item)
 
                         # Add the point data under the line node
-                        start_str = f'Point[{start[0]}]: {start[1]}'
-                        end_str = f'Point[{end[0]}]: {end[1]}'
+                        start_str = f"Point[{start[0]}]: {start[1]}"
+                        end_str = f"Point[{end[0]}]: {end[1]}"
                         start_item = QStandardItem(start_str)
                         end_item = QStandardItem(end_str)
                         line_item.appendRow(start_item)
                         line_item.appendRow(end_item)
 
-        elif type == 'line':
+        elif type == "line":
             # Case when treedict contains lines directly
             for line_tag, points in treedict.items():
                 # Add the line node to the tree model
-                line_item = QStandardItem(f'{line_tag}')
+                line_item = QStandardItem(f"{line_tag}")
                 tree_model.appendRow(line_item)
 
                 # Get the index of the line item
@@ -439,23 +479,23 @@ class MeshTreeManager:
 
                 for point_idx, (point_tag, coords) in enumerate(points, start=1):
                     # Add the point node to the tree model under the line node
-                    point_str = f'Point[{point_tag}]: {coords}'
+                    point_str = f"Point[{point_tag}]: {coords}"
                     point_item = QStandardItem(point_str)
                     line_item.appendRow(point_item)
 
-        elif type == 'point':
+        elif type == "point":
             for point_tag, coords in treedict.items():
-                point_item = QStandardItem(f'{point_tag}: {coords}')
+                point_item = QStandardItem(f"{point_tag}: {coords}")
                 tree_model.appendRow(point_item)
                 point_index = tree_model.indexFromItem(point_item)
                 root_row_index = point_index.row()
 
         tree_view.setModel(tree_model)
-        if type != 'line':
+        if type != "line":
             return root_row_index
         else:
             return rows
-        
+
     @staticmethod
     def form_actor_nodes_dictionary(treedict: dict, actor_rows: dict, objType: str):
         actor_nodes_dict = {}
@@ -464,30 +504,30 @@ class MeshTreeManager:
             if actor not in actor_nodes_dict:
                 actor_nodes_dict[actor] = set()
 
-            if objType == 'volume':
+            if objType == "volume":
                 for volume_tag, surfaces in treedict.items():
                     for surface_tag, triangles in surfaces.items():
                         if surface_tag - 1 == surface_index:
                             for triangle_tag, nodes in triangles:
                                 for node in nodes:
                                     actor_nodes_dict[actor].add(node[0])
-            elif objType == 'surface':
+            elif objType == "surface":
                 for surface_tag, triangles in treedict.items():
                     if surface_tag - 1 == surface_index:
                         for triangle_tag, nodes in triangles:
                             for node in nodes:
                                 actor_nodes_dict[actor].add(node[0])
-            elif objType == 'line':
+            elif objType == "line":
                 for line_tag, line_nodes in treedict.items():
-                    if surface_index == int(line_tag.split('[')[1][:-1]):
+                    if surface_index == int(line_tag.split("[")[1][:-1]):
                         for node in line_nodes:
                             actor_nodes_dict[actor].add(node[0])
-            elif objType == 'point':
-                if f'Point[{surface_index}]' in treedict:
+            elif objType == "point":
+                if f"Point[{surface_index}]" in treedict:
                     actor_nodes_dict[actor].add(surface_index)
 
         return actor_nodes_dict
-    
+
     @staticmethod
     def copy_children(source_item, target_item):
         """
@@ -507,7 +547,7 @@ class MeshTreeManager:
 
             # Recursively call copy_children to copy the children of the current child
             MeshTreeManager.copy_children(source_item.child(row), child)
-    
+
     @staticmethod
     def rename_first_selected_row(model, volume_row, surface_indices):
         """
@@ -527,7 +567,7 @@ class MeshTreeManager:
         first_child_index = model.index(first_surface_index, 0, parent_index)
         first_item = model.itemFromIndex(first_child_index)
         first_item.setText(merged_surface_name)
-        
+
     @staticmethod
     def update_tree_view(model, volume_row, surface_indices):
         surface_indices = sorted(surface_indices)
@@ -538,8 +578,10 @@ class MeshTreeManager:
         for surface_index in surface_indices[1:]:
             child_index = model.index(surface_index, 0, parent_index)
             child_item = model.itemFromIndex(child_index)
-            MeshTreeManager.copy_children(child_item, model.itemFromIndex(
-                model.index(surface_indices[0], 0, parent_index)))
+            MeshTreeManager.copy_children(
+                child_item,
+                model.itemFromIndex(model.index(surface_indices[0], 0, parent_index)),
+            )
 
         # Deleting the rest of the selected rows from the tree view
         for surface_index in surface_indices[1:][::-1]:
@@ -554,7 +596,7 @@ class MeshTreeManager:
             if not index.isValid():
                 return
 
-            print(' ' * level * 4 + str(index.row()))
+            print(" " * level * 4 + str(index.row()))
 
             # Iterate over children
             for i in range(model.rowCount(index)):

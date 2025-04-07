@@ -3,9 +3,8 @@
 #include <limits>
 #include <stdexcept>
 
-#include "FiniteElementMethod/Cell/CellSelectorException.hpp"
+#include "FiniteElementMethod/FEMExceptions.hpp"
 #include "FiniteElementMethod/Utils/FEMCheckers.hpp"
-#include "FiniteElementMethod/Utils/FEMUtilsExceptions.hpp"
 #include "Utilities/GmshUtilities/GmshUtils.hpp"
 
 // Test fixture for FEMCheckers
@@ -51,17 +50,18 @@ TEST_F(FEMCheckersTest, InvalidMeshFile)
 
 TEST_F(FEMCheckersTest, DesiredAccuracyNegative)
 {
-    EXPECT_THROW(FEMCheckers::checkDesiredAccuracy(-1), std::underflow_error);
+    EXPECT_THROW(FEMCheckers::checkDesiredAccuracy(-1), FEMCheckersUnderflowDesiredAccuracyException);
 }
 
 TEST_F(FEMCheckersTest, DesiredAccuracyZero)
 {
-    EXPECT_THROW(FEMCheckers::checkDesiredAccuracy(0), std::invalid_argument);
+    EXPECT_THROW(FEMCheckers::checkDesiredAccuracy(0), FEMCheckersUnsupportedDesiredAccuracyException);
 }
 
 TEST_F(FEMCheckersTest, DesiredAccuracyTooHigh)
 {
-    EXPECT_THROW(FEMCheckers::checkDesiredAccuracy(FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY + 1), std::overflow_error);
+    EXPECT_THROW(FEMCheckers::checkDesiredAccuracy(FEM_LIMITS_MAX_DESIRED_CALCULATION_ACCURACY + 1),
+                 FEMCheckersOverflowDesiredAccuracyException);
 }
 
 TEST_F(FEMCheckersTest, DesiredAccuracyValid)
@@ -71,17 +71,18 @@ TEST_F(FEMCheckersTest, DesiredAccuracyValid)
 
 TEST_F(FEMCheckersTest, PolynomOrderNegative)
 {
-    EXPECT_THROW(FEMCheckers::checkPolynomOrder(-1), std::underflow_error);
+    EXPECT_THROW(FEMCheckers::checkPolynomOrder(-1), FEMCheckersUnderflowPolynomOrderException);
 }
 
 TEST_F(FEMCheckersTest, PolynomOrderZero)
 {
-    EXPECT_THROW(FEMCheckers::checkPolynomOrder(0), std::invalid_argument);
+    EXPECT_THROW(FEMCheckers::checkPolynomOrder(0), FEMCheckersUnsupportedPolynomOrderException);
 }
 
 TEST_F(FEMCheckersTest, PolynomOrderTooHigh)
 {
-    EXPECT_THROW(FEMCheckers::checkPolynomOrder(FEM_LIMITS_MAX_POLYNOMIAL_ORDER + 1), std::overflow_error);
+    EXPECT_THROW(FEMCheckers::checkPolynomOrder(FEM_LIMITS_MAX_POLYNOMIAL_ORDER + 1),
+                 FEMCheckersOverflowPolynomOrderException);
 }
 
 TEST_F(FEMCheckersTest, PolynomOrderValid)
@@ -103,7 +104,7 @@ TEST_F(FEMCheckersTest, InvalidCellType)
 TEST_F(FEMCheckersTest, IndexNegativeSigned)
 {
     GlobalOrdinal signedIndex = -1;
-    EXPECT_THROW(FEMCheckers::checkIndex(signedIndex), std::out_of_range);
+    EXPECT_THROW(FEMCheckers::checkIndex(signedIndex), FEMCheckersIndexOutOfRangeException);
 }
 
 TEST_F(FEMCheckersTest, IndexValidUnsigned)
@@ -116,7 +117,7 @@ TEST_F(FEMCheckersTest, IndexTooHighUnsigned)
 {
     GlobalOrdinal unsignedIndex = 1000;
     size_t upper_bound = 999;
-    EXPECT_THROW(FEMCheckers::checkIndex(unsignedIndex, upper_bound), std::out_of_range);
+    EXPECT_THROW(FEMCheckers::checkIndex(unsignedIndex, upper_bound), FEMCheckersIndexOutOfRangeException);
 }
 
 TEST_F(FEMCheckersTest, IndexValidWithinUpperBound)
@@ -130,14 +131,14 @@ TEST_F(FEMCheckersTest, IndexNegativeWithUpperBound)
 {
     GlobalOrdinal signedIndex = -1;
     size_t upper_bound = 100;
-    EXPECT_THROW(FEMCheckers::checkIndex(signedIndex, upper_bound), std::out_of_range);
+    EXPECT_THROW(FEMCheckers::checkIndex(signedIndex, upper_bound), FEMCheckersIndexOutOfRangeException);
 }
 
 TEST_F(FEMCheckersTest, MaxGlobalOrdinal)
 {
     GlobalOrdinal maxIndex = 7;
     size_t upper_bound = 6;
-    EXPECT_THROW(FEMCheckers::checkIndex(maxIndex, upper_bound), std::out_of_range);
+    EXPECT_THROW(FEMCheckers::checkIndex(maxIndex, upper_bound), FEMCheckersIndexOutOfRangeException);
 }
 
 TEST_F(FEMCheckersTest, MinGlobalOrdinal)
@@ -145,7 +146,7 @@ TEST_F(FEMCheckersTest, MinGlobalOrdinal)
     GlobalOrdinal minIndex = std::numeric_limits<GlobalOrdinal>::min();
     if constexpr (std::is_signed_v<GlobalOrdinal>)
     {
-        EXPECT_THROW(FEMCheckers::checkIndex(minIndex), std::out_of_range);
+        EXPECT_THROW(FEMCheckers::checkIndex(minIndex), FEMCheckersIndexOutOfRangeException);
     }
     else
     {
@@ -157,5 +158,5 @@ TEST_F(FEMCheckersTest, UpperBoundEdgeCase)
 {
     GlobalOrdinal index = 1000;
     size_t upper_bound = 999;
-    EXPECT_THROW(FEMCheckers::checkIndex(index, upper_bound), std::out_of_range);
+    EXPECT_THROW(FEMCheckers::checkIndex(index, upper_bound), FEMCheckersIndexOutOfRangeException);
 }
